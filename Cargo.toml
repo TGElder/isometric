@@ -1,0 +1,9 @@
+[package]
+name = "isometric"
+version = "0.1.0"
+authors = ["Thomas Elder <tgelder@gmail.com>"]
+
+[dependencies]
+glutin = "0.19.0"
+gl = "0.11.0"
+
