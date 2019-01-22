@@ -1,6 +1,9 @@
 extern crate glutin;
 
 use self::glutin::GlContext;
+use std::ffi::CString;
+use shader::Shader;
+use program::Program;
 
 pub struct IsometricEngine {
     events_loop: glutin::EventsLoop,
@@ -31,6 +34,7 @@ impl IsometricEngine {
             gl::ClearColor(0.0, 1.0, 0.0, 1.0);
         }
 
+        IsometricEngine::load_program();
 
         IsometricEngine{
             events_loop,
@@ -63,6 +67,24 @@ impl IsometricEngine {
 
             self.window.swap_buffers().unwrap();
         }
+    }
+
+    pub fn load_program() {
+        let vertex_shader = Shader::from_source(
+            &CString::new(include_str!("shaders/triangle.vert")).unwrap(), //TODO don't like exposing CString
+            gl::VERTEX_SHADER
+        ).unwrap();
+
+        let fragment_shader = Shader::from_source(
+            &CString::new(include_str!("shaders/triangle.frag")).unwrap(),
+            gl::FRAGMENT_SHADER
+        ).unwrap();
+
+        let shader_program = Program::from_shaders(
+            &[vertex_shader, fragment_shader]
+        ).unwrap();
+
+        shader_program.set_used();
     }
 }
 

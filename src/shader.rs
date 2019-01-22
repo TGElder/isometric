@@ -1,4 +1,5 @@
 use std::ffi::{CString, CStr};
+use utils::create_whitespace_cstring_with_len;
 
 pub struct Shader {
     id: gl::types::GLuint,
@@ -44,8 +45,7 @@ impl Shader {
 
     fn get_message(&self) -> String {
         let length = self.get_log_length();
-        let mut buffer: Vec<u8> = vec![b' '; length as usize + 1];
-        let error: CString = unsafe { CString::from_vec_unchecked(buffer) };
+        let error = create_whitespace_cstring_with_len(length as usize);
         unsafe {
             gl::GetShaderInfoLog(
                 self.id,
@@ -55,6 +55,10 @@ impl Shader {
             );
         }
         error.to_string_lossy().into_owned()
+    }
+
+    pub fn id(&self) -> gl::types::GLuint {
+        self.id
     }
 }
 
