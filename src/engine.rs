@@ -9,12 +9,15 @@ pub struct IsometricEngine {
 
 impl IsometricEngine {
 
-    pub fn new(title: &str, width: f64, height: f64) -> IsometricEngine {
+    const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (4, 5));
+
+    pub fn new(title: &str, width: u32, height: u32) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title(title)
-            .with_dimensions(glutin::dpi::LogicalSize::new(width, height));
+            .with_dimensions(glutin::dpi::LogicalSize::new(width as f64, height as f64));
         let context = glutin::ContextBuilder::new()
+            .with_gl(IsometricEngine::GL_VERSION)
             .with_vsync(true);
         let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
 
@@ -24,6 +27,7 @@ impl IsometricEngine {
 
         unsafe {
             gl::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _);
+            gl::Viewport(0, 0, width as i32, height as i32);
             gl::ClearColor(0.0, 1.0, 0.0, 1.0);
         }
 
@@ -61,3 +65,4 @@ impl IsometricEngine {
         }
     }
 }
+
