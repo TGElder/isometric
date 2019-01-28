@@ -14,7 +14,7 @@ pub struct IsometricEngine {
 
 impl IsometricEngine {
 
-    const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (4, 5));
+    const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
 
     pub fn new(title: &str, width: u32, height: u32) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
@@ -42,12 +42,24 @@ impl IsometricEngine {
         let vertices: Vec<f32> = vec![
             -0.5, -0.5, 0.0,
             0.5, -0.5, 0.0,
-            0.0, 0.5, 0.0
+            -0.5, 0.5, 0.0,
+            -0.5, 0.5, 0.0,
+            0.5, -0.5, 0.0,
+            0.5, 0.5, 0.0
         ];
 
         vbo.load(vertices);
 
-        IsometricEngine::load_program();
+        let program = IsometricEngine::load_program();
+        
+        unsafe {
+            let mvp_location = gl::GetUniformLocation(program.id(), CString::new("MVP").unwrap().as_ptr() as *const gl::types::GLchar);
+            //let proj = na::Matrix4::identity();
+            let proj = na::Orthographic3::new(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
+            let proj_matrix = proj.as_matrix();
+            let proj_ptr = proj_matrix.as_slice().as_ptr() as *const f32;
+            gl::UniformMatrix4fv(mvp_location, 1, gl::FALSE, proj_ptr);
+        }
 
         IsometricEngine{
             events_loop,
@@ -81,7 +93,7 @@ impl IsometricEngine {
                 gl::DrawArrays(
                     gl::TRIANGLES, // mode
                     0, // starting index in the enabled arrays
-                    3 // number of indices to be rendered
+                    6 // number of indices to be rendered
                 );
                 self.vao.unbind();
             }
@@ -90,7 +102,7 @@ impl IsometricEngine {
         }
     }
 
-    pub fn load_program() {
+    pub fn load_program() -> Program {
         let vertex_shader = Shader::from_source(
             &CString::new(include_str!("shaders/triangle.vert")).unwrap(), //TODO don't like exposing CString
             gl::VERTEX_SHADER
@@ -106,6 +118,8 @@ impl IsometricEngine {
         ).unwrap();
 
         shader_program.set_used();
+
+        return shader_program;
     }
 
 }
@@ -120,8 +134,8 @@ impl VBO {
         let mut id: gl::types::GLuint = 0;
         unsafe {
             gl::GenBuffers(1, &mut id);
-             let out = VBO {
-            id
+            let out = VBO {
+                id
             };
             out.set_vao(vao);
             out
@@ -202,11 +216,11 @@ impl BufferType for TriangleBuffer {
             gl::EnableVertexAttribArray(0);
             gl::VertexAttribPointer(
                 0,
-                    3,
-                    gl::FLOAT,
-                    gl::FALSE,
-                    (3 * std::mem::size_of::<f32>()) as gl::types::GLint,
-                    std::ptr::null()
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                (3 * std::mem::size_of::<f32>()) as gl::types::GLint,
+                std::ptr::null()
             );
         }
     }
