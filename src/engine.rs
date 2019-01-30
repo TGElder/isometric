@@ -54,11 +54,13 @@ impl IsometricEngine {
         
         unsafe {
             let mvp_location = gl::GetUniformLocation(program.id(), CString::new("MVP").unwrap().as_ptr() as *const gl::types::GLchar);
-            //let proj = na::Matrix4::identity();
-            let proj = na::Orthographic3::new(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
-            let proj_matrix = proj.as_matrix();
-            let proj_ptr = proj_matrix.as_slice().as_ptr() as *const f32;
-            gl::UniformMatrix4fv(mvp_location, 1, gl::FALSE, proj_ptr);
+            let proj_matrix: na::Matrix3<f32> = na::Matrix3::new(
+                1.0, -1.0, 0.0,
+                0.5, 0.5, -1.0,
+                0.5, 0.5, -1.0
+            );
+            let proj_ptr = proj_matrix.as_slice().as_ptr();
+            gl::UniformMatrix3fv(mvp_location, 1, gl::FALSE, proj_ptr);
         }
 
         IsometricEngine{
