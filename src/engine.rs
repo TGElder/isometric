@@ -10,6 +10,8 @@ pub struct IsometricEngine {
     events_loop: glutin::EventsLoop,
     window: glutin::GlWindow,
     vao: VAO<TriangleBuffer>,
+    // scale: f32,
+    // offset: f32
 }
 
 impl IsometricEngine {
@@ -51,17 +53,22 @@ impl IsometricEngine {
         vbo.load(vertices);
 
         let program = IsometricEngine::load_program();
-        
-        unsafe {
-            let mvp_location = gl::GetUniformLocation(program.id(), CString::new("MVP").unwrap().as_ptr() as *const gl::types::GLchar);
-            let proj_matrix: na::Matrix3<f32> = na::Matrix3::new(
-                1.0, -1.0, 0.0,
-                0.5, 0.5, -1.0,
-                0.5, 0.5, -1.0
-            );
-            let proj_ptr = proj_matrix.as_slice().as_ptr();
-            gl::UniformMatrix3fv(mvp_location, 1, gl::FALSE, proj_ptr);
-        }
+
+        let proj_matrix: na::Matrix4<f32> = na::Matrix4::new(
+            1.0, -1.0, 0.0, 0.0,
+            0.5, 0.5, -1.0, 0.0,
+            0.5, 0.5, -1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0);
+        program.load_matrix("MVP", proj_matrix);
+
+
+        let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
+            0.5, 0.0, 0.0, 0.0,
+            0.0, 0.5, 0.0, 0.0,
+            0.0, 0.0, 0.5, 0.0,
+            0.0, 0.0, 0.0, 1.0);
+        program.load_matrix("scale", scale_matrix);
+    
 
         IsometricEngine{
             events_loop,
@@ -123,6 +130,8 @@ impl IsometricEngine {
 
         return shader_program;
     }
+
+    
 
 }
 
