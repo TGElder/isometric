@@ -12,13 +12,14 @@ pub struct IsometricEngine {
     vao: VAO<TriangleBuffer>,
     // scale: f32,
     // offset: f32
+    vertex_count: i32
 }
 
 impl IsometricEngine {
 
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
 
-    pub fn new(title: &str, width: u32, height: u32) -> IsometricEngine {
+    pub fn new(title: &str, width: u32, height: u32, vertices: Vec<f32>) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title(title)
@@ -35,20 +36,13 @@ impl IsometricEngine {
         unsafe {
             gl::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _);
             gl::Viewport(0, 0, width as i32, height as i32);
-            gl::ClearColor(0.3, 0.3, 0.5, 1.0);
+            gl::ClearColor(0.0, 0.0, 1.0, 1.0);
         }
         
         let vao: VAO<TriangleBuffer> = VAO::new();
         let vbo: VBO = VBO::new(&vao);
-        
-        let vertices: Vec<f32> = vec![
-            -0.5, -0.5, 0.0,
-            0.5, -0.5, 0.0,
-            -0.5, 0.5, 0.0,
-            -0.5, 0.5, 0.0,
-            0.5, -0.5, 0.0,
-            0.5, 0.5, 0.0
-        ];
+
+        let vertex_count = vertices.len();
 
         vbo.load(vertices);
 
@@ -56,28 +50,29 @@ impl IsometricEngine {
 
         let proj_matrix: na::Matrix4<f32> = na::Matrix4::new(
             1.0, -1.0, 0.0, 0.0,
-            0.5, 0.5, -1.0, 0.0,
+            -0.5, -0.5, 1.0, 0.0,
             0.5, 0.5, -1.0, 0.0,
             0.0, 0.0, 0.0, 1.0);
         program.load_matrix("MVP", proj_matrix);
 
 
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
-            0.5, 0.0, 0.0, 0.0,
-            0.0, 0.5, 0.0, 0.0,
-            0.0, 0.0, 0.5, 0.0,
+            0.001953125, 0.0, 0.0, 0.0,
+            0.0, 0.001953125, 0.0, 0.0,
+            0.0, 0.0, 0.001953125, 0.0,
             0.0, 0.0, 0.0, 1.0);
         program.load_matrix("scale", scale_matrix);
     
-
         IsometricEngine{
             events_loop,
             window: gl_window,
             vao,
+            vertex_count: vertex_count as i32
         }
     }
 
     pub fn run(&mut self) {
+        let mut i = 0;
         let mut events_loop = &mut self.events_loop;
         let window = &self.window;
         let mut running = true;
@@ -102,16 +97,18 @@ impl IsometricEngine {
                 gl::DrawArrays(
                     gl::TRIANGLES, // mode
                     0, // starting index in the enabled arrays
-                    6 // number of indices to be rendered
+                    self.vertex_count // number of indices to be rendered
                 );
                 self.vao.unbind();
             }
 
             self.window.swap_buffers().unwrap();
+            i = i + 1;
+            println!("{}", i);
         }
     }
 
-    pub fn load_program() -> Program {
+    fn load_program() -> Program {
         let vertex_shader = Shader::from_source(
             &CString::new(include_str!("shaders/triangle.vert")).unwrap(), //TODO don't like exposing CString
             gl::VERTEX_SHADER
@@ -131,7 +128,7 @@ impl IsometricEngine {
         return shader_program;
     }
 
-    
+
 
 }
 
@@ -230,8 +227,17 @@ impl BufferType for TriangleBuffer {
                 3,
                 gl::FLOAT,
                 gl::FALSE,
-                (3 * std::mem::size_of::<f32>()) as gl::types::GLint,
+                (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
                 std::ptr::null()
+            );
+            gl::EnableVertexAttribArray(1);
+            gl::VertexAttribPointer(
+                1,
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
+                (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
             );
         }
     }
