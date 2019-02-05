@@ -10,14 +10,17 @@ pub struct IsometricEngine {
     events_loop: glutin::EventsLoop,
     window: glutin::GlWindow,
     vao: VAO<TriangleBuffer>,
-    // scale: f32,
-    // offset: f32
-    vertex_count: i32
+    vertex_count: i32,
+    program: Program,
+    scale: f32,
+    translation: (f32, f32),
+    isometric_matrix: na::Matrix4<f32>
 }
 
 impl IsometricEngine {
 
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
+    
 
     pub fn new(title: &str, width: u32, height: u32, vertices: Vec<f32>) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
@@ -48,48 +51,65 @@ impl IsometricEngine {
 
         let program = IsometricEngine::load_program();
 
-        let proj_matrix: na::Matrix4<f32> = na::Matrix4::new(
-            1.0, -1.0, 0.0, 0.0,
-            -0.5, -0.5, 1.0, 0.0,
-            0.5, 0.5, -1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0);
-        program.load_matrix("MVP", proj_matrix);
-
-
-        let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
-            0.001953125, 0.0, 0.0, 0.0,
-            0.0, 0.001953125, 0.0, 0.0,
-            0.0, 0.0, 0.001953125, 0.0,
-            0.0, 0.0, 0.0, 1.0);
-        program.load_matrix("scale", scale_matrix);
-    
         IsometricEngine{
             events_loop,
             window: gl_window,
             vao,
-            vertex_count: vertex_count as i32
+            vertex_count: vertex_count as i32,
+            program,
+            scale: 1.0,
+            translation: (0.0, 0.0),
+            isometric_matrix: na::Matrix4::new(
+                1.0, -1.0, 0.0, 0.0,
+                -0.5, -0.5, 1.0, 0.0,
+                0.5, 0.5, -1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0),
         }
+    }
+    
+    fn recompute_transform_matrix(&self) {
+        let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
+            self.scale, 0.0, 0.0, self.translation.0,
+            0.0, self.scale, 0.0, self.translation.1,
+            0.0, 0.0, self.scale, 0.0,
+            0.0, 0.0, 0.0, 1.0);
+
+        let composite_matrix = self.isometric_matrix * scale_matrix;
+
+        self.program.load_matrix("transform", composite_matrix);
+    }
+
+    pub fn scale(&mut self, scale: f32) {
+        self.scale = scale;
+        println!("{}", scale);
+        self.recompute_transform_matrix();
     }
 
     pub fn run(&mut self) {
         let mut i = 0;
-        let mut events_loop = &mut self.events_loop;
-        let window = &self.window;
+        
         let mut running = true;
         while running {
-            events_loop.poll_events(|event| {
-                match event {
-                    glutin::Event::WindowEvent{ event, .. } => match event {
-                        glutin::WindowEvent::CloseRequested => running = false,
-                        glutin::WindowEvent::Resized(logical_size) => {
-                            let dpi_factor = window.get_hidpi_factor();
-                            window.resize(logical_size.to_physical(dpi_factor));
+            {
+                let events_loop = &mut self.events_loop;
+                let window = &self.window;
+                events_loop.poll_events(|event| {
+                    match event {
+                        glutin::Event::WindowEvent{ event, .. } => match event {
+                            glutin::WindowEvent::CloseRequested => running = false,
+                            glutin::WindowEvent::Resized(logical_size) => {
+                                let dpi_factor = window.get_hidpi_factor();
+                                window.resize(logical_size.to_physical(dpi_factor));
+                            },
+                            _ => ()
                         },
                         _ => ()
-                    },
-                    _ => ()
-                }
-            });
+                    }
+                });
+            }
+
+            let new_scale = self.scale / 1.05;
+            self.scale(new_scale);
 
             unsafe {
                 gl::Clear(gl::COLOR_BUFFER_BIT);
