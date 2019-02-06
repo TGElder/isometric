@@ -53,7 +53,7 @@ impl IsometricEngine {
             let window_size = self.window.window().get_inner_size().unwrap();
             events_loop.poll_events(|event| {
                 match event {
-                    glutin::Event::WindowEvent{ ref event, .. } => {
+                    glutin::Event::WindowEvent{ event, .. } => {
                         match event {
                             glutin::WindowEvent::CloseRequested => running = false,
                             glutin::WindowEvent::Resized(logical_size) => {
@@ -61,21 +61,19 @@ impl IsometricEngine {
                                 window.resize(logical_size.to_physical(dpi_factor));
                             },
                             glutin::WindowEvent::MouseWheel{ delta, .. } =>  match delta {
-                                glutin::MouseScrollDelta::LineDelta(_, d) if *d > 0.0 => graphics.scale(2.0),
-                                glutin::MouseScrollDelta::LineDelta(_, d) if *d < 0.0 => graphics.scale(0.5),
+                                glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => graphics.scale(2.0),
+                                glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => graphics.scale(0.5),
                                 _ => ()
                             },
                             _ => ()
                         };
-                        
+                        if let Some((x, y)) = drag_controller.handle(event) {
+                            graphics.translate(((x / (window_size.width / 2.0)) as f32, (y / (window_size.height / 2.0)) as f32));
+                        }
                     },
                     _ => ()
-                };
-                if let Some((x, y)) = drag_controller.handle(event) {
-                    graphics.translate(((x / window_size.width) as f32, (y / window_size.height) as f32));
                 }
-            }
-            );
+            });
             
 
             graphics.draw();
@@ -93,6 +91,7 @@ impl IsometricEngine {
 
 pub struct DragController {
     dragging: bool,
+    last_pos: Option<glutin::dpi::LogicalPosition>,
 }
 
 impl DragController {
@@ -100,30 +99,31 @@ impl DragController {
     fn new() -> DragController {
         DragController{
             dragging: false,
+            last_pos: None,
         }
     }
 
-    fn handle(&mut self, event: glutin::Event) -> Option<(f64, f64)> {
+    fn handle(&mut self, event: glutin::WindowEvent) -> Option<(f64, f64)> {
         match event {
-            glutin::Event::WindowEvent{ event, .. } => match event {
-                glutin::WindowEvent::MouseInput{ state, button: glutin::MouseButton::Left, .. } => {
-                    match state {
-                        glutin::ElementState::Pressed => self.dragging = true,
-                        glutin::ElementState::Released => self.dragging = false,
-                    };
-                    None
-                },
-                _ => None
+            glutin::WindowEvent::MouseInput{ state, button: glutin::MouseButton::Left, .. } => {
+                match state {
+                    glutin::ElementState::Pressed => self.dragging = true,
+                    glutin::ElementState::Released => self.dragging = false,
+                };
+            None
             },
-            glutin::Event::DeviceEvent{ event, .. } => match event {
-                glutin::DeviceEvent::MouseMotion{ delta } => {
-                    if self.dragging {
-                        Some(delta)
+            glutin::WindowEvent::CursorMoved{ position, .. } => {
+                let out = if self.dragging {
+                    if let Some(last_pos) = self.last_pos {
+                        Some((last_pos.x - position.x, last_pos.y - position.y))
                     } else {
                         None
                     }
-                },
-                _ => None
+                } else {
+                    None
+                };
+                self.last_pos = Some(position);
+                out
             },
             _ => None
         }
@@ -217,8 +217,8 @@ impl GraphicsEngine {
 
      pub fn translate(&mut self, delta: (f32, f32)) {
         self.translation = (
-            self.translation.0 + delta.0,
-            self.translation.1 - delta.1,
+            self.translation.0 - delta.0,
+            self.translation.1 + delta.1,
         );
         self.recompute_transform_matrix();
     }
