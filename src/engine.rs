@@ -21,7 +21,6 @@ impl IsometricEngine {
 
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
     
-
     pub fn new(title: &str, width: u32, height: u32, vertices: Vec<f32>) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
@@ -90,6 +89,8 @@ impl IsometricEngine {
         
         let mut running = true;
         while running {
+            let scale = self.scale;
+            let mut new_scale: Option<f32> = None;
             {
                 let events_loop = &mut self.events_loop;
                 let window = &self.window;
@@ -101,6 +102,11 @@ impl IsometricEngine {
                                 let dpi_factor = window.get_hidpi_factor();
                                 window.resize(logical_size.to_physical(dpi_factor));
                             },
+                            glutin::WindowEvent::MouseWheel{ delta, .. } =>  match delta {
+                                glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => new_scale = Some(scale / 2.0),
+                                glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => new_scale = Some(scale * 2.0),
+                                _ => ()
+                            },
                             _ => ()
                         },
                         _ => ()
@@ -108,8 +114,9 @@ impl IsometricEngine {
                 });
             }
 
-            let new_scale = self.scale / 1.05;
-            self.scale(new_scale);
+            if let Some(value) = new_scale {
+                self.scale(value);
+            }
 
             unsafe {
                 gl::Clear(gl::COLOR_BUFFER_BIT);
@@ -124,7 +131,6 @@ impl IsometricEngine {
 
             self.window.swap_buffers().unwrap();
             i = i + 1;
-            println!("{}", i);
         }
     }
 
