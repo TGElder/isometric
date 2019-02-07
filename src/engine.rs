@@ -65,6 +65,16 @@ impl IsometricEngine {
                             }
                             _ => (),
                         },
+                        glutin::WindowEvent::KeyboardInput{ input, .. } => match input {
+                            glutin::KeyboardInput{
+                                virtual_keycode: Some(glutin::VirtualKeyCode::Space), 
+                                state: glutin::ElementState::Pressed,
+                                modifiers, .. } => match modifiers {
+                                    glutin::ModifiersState{ shift: true, .. } => graphics.rotate(3),
+                                    _ => graphics.rotate(1),
+                            },
+                            _ => (),
+                        }
                         _ => (),
                     };
                     if let Some((x, y)) = drag_controller.handle(event) {
@@ -134,10 +144,13 @@ pub struct GraphicsEngine {
     program: Program,
     scale: f32,
     translation: (f32, f32),
-    isometric_matrix: na::Matrix4<f32>,
+    rotation: usize,
 }
 
 impl GraphicsEngine {
+
+    const ISOMETRIC_COEFFS: [(f32, f32); 4] = [(1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)];
+
     pub fn new(gl_window: &glutin::GlWindow, vertices: Vec<f32>) -> GraphicsEngine {
         let window_size: (u32, u32) = gl_window.window().get_inner_size().unwrap().into();
 
@@ -162,16 +175,9 @@ impl GraphicsEngine {
             program,
             scale: 1.0,
             translation: (0.0, 0.0),
-            isometric_matrix: na::Matrix4::new(
-                1.0, -1.0, 0.0, 0.0,
-                -0.5, -0.5, 16.0, 0.0,
-                0.0, 0.0, 0.0, 1.0,
-                0.0, 0.0, 0.0, 1.0,
-            ),
+            rotation: 0,
         };
-
-        out.recompute_transform_matrix();
-
+        out.compute_transform_matrix();
         out
     }
 
@@ -188,6 +194,10 @@ impl GraphicsEngine {
         )
         .unwrap();
 
+        unsafe {
+            gl::Enable(gl::DEPTH_TEST);
+        }
+
         let shader_program = Program::from_shaders(&[vertex_shader, fragment_shader]).unwrap();
 
         shader_program.set_used();
@@ -195,7 +205,7 @@ impl GraphicsEngine {
         return shader_program;
     }
 
-    fn recompute_transform_matrix(&self) {
+    fn compute_transform_matrix(&self) {
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
             self.scale, 0.0, 0.0, self.translation.0,
             0.0, self.scale, 0.0, self.translation.1,
@@ -203,24 +213,41 @@ impl GraphicsEngine {
             0.0, 0.0, 0.0, 1.0,
         );
 
-        let composite_matrix = scale_matrix * self.isometric_matrix;
+        let isometric_matrix = GraphicsEngine::compute_isometric_matrix(self.rotation);
 
+        let composite_matrix = scale_matrix * isometric_matrix;
         self.program.load_matrix("transform", composite_matrix);
     }
 
     pub fn scale(&mut self, delta: f32) {
         self.scale = self.scale * delta;
-        self.recompute_transform_matrix();
+        self.compute_transform_matrix();
     }
 
     pub fn translate(&mut self, delta: (f32, f32)) {
         self.translation = (self.translation.0 - delta.0, self.translation.1 + delta.1);
-        self.recompute_transform_matrix();
+        self.compute_transform_matrix();
+    }
+
+    fn compute_isometric_matrix(angle: usize) -> na::Matrix4<f32> {
+        let c = GraphicsEngine::ISOMETRIC_COEFFS[angle].0;
+        let s = GraphicsEngine::ISOMETRIC_COEFFS[angle].1;
+        na::Matrix4::new(
+            c, -s, 0.0, 0.0,
+            -s / 2.0, -c / 2.0, 16.0, 0.0,
+            0.0, 0.0, -1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+        )
+    }
+
+    pub fn rotate(&mut self, rotations: usize) {
+        self.rotation = (self.rotation + rotations) % GraphicsEngine::ISOMETRIC_COEFFS.len();
+        self.compute_transform_matrix();
     }
 
     pub fn draw(&self) {
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             self.vao.bind();
             gl::DrawArrays(
                 gl::TRIANGLES,     // mode
