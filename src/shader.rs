@@ -1,4 +1,4 @@
-use std::ffi::{CString, CStr};
+use std::ffi::{CStr, CString};
 use utils::create_whitespace_cstring_with_len;
 
 pub struct Shader {
@@ -7,7 +7,7 @@ pub struct Shader {
 
 impl Shader {
     pub fn from_source(source: &CStr, kind: gl::types::GLenum) -> Result<Shader, String> {
-        let id = unsafe{ gl::CreateShader(kind) };
+        let id = unsafe { gl::CreateShader(kind) };
         let mut success: gl::types::GLint = 1;
 
         unsafe {
@@ -15,10 +15,8 @@ impl Shader {
             gl::CompileShader(id);
             gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
         }
-        
-        let out = Shader{
-            id
-        };
+
+        let out = Shader { id };
 
         if out.compiled_succesfully() {
             Ok(out)
@@ -51,7 +49,7 @@ impl Shader {
                 self.id,
                 length,
                 std::ptr::null_mut(),
-                error.as_ptr() as *mut gl::types::GLchar
+                error.as_ptr() as *mut gl::types::GLchar,
             );
         }
         error.to_string_lossy().into_owned()

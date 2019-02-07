@@ -1,9 +1,9 @@
 extern crate glutin;
 
 use self::glutin::GlContext;
-use std::ffi::CString;
-use shader::Shader;
 use program::Program;
+use shader::Shader;
+use std::ffi::CString;
 use std::marker::PhantomData;
 
 pub struct IsometricEngine {
@@ -14,9 +14,8 @@ pub struct IsometricEngine {
 }
 
 impl IsometricEngine {
-
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
-    
+
     pub fn new(title: &str, width: u32, height: u32, vertices: Vec<f32>) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
@@ -39,54 +38,50 @@ impl IsometricEngine {
             graphics,
             drag_controller: DragController::new(),
         }
-      
     }
 
-    pub fn run(&mut self) {        
+    pub fn run(&mut self) {
         let mut running = true;
         while running {
-            
             let graphics = &mut self.graphics;
             let events_loop = &mut self.events_loop;
             let window = &self.window;
             let drag_controller = &mut self.drag_controller;
             let window_size = self.window.window().get_inner_size().unwrap();
-            events_loop.poll_events(|event| {
-                match event {
-                    glutin::Event::WindowEvent{ event, .. } => {
-                        match event {
-                            glutin::WindowEvent::CloseRequested => running = false,
-                            glutin::WindowEvent::Resized(logical_size) => {
-                                let dpi_factor = window.get_hidpi_factor();
-                                window.resize(logical_size.to_physical(dpi_factor));
-                            },
-                            glutin::WindowEvent::MouseWheel{ delta, .. } =>  match delta {
-                                glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => graphics.scale(2.0),
-                                glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => graphics.scale(0.5),
-                                _ => ()
-                            },
-                            _ => ()
-                        };
-                        if let Some((x, y)) = drag_controller.handle(event) {
-                            graphics.translate(((x / (window_size.width / 2.0)) as f32, (y / (window_size.height / 2.0)) as f32));
+            events_loop.poll_events(|event| match event {
+                glutin::Event::WindowEvent { event, .. } => {
+                    match event {
+                        glutin::WindowEvent::CloseRequested => running = false,
+                        glutin::WindowEvent::Resized(logical_size) => {
+                            let dpi_factor = window.get_hidpi_factor();
+                            window.resize(logical_size.to_physical(dpi_factor));
                         }
-                    },
-                    _ => ()
+                        glutin::WindowEvent::MouseWheel { delta, .. } => match delta {
+                            glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => {
+                                graphics.scale(2.0)
+                            }
+                            glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => {
+                                graphics.scale(0.5)
+                            }
+                            _ => (),
+                        },
+                        _ => (),
+                    };
+                    if let Some((x, y)) = drag_controller.handle(event) {
+                        graphics.translate((
+                            (x / (window_size.width / 2.0)) as f32,
+                            (y / (window_size.height / 2.0)) as f32,
+                        ));
+                    }
                 }
+                _ => (),
             });
-            
 
             graphics.draw();
 
-            self.window.swap_buffers().unwrap();            
-
+            self.window.swap_buffers().unwrap();
         }
     }
-
-  
-
-    
-
 }
 
 pub struct DragController {
@@ -95,9 +90,8 @@ pub struct DragController {
 }
 
 impl DragController {
-
     fn new() -> DragController {
-        DragController{
+        DragController {
             dragging: false,
             last_pos: None,
         }
@@ -105,14 +99,18 @@ impl DragController {
 
     fn handle(&mut self, event: glutin::WindowEvent) -> Option<(f64, f64)> {
         match event {
-            glutin::WindowEvent::MouseInput{ state, button: glutin::MouseButton::Left, .. } => {
+            glutin::WindowEvent::MouseInput {
+                state,
+                button: glutin::MouseButton::Left,
+                ..
+            } => {
                 match state {
                     glutin::ElementState::Pressed => self.dragging = true,
                     glutin::ElementState::Released => self.dragging = false,
                 };
-            None
-            },
-            glutin::WindowEvent::CursorMoved{ position, .. } => {
+                None
+            }
+            glutin::WindowEvent::CursorMoved { position, .. } => {
                 let out = if self.dragging {
                     if let Some(last_pos) = self.last_pos {
                         Some((last_pos.x - position.x, last_pos.y - position.y))
@@ -124,8 +122,8 @@ impl DragController {
                 };
                 self.last_pos = Some(position);
                 out
-            },
-            _ => None
+            }
+            _ => None,
         }
     }
 }
@@ -140,9 +138,7 @@ pub struct GraphicsEngine {
 }
 
 impl GraphicsEngine {
-
     pub fn new(gl_window: &glutin::GlWindow, vertices: Vec<f32>) -> GraphicsEngine {
-
         let window_size: (u32, u32) = gl_window.window().get_inner_size().unwrap().into();
 
         unsafe {
@@ -160,7 +156,7 @@ impl GraphicsEngine {
 
         let program = GraphicsEngine::load_program();
 
-        let out = GraphicsEngine{
+        let out = GraphicsEngine {
             vao,
             vertex_count: vertex_count as i32,
             program,
@@ -168,9 +164,10 @@ impl GraphicsEngine {
             translation: (0.0, 0.0),
             isometric_matrix: na::Matrix4::new(
                 1.0, -1.0, 0.0, 0.0,
-                -0.5, -0.5, 1.0, 0.0,
+                -0.5, -0.5, 16.0, 0.0,
                 0.0, 0.0, 0.0, 1.0,
-                0.0, 0.0, 0.0, 1.0),
+                0.0, 0.0, 0.0, 1.0,
+            ),
         };
 
         out.recompute_transform_matrix();
@@ -181,17 +178,17 @@ impl GraphicsEngine {
     fn load_program() -> Program {
         let vertex_shader = Shader::from_source(
             &CString::new(include_str!("shaders/triangle.vert")).unwrap(), //TODO don't like exposing CString
-            gl::VERTEX_SHADER
-        ).unwrap();
+            gl::VERTEX_SHADER,
+        )
+        .unwrap();
 
         let fragment_shader = Shader::from_source(
             &CString::new(include_str!("shaders/triangle.frag")).unwrap(),
-            gl::FRAGMENT_SHADER
-        ).unwrap();
+            gl::FRAGMENT_SHADER,
+        )
+        .unwrap();
 
-        let shader_program = Program::from_shaders(
-            &[vertex_shader, fragment_shader]
-        ).unwrap();
+        let shader_program = Program::from_shaders(&[vertex_shader, fragment_shader]).unwrap();
 
         shader_program.set_used();
 
@@ -203,7 +200,8 @@ impl GraphicsEngine {
             self.scale, 0.0, 0.0, self.translation.0,
             0.0, self.scale, 0.0, self.translation.1,
             0.0, 0.0, self.scale, 0.0,
-            0.0, 0.0, 0.0, 1.0);
+            0.0, 0.0, 0.0, 1.0,
+        );
 
         let composite_matrix = scale_matrix * self.isometric_matrix;
 
@@ -215,11 +213,8 @@ impl GraphicsEngine {
         self.recompute_transform_matrix();
     }
 
-     pub fn translate(&mut self, delta: (f32, f32)) {
-        self.translation = (
-            self.translation.0 - delta.0,
-            self.translation.1 + delta.1,
-        );
+    pub fn translate(&mut self, delta: (f32, f32)) {
+        self.translation = (self.translation.0 - delta.0, self.translation.1 + delta.1);
         self.recompute_transform_matrix();
     }
 
@@ -228,15 +223,13 @@ impl GraphicsEngine {
             gl::Clear(gl::COLOR_BUFFER_BIT);
             self.vao.bind();
             gl::DrawArrays(
-                gl::TRIANGLES, // mode
-                0, // starting index in the enabled arrays
-                self.vertex_count // number of indices to be rendered
+                gl::TRIANGLES,     // mode
+                0,                 // starting index in the enabled arrays
+                self.vertex_count, // number of indices to be rendered
             );
             self.vao.unbind();
         }
-        
     }
-
 }
 
 struct VBO {
@@ -244,14 +237,11 @@ struct VBO {
 }
 
 impl VBO {
-    
-    pub fn new <T: BufferType> (vao: &VAO<T>) -> VBO {
+    pub fn new<T: BufferType>(vao: &VAO<T>) -> VBO {
         let mut id: gl::types::GLuint = 0;
         unsafe {
             gl::GenBuffers(1, &mut id);
-            let out = VBO {
-                id
-            };
+            let out = VBO { id };
             out.set_vao(vao);
             out
         }
@@ -278,12 +268,11 @@ impl VBO {
         }
     }
 
-    pub unsafe fn set_vao <T: BufferType> (&self, vao: &VAO<T>) {
+    pub unsafe fn set_vao<T: BufferType>(&self, vao: &VAO<T>) {
         self.bind();
         vao.set();
         self.unbind();
     }
-
 }
 
 struct VAO<T: BufferType> {
@@ -291,8 +280,7 @@ struct VAO<T: BufferType> {
     buffer_type: PhantomData<T>,
 }
 
-impl <T: BufferType> VAO<T> {
-    
+impl<T: BufferType> VAO<T> {
     pub fn new() -> VAO<T> {
         let mut id: gl::types::GLuint = 0;
         unsafe {
@@ -300,7 +288,7 @@ impl <T: BufferType> VAO<T> {
         }
         VAO {
             id,
-            buffer_type: PhantomData
+            buffer_type: PhantomData,
         }
     }
 
@@ -335,7 +323,7 @@ impl BufferType for TriangleBuffer {
                 gl::FLOAT,
                 gl::FALSE,
                 (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
-                std::ptr::null()
+                std::ptr::null(),
             );
             gl::EnableVertexAttribArray(1);
             gl::VertexAttribPointer(
@@ -344,9 +332,8 @@ impl BufferType for TriangleBuffer {
                 gl::FLOAT,
                 gl::FALSE,
                 (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
-                (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid
+                (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
             );
         }
     }
 }
-
