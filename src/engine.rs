@@ -16,7 +16,7 @@ pub struct IsometricEngine {
 impl IsometricEngine {
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
 
-    pub fn new(title: &str, width: u32, height: u32, vertices: Vec<f32>) -> IsometricEngine {
+    pub fn new(title: &str, width: u32, height: u32, triangle_vertices: Vec<f32>, line_vertices: Vec<f32>) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title(title)
@@ -30,7 +30,7 @@ impl IsometricEngine {
             gl_window.make_current().unwrap();
         }
 
-        let graphics = GraphicsEngine::new(&gl_window, vertices);
+        let graphics = GraphicsEngine::new(&gl_window, triangle_vertices, line_vertices);
 
         IsometricEngine {
             events_loop,
@@ -139,8 +139,10 @@ impl DragController {
 }
 
 pub struct GraphicsEngine {
-    vao: VAO<TriangleBuffer>,
-    vertex_count: i32,
+    triangle_vao: VAO<TriangleBuffer>,
+    triangle_vertex_count: i32,
+    line_vao: VAO<TriangleBuffer>,
+    line_vertex_count: i32,
     program: Program,
     scale: f32,
     translation: (f32, f32),
@@ -151,7 +153,7 @@ impl GraphicsEngine {
 
     const ISOMETRIC_COEFFS: [(f32, f32); 4] = [(1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)];
 
-    pub fn new(gl_window: &glutin::GlWindow, vertices: Vec<f32>) -> GraphicsEngine {
+    pub fn new(gl_window: &glutin::GlWindow, triangle_vertices: Vec<f32>, line_vertices: Vec<f32>) -> GraphicsEngine {
         let window_size: (u32, u32) = gl_window.window().get_inner_size().unwrap().into();
 
         unsafe {
@@ -160,18 +162,24 @@ impl GraphicsEngine {
             gl::ClearColor(0.0, 0.0, 1.0, 1.0);
         }
 
-        let vao: VAO<TriangleBuffer> = VAO::new();
-        let vbo: VBO = VBO::new(&vao);
+        let triangle_vao: VAO<TriangleBuffer> = VAO::new();
+        let triangle_vbo: VBO = VBO::new(&triangle_vao);
+        let triangle_vertex_count = triangle_vertices.len();
+        triangle_vbo.load(triangle_vertices);
 
-        let vertex_count = vertices.len();
+        let line_vao: VAO<TriangleBuffer> = VAO::new();
+        let line_vbo: VBO = VBO::new(&line_vao);
+        let line_vertex_count = line_vertices.len();
+        line_vbo.load(line_vertices);
 
-        vbo.load(vertices);
 
         let program = GraphicsEngine::load_program();
 
         let out = GraphicsEngine {
-            vao,
-            vertex_count: vertex_count as i32,
+            triangle_vao,
+            triangle_vertex_count: triangle_vertex_count as i32,
+            line_vao,
+            line_vertex_count: line_vertex_count as i32,
             program,
             scale: 1.0,
             translation: (0.0, 0.0),
@@ -248,13 +256,20 @@ impl GraphicsEngine {
     pub fn draw(&self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            self.vao.bind();
+            self.triangle_vao.bind();
             gl::DrawArrays(
                 gl::TRIANGLES,     // mode
                 0,                 // starting index in the enabled arrays
-                self.vertex_count, // number of indices to be rendered
+                self.triangle_vertex_count, // number of indices to be rendered
             );
-            self.vao.unbind();
+            self.triangle_vao.unbind();
+            self.line_vao.bind();
+            gl::DrawArrays(
+                gl::LINES,              // mode
+                0,                      // starting index in the enabled arrays
+                self.line_vertex_count, // number of indices to be rendered
+            );
+            self.line_vao.unbind();
         }
     }
 }
