@@ -45,58 +45,59 @@ impl IsometricEngine {
     pub fn run(&mut self) {
         let mut running = true;
         while running {
-            let graphics = &mut self.graphics;
-            let events_loop = &mut self.events_loop;
-            let window = &self.window;
-            let drag_controller = &mut self.drag_controller;
-            let window_size = self.window.window().get_inner_size().unwrap();
-            events_loop.poll_events(|event| match event {
-                glutin::Event::WindowEvent { event, .. } => {
-                    match event {
-                        glutin::WindowEvent::CloseRequested => running = false,
-                        glutin::WindowEvent::Resized(logical_size) => {
-                            let dpi_factor = window.get_hidpi_factor();
-                            window.resize(logical_size.to_physical(dpi_factor));
-                            let logical_size: (u32, u32) = logical_size.into();
-                            graphics.set_viewport(na::Point2::new(logical_size.0, logical_size.1));
-                        }
-                        glutin::WindowEvent::MouseWheel { delta, .. } => match delta {
-                            glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => {
-                                graphics.scale(2.0)
+            {
+                let transformer = &mut self.graphics.get_transformer();
+                let events_loop = &mut self.events_loop;
+                let window = &self.window;
+                let drag_controller = &mut self.drag_controller;
+                let window_size = self.window.window().get_inner_size().unwrap();
+                events_loop.poll_events(|event| match event {
+                    glutin::Event::WindowEvent { event, .. } => {
+                        match event {
+                            glutin::WindowEvent::CloseRequested => running = false,
+                            glutin::WindowEvent::Resized(logical_size) => {
+                                let dpi_factor = window.get_hidpi_factor();
+                                window.resize(logical_size.to_physical(dpi_factor));
+                                let logical_size: (u32, u32) = logical_size.into();
+                                transformer.set_viewport_size(na::Point2::new(logical_size.0, logical_size.1));
                             }
-                            glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => {
-                                graphics.scale(0.5)
-                            }
-                            _ => (),
-                        },
-                        glutin::WindowEvent::KeyboardInput{ input, .. } => match input {
-                            glutin::KeyboardInput{
-                                virtual_keycode: Some(glutin::VirtualKeyCode::Space), 
-                                state: glutin::ElementState::Pressed,
-                                modifiers, .. } => match modifiers {
-                                    glutin::ModifiersState{ shift: true, .. } => graphics.rotate(3),
-                                    _ => graphics.rotate(1),
+                            glutin::WindowEvent::MouseWheel { delta, .. } => match delta {
+                                glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => {
+                                    transformer.scale(2.0)
+                                }
+                                glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => {
+                                    transformer.scale(0.5)
+                                }
+                                _ => (),
                             },
-                            glutin::KeyboardInput{
-                                virtual_keycode: Some(glutin::VirtualKeyCode::Escape), 
-                                state: glutin::ElementState::Pressed,
-                                .. } => running = false,
+                            glutin::WindowEvent::KeyboardInput{ input, .. } => match input {
+                                glutin::KeyboardInput{
+                                    virtual_keycode: Some(glutin::VirtualKeyCode::Space), 
+                                    state: glutin::ElementState::Pressed,
+                                    modifiers, .. } => match modifiers {
+                                        glutin::ModifiersState{ shift: true, .. } => transformer.rotate(na::Point2::new(0.0, 0.0), 3),
+                                        _ => transformer.rotate(na::Point2::new(0.0, 0.0), 1),
+                                },
+                                glutin::KeyboardInput{
+                                    virtual_keycode: Some(glutin::VirtualKeyCode::Escape), 
+                                    state: glutin::ElementState::Pressed,
+                                    .. } => running = false,
+                                _ => (),
+                            },
                             _ => (),
-                        },
-                        _ => (),
-                    };
-                    if let Some((x, y)) = drag_controller.handle(event) {
-                        graphics.translate(na::Point2::new(
-                            (x / (window_size.width / 2.0)) as f32,
-                            (y / (window_size.height / 2.0)) as f32,
-                        ));
+                        };
+                        if let Some((x, y)) = drag_controller.handle(event) {
+                            transformer.translate(na::Point2::new(
+                                (x / (window_size.width / 2.0)) as f32,
+                                (y / (window_size.height / 2.0)) as f32,
+                            ));
+                        }
                     }
-                }
-                _ => (),
-            });
+                    _ => (),
+                });
+            }
 
-            graphics.draw();
-
+            self.graphics.draw();
             self.window.swap_buffers().unwrap();
         }
     }
@@ -145,3 +146,4 @@ impl DragController {
         }
     }
 }
+

@@ -3,37 +3,30 @@ use super::shader::Shader;
 use std::ffi::CString;
 use std::marker::PhantomData;
 
+use super::transformer::Transformer;
+
 pub struct GraphicsEngine {
     terrain_triangles: VBO<ColoredVertex>,
     terrain_lines: VBO<Vertex>,
-    viewport_size: na::Point2<u32>,
     program: Program,
-    scale: na::Point2<f32>,
-    translation: na::Point2<f32>,
-    rotation: usize,
+    transformer: Transformer,
 }
 
 impl GraphicsEngine {
 
-    const ISOMETRIC_COEFFS: [(f32, f32); 4] = [(1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)];
-
     pub fn new(viewport_size: na::Point2<u32>) -> GraphicsEngine {
-        let mut terrain_triangles: VBO<ColoredVertex> = VBO::new(gl::TRIANGLES);
-        let mut terrain_lines: VBO<Vertex> = VBO::new(gl::LINES);
-
         let program = GraphicsEngine::load_program();
 
-        let mut out = GraphicsEngine {
-            terrain_triangles,
-            terrain_lines,
-            viewport_size,
+        GraphicsEngine {
+            terrain_triangles: VBO::new(gl::TRIANGLES),
+            terrain_lines: VBO::new(gl::LINES),
             program,
-            scale: na::Point2::new(1.0, 1.0),
-            translation: na::Point2::new(0.0, 0.0),
-            rotation: 0,
-        };
-        out.set_viewport(viewport_size);
-        out
+            transformer: Transformer::new(viewport_size),
+        }
+    }
+
+    pub fn get_transformer(&mut self) -> &mut Transformer {
+        &mut self.transformer
     }
 
     fn load_program() -> Program {
@@ -60,63 +53,16 @@ impl GraphicsEngine {
         return shader_program;
     }
 
-    fn compute_transform_matrix(&self, z_adjustment: f32) {
-
-        let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
-            self.scale.x, 0.0, 0.0, self.translation.x,
-            0.0, self.scale.y, 0.0, self.translation.y,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
-        );
-
-        let isometric_matrix = GraphicsEngine::compute_isometric_matrix(self.rotation, z_adjustment);
-
-        let composite_matrix = scale_matrix * isometric_matrix;
-        self.program.load_matrix("transform", composite_matrix);
-    }
-
-    pub fn set_viewport(&mut self, viewport_size: na::Point2<u32>) {
-        let scale = na::Point2::new(
-            self.scale.x * ((self.viewport_size.x as f32) / (viewport_size.x as f32)),
-            self.scale.y * ((self.viewport_size.y as f32) / (viewport_size.y as f32)));
-
-        self.viewport_size = viewport_size;
-        self.scale = scale;
-        unsafe {
-            gl::Viewport(0, 0, viewport_size.x as i32, viewport_size.y as i32);
-            gl::ClearColor(0.0, 0.0, 1.0, 1.0);
-        }
-    }
-
-    pub fn scale(&mut self, delta: f32) {
-        self.scale = self.scale * delta;
-    }
-
-    pub fn translate(&mut self, delta: na::Point2<f32>) {
-        self.translation = na::Point2::new(self.translation.x - delta.x, self.translation.y + delta.y);
-    }
-
-    fn compute_isometric_matrix(angle: usize, z_adjustment: f32) -> na::Matrix4<f32> {
-        let c = GraphicsEngine::ISOMETRIC_COEFFS[angle].0;
-        let s = GraphicsEngine::ISOMETRIC_COEFFS[angle].1;
-        na::Matrix4::new(
-            c, -s, 0.0, 0.0,
-            -s / 2.0, -c / 2.0, 16.0, 0.0,
-            0.0, 0.0, -1.0 + z_adjustment, 0.0,
-            0.0, 0.0, 0.0, 1.0,
-        )
-    }
-
-    pub fn rotate(&mut self, rotations: usize) {
-        self.rotation = (self.rotation + rotations) % GraphicsEngine::ISOMETRIC_COEFFS.len();
+    fn load_transform_matrix(&self, transform_matrix: na::Matrix4<f32>) {
+        self.program.load_matrix("transform", transform_matrix);
     }
 
     pub fn draw(&self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            self.compute_transform_matrix(0.0);
+            self.load_transform_matrix(self.transformer.compute_transform_matrix(0.0));
             self.terrain_triangles.draw();
-            self.compute_transform_matrix(-0.001);
+            self.load_transform_matrix(self.transformer.compute_transform_matrix(-0.001));
             self.terrain_lines.draw();
         }
     }
@@ -154,10 +100,6 @@ impl GraphicsEngine {
         }
         self.terrain_triangles.load(triangle_vertices);
         self.terrain_lines.load(line_vertices);
-    }
-
-    pub fn set_terrain_lines(&mut self, vertices: Vec<f32>) {
-        self.terrain_triangles.load(vertices);
     }
 }
 
