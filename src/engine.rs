@@ -31,7 +31,7 @@ impl IsometricEngine {
             gl::ClearColor(0.0, 0.0, 1.0, 1.0);
         }
 
-        let graphics = GraphicsEngine::new(triangle_vertices, line_vertices);
+        let graphics = GraphicsEngine::new(na::Point2::new(width, height), triangle_vertices, line_vertices);
 
         IsometricEngine {
             events_loop,
@@ -56,6 +56,8 @@ impl IsometricEngine {
                         glutin::WindowEvent::Resized(logical_size) => {
                             let dpi_factor = window.get_hidpi_factor();
                             window.resize(logical_size.to_physical(dpi_factor));
+                            let logical_size: (u32, u32) = logical_size.into();
+                            graphics.set_viewport(na::Point2::new(logical_size.0, logical_size.1));
                         }
                         glutin::WindowEvent::MouseWheel { delta, .. } => match delta {
                             glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => {
@@ -74,8 +76,12 @@ impl IsometricEngine {
                                     glutin::ModifiersState{ shift: true, .. } => graphics.rotate(3),
                                     _ => graphics.rotate(1),
                             },
+                            glutin::KeyboardInput{
+                                virtual_keycode: Some(glutin::VirtualKeyCode::Escape), 
+                                state: glutin::ElementState::Pressed,
+                                .. } => running = false,
                             _ => (),
-                        }
+                        },
                         _ => (),
                     };
                     if let Some((x, y)) = drag_controller.handle(event) {

@@ -8,8 +8,9 @@ pub struct GraphicsEngine {
     triangle_vertex_count: i32,
     line_vao: VAO<Vertex>,
     line_vertex_count: i32,
+    viewport_size: na::Point2<u32>,
     program: Program,
-    scale: f32,
+    scale: na::Point2<f32>,
     translation: (f32, f32),
     rotation: usize,
 }
@@ -18,7 +19,7 @@ impl GraphicsEngine {
 
     const ISOMETRIC_COEFFS: [(f32, f32); 4] = [(1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)];
 
-    pub fn new(triangle_vertices: Vec<f32>, line_vertices: Vec<f32>) -> GraphicsEngine {
+    pub fn new(viewport_size: na::Point2<u32>, triangle_vertices: Vec<f32>, line_vertices: Vec<f32>) -> GraphicsEngine {
         let triangle_vao: VAO<ColoredVertex> = VAO::new();
         let triangle_vbo: VBO = VBO::new(&triangle_vao);
         let triangle_vertex_count = triangle_vertices.len();
@@ -32,16 +33,18 @@ impl GraphicsEngine {
 
         let program = GraphicsEngine::load_program();
 
-        let out = GraphicsEngine {
+        let mut out = GraphicsEngine {
             triangle_vao,
             triangle_vertex_count: triangle_vertex_count as i32,
             line_vao,
             line_vertex_count: line_vertex_count as i32,
+            viewport_size,
             program,
-            scale: 1.0,
+            scale: na::Point2::new(1.0, 1.0),
             translation: (0.0, 0.0),
             rotation: 0,
         };
+        out.set_viewport(viewport_size);
         out
     }
 
@@ -70,10 +73,11 @@ impl GraphicsEngine {
     }
 
     fn compute_transform_matrix(&self, z_adjustment: f32) {
+
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
-            self.scale, 0.0, 0.0, self.translation.0,
-            0.0, self.scale, 0.0, self.translation.1,
-            0.0, 0.0, self.scale, 0.0,
+            self.scale.x, 0.0, 0.0, self.translation.0,
+            0.0, self.scale.y, 0.0, self.translation.1,
+            0.0, 0.0, 1.0, 0.0,
             0.0, 0.0, 0.0, 1.0,
         );
 
@@ -81,6 +85,19 @@ impl GraphicsEngine {
 
         let composite_matrix = scale_matrix * isometric_matrix;
         self.program.load_matrix("transform", composite_matrix);
+    }
+
+    pub fn set_viewport(&mut self, viewport_size: na::Point2<u32>) {
+        let scale = na::Point2::new(
+            self.scale.x * ((self.viewport_size.x as f32) / (viewport_size.x as f32)),
+            self.scale.y * ((self.viewport_size.y as f32) / (viewport_size.y as f32)));
+
+        self.viewport_size = viewport_size;
+        self.scale = scale;
+        unsafe {
+            gl::Viewport(0, 0, viewport_size.x as i32, viewport_size.y as i32);
+            gl::ClearColor(0.0, 0.0, 1.0, 1.0);
+        }
     }
 
     pub fn scale(&mut self, delta: f32) {
