@@ -14,7 +14,7 @@ pub struct IsometricEngine {
 impl IsometricEngine {
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
 
-    pub fn new(title: &str, width: u32, height: u32, triangle_vertices: Vec<f32>, line_vertices: Vec<f32>) -> IsometricEngine {
+    pub fn new(title: &str, width: u32, height: u32, terrain: na::DMatrix<f32>) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title(title)
@@ -31,7 +31,8 @@ impl IsometricEngine {
             gl::ClearColor(0.0, 0.0, 1.0, 1.0);
         }
 
-        let graphics = GraphicsEngine::new(na::Point2::new(width, height), triangle_vertices, line_vertices);
+        let mut graphics = GraphicsEngine::new(na::Point2::new(width, height));
+        graphics.load_terrain(terrain);
 
         IsometricEngine {
             events_loop,
