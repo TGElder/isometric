@@ -85,7 +85,7 @@ impl IsometricEngine {
                         _ => (),
                     };
                     if let Some((x, y)) = drag_controller.handle(event) {
-                        graphics.translate((
+                        graphics.translate(na::Point2::new(
                             (x / (window_size.width / 2.0)) as f32,
                             (y / (window_size.height / 2.0)) as f32,
                         ));

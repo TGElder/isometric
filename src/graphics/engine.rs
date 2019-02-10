@@ -11,7 +11,7 @@ pub struct GraphicsEngine {
     viewport_size: na::Point2<u32>,
     program: Program,
     scale: na::Point2<f32>,
-    translation: (f32, f32),
+    translation: na::Point2<f32>,
     rotation: usize,
 }
 
@@ -41,7 +41,7 @@ impl GraphicsEngine {
             viewport_size,
             program,
             scale: na::Point2::new(1.0, 1.0),
-            translation: (0.0, 0.0),
+            translation: na::Point2::new(0.0, 0.0),
             rotation: 0,
         };
         out.set_viewport(viewport_size);
@@ -75,8 +75,8 @@ impl GraphicsEngine {
     fn compute_transform_matrix(&self, z_adjustment: f32) {
 
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
-            self.scale.x, 0.0, 0.0, self.translation.0,
-            0.0, self.scale.y, 0.0, self.translation.1,
+            self.scale.x, 0.0, 0.0, self.translation.x,
+            0.0, self.scale.y, 0.0, self.translation.y,
             0.0, 0.0, 1.0, 0.0,
             0.0, 0.0, 0.0, 1.0,
         );
@@ -104,8 +104,8 @@ impl GraphicsEngine {
         self.scale = self.scale * delta;
     }
 
-    pub fn translate(&mut self, delta: (f32, f32)) {
-        self.translation = (self.translation.0 - delta.0, self.translation.1 + delta.1);
+    pub fn translate(&mut self, delta: na::Point2<f32>) {
+        self.translation = na::Point2::new(self.translation.x - delta.x, self.translation.y + delta.y);
     }
 
     fn compute_isometric_matrix(angle: usize, z_adjustment: f32) -> na::Matrix4<f32> {
