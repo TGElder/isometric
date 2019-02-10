@@ -53,7 +53,6 @@ impl Program {
 
     fn get_message(&self) -> String {
         let length = self.get_log_length();
-        let mut buffer: Vec<u8> = vec![b' '; length as usize + 1];
         let error = create_whitespace_cstring_with_len(length as usize);
         unsafe {
             gl::GetProgramInfoLog(

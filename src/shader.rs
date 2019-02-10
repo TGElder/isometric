@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+use std::ffi::CStr;
 use utils::create_whitespace_cstring_with_len;
 
 pub struct Shader {

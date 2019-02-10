@@ -1,4 +1,5 @@
 pub mod engine;
+mod graphics;
 mod program;
 mod shader;
 mod utils;
