@@ -1,6 +1,5 @@
-
-use program::Program;
-use shader::Shader;
+use super::program::Program;
+use super::shader::Shader;
 use std::ffi::CString;
 use std::marker::PhantomData;
 

@@ -1,4 +1,4 @@
-use shader::Shader;
+use super::shader::Shader;
 use std::ffi::CString;
 use utils::create_whitespace_cstring_with_len;
 

@@ -1,6 +1,6 @@
 extern crate glutin;
 
-use ::graphics::*;
+use ::graphics::engine::GraphicsEngine;
 
 use self::glutin::GlContext;
 
