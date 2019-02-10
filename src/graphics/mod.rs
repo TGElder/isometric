@@ -1,4 +1,4 @@
 pub mod engine;
-mod transformer;
+pub mod transformer;
 mod shader;
 mod program;

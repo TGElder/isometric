@@ -67,6 +67,14 @@ impl GraphicsEngine {
         }
     }
 
+    pub fn set_viewport_size(&mut self, viewport_size: na::Point2<u32>) {
+        self.transformer.set_viewport_size(viewport_size);
+        unsafe {
+            gl::Viewport(0, 0, viewport_size.x as i32, viewport_size.y as i32);
+            gl::ClearColor(0.0, 0.0, 1.0, 1.0);
+        }
+    }
+
     pub fn load_terrain(&mut self, heights: na::DMatrix<f32>) {
         let width = heights.shape().0;
         let height = heights.shape().1;
