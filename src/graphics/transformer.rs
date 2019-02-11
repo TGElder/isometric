@@ -91,8 +91,8 @@ impl Transformer {
         self.scale = scale;
     }
 
-    pub fn scale(&mut self, centre: na::Point2<f32>, delta: f32) {
-        let world_point = self.unproject(na::Point4::new(centre.x, centre.y, 0.0, 1.0));
+    pub fn scale(&mut self, centre: na::Point4<f32>, delta: f32) {
+        let world_point = self.unproject(centre);
         self.scale = self.scale * delta;
         let centre_new = self.compute_transform_matrix(0.0) * world_point;
         self.translation = na::Point2::new(
@@ -110,14 +110,14 @@ impl Transformer {
         let s = self.rotation.s();
         na::Matrix4::new(
             c, -s, 0.0, 0.0,
-            -s / 2.0, -c / 2.0, 1.0, 0.0,
+            -s / 2.0, -c / 2.0, 128.0, 0.0,
             0.0, 0.0, -1.0 + z_adjustment, 0.0,
             0.0, 0.0, 0.0, 1.0,
         )
     }
 
-    pub fn rotate(&mut self, centre: na::Point2<f32>, direction: Direction) {
-        let world_point = self.unproject(na::Point4::new(centre.x, centre.y, 0.0, 1.0));
+    pub fn rotate(&mut self, centre: na::Point4<f32>, direction: Direction) {
+        let world_point = self.unproject(centre);
         self.rotation = self.rotation.rotate(direction);
         let centre_new = self.compute_transform_matrix(0.0) * world_point;
         self.translation = na::Point2::new(
@@ -126,9 +126,16 @@ impl Transformer {
         );
     }
 
-    pub fn unproject(&mut self, projected_point: na::Point4<f32>) -> na::Point4<f32> {
+    pub fn unproject(&self, projected_point: na::Point4<f32>) -> na::Point4<f32> {
         let inverse = self.compute_transform_matrix(0.0).try_inverse().unwrap();
         inverse * projected_point
+    }
+
+    pub fn get_gl_coordinate(&self, screen_coordinate: na::Point2<i32>) -> na::Point2<f32> {
+        na::Point2::new(
+            (screen_coordinate.x as f32 / ((self.viewport_size.x as f32) / 2.0))  - 1.0, 
+            -((screen_coordinate.y as f32 / ((self.viewport_size.y as f32) / 2.0)) - 1.0)
+        )
     }
 }
 
@@ -308,6 +315,22 @@ mod tests {
         );
     }
 
+     #[test]   
+    fn centre_of_scaling_should_not_move() {
+        let transformer = Transformer{
+            viewport_size: na::Point2::new(1024, 512),
+            scale: na::Point2::new(1.0, 1.0),
+            translation: na::Point2::new(0.0, 0.0),
+            rotation: IsometricRotation::TopLeftAtTop,
+        };
+
+        let centre_of_scaling = transformer.compute_transform_matrix(0.0) * na::Point4::new(12.0, 34.0, 0.0, 1.0);
+
+        assert_eq!(
+            transformer.compute_transform_matrix(0.0) * na::Point4::new(12.0, 34.0, 0.0, 1.0),
+            centre_of_scaling,
+        );
+    }
 
     #[test]   
     fn test_scale_method() {
@@ -318,11 +341,11 @@ mod tests {
             rotation: IsometricRotation::TopLeftAtTop,
         };
 
-        transformer.scale(na::Point2::new(0.0, 0.0), 3.0);
+        transformer.scale(na::Point4::new(1.0, 1.0, 0.0, 1.0), 3.0);
        
         assert_eq!(
             transformer.compute_transform_matrix(0.0) * na::Point4::new(1.0, 0.0, 0.0, 1.0),
-            na::Point4::new(3.0, -1.5, 0.0, 1.0),
+            na::Point4::new(1.0, -3.5, 0.0, 1.0),
         );
     }
 
@@ -397,17 +420,12 @@ mod tests {
             rotation: IsometricRotation::TopLeftAtTop,
         };
 
-        assert_eq!(
-            transformer.compute_transform_matrix(0.0) * na::Point4::new(2.0, 2.0, 0.0, 1.0),
-            na::Point4::new(0.0, -2.0, 0.0, 1.0),
-        );
-
-        let centre_of_rotation = na::Point2::new(0.0, -1.0); // (1.0, 1.0)
+        let centre_of_rotation = transformer.compute_transform_matrix(0.0) * na::Point4::new(12.0, 34.0, 0.0, 1.0);
 
         transformer.rotate(centre_of_rotation, Direction::Clockwise);
         assert_eq!(
-            transformer.compute_transform_matrix(0.0) * na::Point4::new(1.0, 1.0, 0.0, 1.0),
-            na::Point4::new(centre_of_rotation.x, centre_of_rotation.y, 0.0, 1.0),
+            transformer.compute_transform_matrix(0.0) * na::Point4::new(12.0, 34.0, 0.0, 1.0),
+            centre_of_rotation,
         );
     }
 
@@ -426,7 +444,7 @@ mod tests {
             na::Point4::new(0.0, -2.0, 0.0, 1.0),
         );
 
-        let centre_of_rotation = na::Point2::new(0.0, -1.0);
+        let centre_of_rotation = na::Point4::new(0.0, -1.0, 0.0, 1.0);
 
         transformer.rotate(centre_of_rotation, Direction::Clockwise);
         assert_eq!(
@@ -468,7 +486,7 @@ mod tests {
             na::Point4::new(0.0, -2.0, 0.0, 1.0),
         );
 
-        let centre_of_rotation = na::Point2::new(0.0, -1.0);
+        let centre_of_rotation = na::Point4::new(0.0, -1.0, 0.0, 1.0);
 
         transformer.rotate(centre_of_rotation, Direction::AntiClockwise);
         assert_eq!(
@@ -494,65 +512,5 @@ mod tests {
             na::Point4::new(0.0, -2.0, 0.0, 1.0),
         );
     }
-
-    // #[test]   
-    // fn test_isometric_projection_with_bottom_left_at_top() {
-    //     let transformer = Transformer{
-    //         viewport_size: na::Point2::new(1024, 512),
-    //         scale: na::Point2::new(1.0, 1.0),
-    //         translation: na::Point2::new(0.0, 0.0),
-    //         rotation: IsometricRotation::BottomLeftAtTop,
-    //     };
-    //     let point: na::Point4<f32> = na::Point4::new(1.0, 1.0, 0.0, 1.0);
-
-    //     let actual = transformer.compute_transform_matrix(0.0) * point;
-    //     let expected: na::Point4<f32> = na::Point4::new(2.0, 0.0, 0.0, 1.0);
-    //     assert_eq!(actual, expected);
-    // }
-
-    // #[test]   
-    // fn test_isometric_projection_with_bottom_right_at_top() {
-    //     let transformer = Transformer{
-    //         viewport_size: na::Point2::new(1024, 512),
-    //         scale: na::Point2::new(1.0, 1.0),
-    //         translation: na::Point2::new(0.0, 0.0),
-    //         rotation: IsometricRotation::BottomRightAtTop,
-    //     };
-    //     let point: na::Point4<f32> = na::Point4::new(1.0, 1.0, 0.0, 1.0);
-
-    //     let actual = transformer.compute_transform_matrix(0.0) * point;
-    //     let expected: na::Point4<f32> = na::Point4::new(0.0, -1.0, 0.0, 1.0);
-    //     assert_eq!(actual, expected);
-    // }
-
-    //     #[test]   
-    // fn test_isometric_projection_with_z() {
-    //     let transformer = Transformer{
-    //         viewport_size: na::Point2::new(1024, 512),
-    //         scale: na::Point2::new(1.0, 1.0),
-    //         translation: na::Point2::new(0.0, 0.0),
-    //         rotation: IsometricRotation::TopLeftAtTop,
-    //     };
-    //     let point: na::Point4<f32> = na::Point4::new(1.0, 1.0, 10.0, 1.0);
-
-    //     let actual = transformer.compute_transform_matrix(0.0) * point;
-    //     let expected: na::Point4<f32> = na::Point4::new(0.0, 11.0, -10.0, 1.0);
-    //     assert_eq!(actual, expected);
-    // }
-    
-    // #[test]   
-    // fn test_scale() {
-    //     let transformer = Transformer{
-    //         viewport_size: na::Point2::new(1024, 512),
-    //         scale: na::Point2::new(1.0, 1.0),
-    //         translation: na::Point2::new(0.0, 0.0),
-    //         rotation: IsometricRotation::TopLeftAtTop,
-    //     };
-    //     let point: na::Point4<f32> = na::Point4::new(2.0, 1.0, 0.0, 1.0);
-
-    //     let actual = transformer.compute_transform_matrix(0.0) * point;
-    //     let expected: na::Point4<f32> = na::Point4::new(2.0, -1.0, 0.0, 1.0);
-    //     assert_eq!(actual, expected);
-    // }
 
 }

@@ -1,6 +1,6 @@
 use super::program::Program;
 use super::shader::Shader;
-use std::ffi::CString;
+use std::ffi::{CString, c_void};
 use std::marker::PhantomData;
 
 use super::transformer::Transformer;
@@ -108,6 +108,36 @@ impl GraphicsEngine {
         }
         self.terrain_triangles.load(triangle_vertices);
         self.terrain_lines.load(line_vertices);
+    }
+
+    fn get_z_bit(&self, screen_coordinate: na::Point2<i32>) -> f32 {
+        let mut buffer: Vec<f32> = vec![0.0];
+        unsafe {
+            gl::ReadPixels(
+                screen_coordinate.x as i32, //TODO proper conversion to i32
+                screen_coordinate.y as i32,
+                1,
+                1,
+                gl::DEPTH_COMPONENT,
+                gl::FLOAT,
+                buffer.as_mut_ptr() as *mut c_void
+            );
+        }
+        buffer[0]
+    }
+
+    pub fn get_3d_cursor_position(&self, screen_coordinate: na::Point2<i32>) -> na::Point4<f32> {
+        let z = self.get_z_bit(screen_coordinate);
+        let gl_coordinate = self.transformer.get_gl_coordinate(screen_coordinate);
+        let out = na::Point4::new(
+            gl_coordinate.x as f32,
+            gl_coordinate.y as f32,
+            z,
+            1.0
+        );
+        let reconstructed = self.transformer.compute_transform_matrix(0.0) * self.transformer.unproject(out);
+        println!("{:?} -> {:?} -> {:?}", out, self.transformer.unproject(out), reconstructed );
+        out
     }
 }
 
