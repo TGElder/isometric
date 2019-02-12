@@ -8,6 +8,7 @@ use super::transformer::Transformer;
 pub struct GraphicsEngine {
     terrain_triangles: VBO<ColoredVertex>,
     terrain_lines: VBO<Vertex>,
+    selected_cell: VBO<ColoredVertex>,
     program: Program,
     transformer: Transformer,
 }
@@ -20,6 +21,7 @@ impl GraphicsEngine {
         GraphicsEngine {
             terrain_triangles: VBO::new(gl::TRIANGLES),
             terrain_lines: VBO::new(gl::LINES),
+            selected_cell: VBO::new(gl::TRIANGLES),
             program,
             transformer: Transformer::new(viewport_size),
         }
@@ -64,6 +66,8 @@ impl GraphicsEngine {
             self.terrain_triangles.draw();
             self.load_transform_matrix(self.transformer.compute_transform_matrix(-0.001));
             self.terrain_lines.draw();
+            self.load_transform_matrix(self.transformer.compute_transform_matrix(-0.002));
+            self.selected_cell.draw();
         }
     }
 
@@ -75,17 +79,19 @@ impl GraphicsEngine {
         }
     }
 
-    pub fn load_terrain(&mut self, heights: na::DMatrix<f32>, selection: Option<na::Point2<usize>>) {
+    pub fn load_terrain(&mut self, heights: &na::DMatrix<f32>) {
         let width = heights.shape().0;
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
         let mut line_vertices: Vec<f32> = Vec::with_capacity(width * height * 24);
         for x in 0..(width - 1) {
             for y in 0..(height - 1) {
+                
                 let a = (x as f32, y as f32, heights[(x, y)]);
                 let b = (x as f32 + 1.0, y as f32, heights[(x + 1, y)]);
                 let c = (x as f32 + 1.0, y as f32 + 1.0, heights[(x + 1, y + 1)]);
                 let d = (x as f32, y as f32 + 1.0, heights[(x, y + 1)]);
+
                 triangle_vertices.extend([
                     a.0, a.1, a.2, a.2, a.2, a.2,
                     d.0, d.1, d.2, d.2, d.2, d.2,
@@ -108,6 +114,36 @@ impl GraphicsEngine {
         }
         self.terrain_triangles.load(triangle_vertices);
         self.terrain_lines.load(line_vertices);
+    }
+
+    pub fn select_cell(&mut self, heights: &na::DMatrix<f32>, selection: na::Point2<i32>) {
+        let width = heights.shape().0 as i32;
+        let height = heights.shape().1 as i32;
+        let x = selection.x;
+        let y = selection.y;
+
+        if x < 0 || x >= width || y < 0 || y >= height {
+            return;
+        }
+
+        let x = x as usize;
+        let y = y as usize;
+
+        let a = (x as f32, y as f32, heights[(x, y)]);
+        let b = (x as f32 + 1.0, y as f32, heights[(x + 1, y)]);
+        let c = (x as f32 + 1.0, y as f32 + 1.0, heights[(x + 1, y + 1)]);
+        let d = (x as f32, y as f32 + 1.0, heights[(x, y + 1)]);
+
+        self.selected_cell.load(
+            vec![
+                a.0, a.1, a.2, 1.0, 0.0, 0.0,
+                d.0, d.1, d.2, 1.0, 0.0, 0.0,
+                c.0, c.1, c.2, 1.0, 0.0, 0.0,
+                a.0, a.1, a.2, 1.0, 0.0, 0.0,
+                c.0, c.1, c.2, 1.0, 0.0, 0.0,
+                b.0, b.1, b.2, 1.0, 0.0, 0.0,
+            ]
+        );
     }
 
     fn get_z_bit(&self, screen_coordinate: na::Point2<i32>) -> f32 {

@@ -10,6 +10,7 @@ pub struct IsometricEngine {
     window: glutin::GlWindow,
     graphics: GraphicsEngine,
     drag_controller: DragController,
+    terrain: na::DMatrix<f32>,
 }
 
 impl IsometricEngine {
@@ -33,18 +34,19 @@ impl IsometricEngine {
         }
 
         let mut graphics = GraphicsEngine::new(na::Point2::new(width, height));
-        graphics.load_terrain(terrain);
+        graphics.load_terrain(&terrain);
 
         IsometricEngine {
             events_loop,
             window: gl_window,
             graphics,
             drag_controller: DragController::new(),
+            terrain,
         }
     }
 
     pub fn run(&mut self) {
-        let mut cursor_position = None;
+        let mut current_cursor_position = None;
         let mut running = true;
         while running {
             let graphics = &mut self.graphics;
@@ -52,6 +54,7 @@ impl IsometricEngine {
             let window = &self.window;
             let drag_controller = &mut self.drag_controller;
             let window_size = self.window.window().get_inner_size().unwrap();
+            let terrain = &self.terrain;
             events_loop.poll_events(|event| match event {
                 glutin::Event::WindowEvent { event, .. } => {
                     match event {
@@ -63,7 +66,7 @@ impl IsometricEngine {
                             graphics.set_viewport_size(na::Point2::new(logical_size.0, logical_size.1));
                         }
                         glutin::WindowEvent::MouseWheel { delta, .. } => {
-                            if let Some(cursor_position) = cursor_position {
+                            if let Some(cursor_position) = current_cursor_position {
                                 match delta {
                                     glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => {
                                         graphics.get_transformer().scale(cursor_position, 2.0)
@@ -79,7 +82,7 @@ impl IsometricEngine {
                             glutin::KeyboardInput{
                                 virtual_keycode: Some(glutin::VirtualKeyCode::Space), 
                                 state: glutin::ElementState::Pressed,
-                                modifiers, .. } => if let Some(cursor_position) = cursor_position {
+                                modifiers, .. } => if let Some(cursor_position) = current_cursor_position {
                                     match modifiers {
                                         glutin::ModifiersState{ shift: true, .. } => graphics.get_transformer().rotate(cursor_position, Direction::Clockwise),
                                         _ => graphics.get_transformer().rotate(cursor_position, Direction::AntiClockwise),
@@ -94,7 +97,10 @@ impl IsometricEngine {
                         glutin::WindowEvent::CursorMoved{ position, .. } => {
                             let position: (i32, i32) = position.into();
                             let screen_coordinate = na::Point2::new(position.0, window_size.height as i32 - position.1); //TODO inconsistent use of window size
-                            cursor_position = Some(graphics.get_3d_cursor_position(screen_coordinate));
+                            let cursor_position = graphics.get_3d_cursor_position(screen_coordinate);
+                            current_cursor_position = Some(cursor_position);
+                            let world_position = graphics.get_transformer().unproject(cursor_position);
+                            graphics.select_cell(&terrain, na::Point2::new(world_position.x as i32, world_position.y as i32));
                         },
                         _ => (),
                     };
