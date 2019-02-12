@@ -133,8 +133,8 @@ impl Transformer {
 
     pub fn get_gl_coordinate(&self, screen_coordinate: na::Point2<i32>) -> na::Point2<f32> {
         na::Point2::new(
-            (screen_coordinate.x as f32 / ((self.viewport_size.x as f32) / 2.0))  - 1.0, 
-            -((screen_coordinate.y as f32 / ((self.viewport_size.y as f32) / 2.0)) - 1.0)
+            (screen_coordinate.x as f32 / ((self.viewport_size.x as f32) / 2.0)) - 1.0, 
+            (screen_coordinate.y as f32 / ((self.viewport_size.y as f32) / 2.0)) - 1.0
         )
     }
 }

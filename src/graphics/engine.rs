@@ -75,7 +75,7 @@ impl GraphicsEngine {
         }
     }
 
-    pub fn load_terrain(&mut self, heights: na::DMatrix<f32>) {
+    pub fn load_terrain(&mut self, heights: na::DMatrix<f32>, selection: Option<na::Point2<usize>>) {
         let width = heights.shape().0;
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
@@ -123,21 +123,18 @@ impl GraphicsEngine {
                 buffer.as_mut_ptr() as *mut c_void
             );
         }
-        buffer[0]
+        2.0 * buffer[0] - 1.0
     }
 
     pub fn get_3d_cursor_position(&self, screen_coordinate: na::Point2<i32>) -> na::Point4<f32> {
         let z = self.get_z_bit(screen_coordinate);
         let gl_coordinate = self.transformer.get_gl_coordinate(screen_coordinate);
-        let out = na::Point4::new(
+        na::Point4::new(
             gl_coordinate.x as f32,
             gl_coordinate.y as f32,
             z,
             1.0
-        );
-        let reconstructed = self.transformer.compute_transform_matrix(0.0) * self.transformer.unproject(out);
-        println!("{:?} -> {:?} -> {:?}", out, self.transformer.unproject(out), reconstructed );
-        out
+        )
     }
 }
 
