@@ -110,7 +110,7 @@ impl Transformer {
         let s = self.rotation.s();
         na::Matrix4::new(
             c, -s, 0.0, 0.0,
-            -s / 2.0, -c / 2.0, 128.0, 0.0,
+            -s / 2.0, -c / 2.0, 16.0, 0.0,
             0.0, 0.0, -1.0 + z_adjustment, 0.0,
             0.0, 0.0, 0.0, 1.0,
         )
