@@ -96,7 +96,6 @@ impl IsometricEngine {
                         },
                         glutin::WindowEvent::CursorMoved{ position, .. } => {
                             let position: (i32, i32) = position.to_physical(dpi_factor).into();
-                            println!("{}x{}", position.0, position.1);
                             let screen_coordinate = na::Point2::new(position.0, physical_window_size.height as i32 - position.1); //TODO inconsistent use of window size
                             let cursor_position = graphics.get_3d_cursor_position(screen_coordinate);
                             current_cursor_position = Some(cursor_position);
