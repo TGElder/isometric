@@ -60,7 +60,7 @@ impl Transformer {
     pub fn new(viewport_size: na::Point2<u32>) -> Transformer {
         let mut out = Transformer{
             viewport_size,
-            scale: na::Point2::new(1.0, 1.0),
+            scale: na::Point2::new(1.0, (viewport_size.x as f32) / (viewport_size.y as f32)),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
         };

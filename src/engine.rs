@@ -29,8 +29,6 @@ impl IsometricEngine {
         unsafe {
             gl_window.make_current().unwrap();
             gl::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _);
-            gl::Viewport(0, 0, width as i32, height as i32);
-            gl::ClearColor(0.0, 0.0, 1.0, 1.0);
         }
 
         let mut graphics = GraphicsEngine::new(na::Point2::new(width, height));
@@ -53,17 +51,19 @@ impl IsometricEngine {
             let events_loop = &mut self.events_loop;
             let window = &self.window;
             let drag_controller = &mut self.drag_controller;
-            let window_size = self.window.window().get_inner_size().unwrap();
+            let dpi_factor = window.get_hidpi_factor();
+            let logical_window_size = self.window.window().get_inner_size().unwrap();
+            let physical_window_size = logical_window_size.to_physical(dpi_factor);
             let terrain = &self.terrain;
             events_loop.poll_events(|event| match event {
                 glutin::Event::WindowEvent { event, .. } => {
                     match event {
                         glutin::WindowEvent::CloseRequested => running = false,
                         glutin::WindowEvent::Resized(logical_size) => {
-                            let dpi_factor = window.get_hidpi_factor();
-                            window.resize(logical_size.to_physical(dpi_factor));
-                            let logical_size: (u32, u32) = logical_size.into();
-                            graphics.set_viewport_size(na::Point2::new(logical_size.0, logical_size.1));
+                            let physical_size = logical_size.to_physical(dpi_factor);
+                            window.resize(physical_size);
+                            let physical_size: (u32, u32) = physical_size.into();
+                            graphics.set_viewport_size(na::Point2::new(physical_size.0, physical_size.1));
                         }
                         glutin::WindowEvent::MouseWheel { delta, .. } => {
                             if let Some(cursor_position) = current_cursor_position {
@@ -95,8 +95,9 @@ impl IsometricEngine {
                             _ => (),
                         },
                         glutin::WindowEvent::CursorMoved{ position, .. } => {
-                            let position: (i32, i32) = position.into();
-                            let screen_coordinate = na::Point2::new(position.0, window_size.height as i32 - position.1); //TODO inconsistent use of window size
+                            let position: (i32, i32) = position.to_physical(dpi_factor).into();
+                            println!("{}x{}", position.0, position.1);
+                            let screen_coordinate = na::Point2::new(position.0, physical_window_size.height as i32 - position.1); //TODO inconsistent use of window size
                             let cursor_position = graphics.get_3d_cursor_position(screen_coordinate);
                             current_cursor_position = Some(cursor_position);
                             let world_position = graphics.get_transformer().unproject(cursor_position);
@@ -106,8 +107,8 @@ impl IsometricEngine {
                     };
                     if let Some((x, y)) = drag_controller.handle(event) {
                         graphics.get_transformer().translate(na::Point2::new(
-                            (-x / (window_size.width / 2.0)) as f32,
-                            (y / (window_size.height / 2.0)) as f32,
+                            (-x / (logical_window_size.width / 2.0)) as f32,
+                            (y / (logical_window_size.height / 2.0)) as f32,
                         ));
                     }
                 }
