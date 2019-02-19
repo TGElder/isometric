@@ -1,3 +1,5 @@
+use super::coords::*;
+
 pub enum Direction {
     Clockwise,
     AntiClockwise
@@ -49,10 +51,10 @@ impl IsometricRotation {
 }
 
 pub struct Transformer{
-    viewport_size: na::Point2<u32>,
-    scale: na::Point2<f32>,
-    translation: na::Point2<f32>,
-    rotation: IsometricRotation,
+    pub viewport_size: na::Point2<u32>,
+    pub scale: na::Point2<f32>,
+    pub translation: na::Point2<f32>,
+    pub rotation: IsometricRotation,
 }
 
 impl Transformer {
@@ -124,6 +126,11 @@ impl Transformer {
             (centre.x - centre_new.x) + self.translation.x,
             (centre.y - centre_new.y) + self.translation.y,
         );
+    }
+
+    pub fn project(&self, world_coord: WorldCoord) -> GLCoord4D {
+        let point: na::Point4<f32> = world_coord.into();
+        (self.compute_transform_matrix(0.0) * point).into()
     }
 
     pub fn unproject(&self, projected_point: na::Point4<f32>) -> na::Point4<f32> {

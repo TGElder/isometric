@@ -4,6 +4,7 @@ use std::ffi::{CString, c_void};
 use std::marker::PhantomData;
 
 use super::transformer::Transformer;
+use super::coords::*;
 
 pub struct GraphicsEngine {
     terrain_triangles: VBO<ColoredVertex>,
@@ -175,6 +176,25 @@ impl GraphicsEngine {
             z,
             1.0
         )
+    }
+}
+
+impl ZFinder for GraphicsEngine {
+
+    fn get_z_at(&self, screen_coordinate: GLCoord2D) -> f32 {
+        let mut buffer: Vec<f32> = vec![0.0];
+        unsafe {
+            gl::ReadPixels(
+                screen_coordinate.x as i32, //TODO proper conversion to i32
+                screen_coordinate.y as i32,
+                1,
+                1,
+                gl::DEPTH_COMPONENT,
+                gl::FLOAT,
+                buffer.as_mut_ptr() as *mut c_void
+            );
+        }
+        2.0 * buffer[0] - 1.0
     }
 }
 
