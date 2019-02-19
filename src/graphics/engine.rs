@@ -11,21 +11,25 @@ pub struct GraphicsEngine {
     terrain_lines: VBO<Vertex>,
     selected_cell: VBO<ColoredVertex>,
     program: Program,
+    viewport_size: glutin::dpi::PhysicalSize,
     transformer: Transformer,
 }
 
 impl GraphicsEngine {
 
-    pub fn new(viewport_size: na::Point2<u32>) -> GraphicsEngine {
+    pub fn new(viewport_size: glutin::dpi::PhysicalSize) -> GraphicsEngine {
         let program = GraphicsEngine::load_program();
 
-        GraphicsEngine {
+        let mut out = GraphicsEngine {
             terrain_triangles: VBO::new(gl::TRIANGLES),
             terrain_lines: VBO::new(gl::LINES),
             selected_cell: VBO::new(gl::TRIANGLES),
             program,
-            transformer: Transformer::new(viewport_size),
-        }
+            transformer: Transformer::new(na::Point2::new(1.0, viewport_size.width as f32 / viewport_size.height as f32)),
+            viewport_size,
+        };
+        out.set_viewport_size(viewport_size);
+        out
     }
 
     pub fn get_transformer(&mut self) -> &mut Transformer {
@@ -72,10 +76,16 @@ impl GraphicsEngine {
         }
     }
 
-    pub fn set_viewport_size(&mut self, viewport_size: na::Point2<u32>) {
-        self.transformer.set_viewport_size(viewport_size);
+    pub fn set_viewport_size(&mut self, viewport_size: glutin::dpi::PhysicalSize) {
+        self.transformer.scale(na::Point4::new(0.0, 0.0, 0.0, 1.0),
+            GLCoord2D{
+                x: ((self.viewport_size.width as f32) / (viewport_size.width as f32)),
+                y: ((self.viewport_size.height as f32) / (viewport_size.height as f32))
+            }
+        );
+        self.viewport_size = viewport_size;
         unsafe {
-            gl::Viewport(0, 0, viewport_size.x as i32, viewport_size.y as i32);
+            gl::Viewport(0, 0, viewport_size.width as i32, viewport_size.height as i32);
             gl::ClearColor(0.0, 0.0, 1.0, 1.0);
         }
     }
@@ -169,12 +179,20 @@ impl GraphicsEngine {
 
     pub fn get_3d_cursor_position(&self, screen_coordinate: na::Point2<i32>) -> na::Point4<f32> {
         let z = self.get_z_bit(screen_coordinate);
-        let gl_coordinate = self.transformer.get_gl_coordinate(screen_coordinate);
+        let gl_coordinate = self.get_gl_coordinate(screen_coordinate);
         na::Point4::new(
             gl_coordinate.x as f32,
             gl_coordinate.y as f32,
             z,
             1.0
+        )
+    }
+
+
+    pub fn get_gl_coordinate(&self, screen_coordinate: na::Point2<i32>) -> na::Point2<f32> {
+        na::Point2::new(
+            (screen_coordinate.x as f32 / ((self.viewport_size.width as f32) / 2.0)) - 1.0, 
+            (screen_coordinate.y as f32 / ((self.viewport_size.height as f32) / 2.0)) - 1.0
         )
     }
 }

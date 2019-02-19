@@ -158,7 +158,6 @@ mod tests {
     #[test]
     fn test_gl_4d_to_world() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 2.0),
             translation: na::Point2::new(3.0, 4.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -175,7 +174,6 @@ mod tests {
     #[test]
     fn test_world_to_gl_4d() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 2.0),
             translation: na::Point2::new(3.0, 4.0),
             rotation: IsometricRotation::TopLeftAtTop,

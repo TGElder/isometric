@@ -2,6 +2,7 @@ extern crate glutin;
 
 use ::graphics::engine::GraphicsEngine;
 use ::graphics::transformer::Direction;
+use ::graphics::coords::*;
 
 use self::glutin::GlContext;
 
@@ -31,7 +32,8 @@ impl IsometricEngine {
             gl::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _);
         }
 
-        let mut graphics = GraphicsEngine::new(na::Point2::new(width, height));
+        let dpi_factor = gl_window.get_hidpi_factor();
+        let mut graphics = GraphicsEngine::new(gl_window.window().get_inner_size().unwrap().to_physical(dpi_factor));
         graphics.load_terrain(&terrain);
 
         IsometricEngine {
@@ -62,17 +64,16 @@ impl IsometricEngine {
                         glutin::WindowEvent::Resized(logical_size) => {
                             let physical_size = logical_size.to_physical(dpi_factor);
                             window.resize(physical_size);
-                            let physical_size: (u32, u32) = physical_size.into();
-                            graphics.set_viewport_size(na::Point2::new(physical_size.0, physical_size.1));
+                            graphics.set_viewport_size(physical_size);
                         }
                         glutin::WindowEvent::MouseWheel { delta, .. } => {
                             if let Some(cursor_position) = current_cursor_position {
                                 match delta {
                                     glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => {
-                                        graphics.get_transformer().scale(cursor_position, 2.0)
+                                        graphics.get_transformer().scale(cursor_position, GLCoord2D{x: 2.0, y: 2.0}) //TODO GLCoords make constant
                                     }
                                     glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => {
-                                        graphics.get_transformer().scale(cursor_position, 0.5)
+                                        graphics.get_transformer().scale(cursor_position, GLCoord2D{x: 0.5, y: 0.5})
                                     }
                                     _ => (),
                                 }

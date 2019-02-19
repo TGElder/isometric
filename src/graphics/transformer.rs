@@ -51,7 +51,6 @@ impl IsometricRotation {
 }
 
 pub struct Transformer{
-    pub viewport_size: na::Point2<u32>,
     pub scale: na::Point2<f32>,
     pub translation: na::Point2<f32>,
     pub rotation: IsometricRotation,
@@ -59,15 +58,12 @@ pub struct Transformer{
 
 impl Transformer {
     
-    pub fn new(viewport_size: na::Point2<u32>) -> Transformer {
-        let mut out = Transformer{
-            viewport_size,
-            scale: na::Point2::new(1.0, (viewport_size.x as f32) / (viewport_size.y as f32)),
+    pub fn new(scale: na::Point2<f32>) -> Transformer {
+        Transformer{
+            scale,
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
-        };
-        out.set_viewport_size(viewport_size);
-        out
+        }
     }
 
     pub fn compute_transform_matrix(&self, z_adjustment: f32) -> na::Matrix4<f32> {
@@ -83,19 +79,10 @@ impl Transformer {
         scale_matrix * isometric_matrix
     }
 
-    pub fn set_viewport_size(&mut self, viewport_size: na::Point2<u32>) {
-        let scale = na::Point2::new(
-            self.scale.x * ((self.viewport_size.x as f32) / (viewport_size.x as f32)),
-            self.scale.y * ((self.viewport_size.y as f32) / (viewport_size.y as f32))
-        );
-
-        self.viewport_size = viewport_size;
-        self.scale = scale;
-    }
-
-    pub fn scale(&mut self, centre: na::Point4<f32>, delta: f32) {
+    pub fn scale(&mut self, centre: na::Point4<f32>, delta: GLCoord2D) {
         let world_point = self.unproject(centre);
-        self.scale = self.scale * delta;
+        self.scale.x = self.scale.x * delta.x;
+        self.scale.y = self.scale.y * delta.y;
         let centre_new = self.compute_transform_matrix(0.0) * world_point;
         self.translation = na::Point2::new(
             (centre.x - centre_new.x) + self.translation.x,
@@ -138,12 +125,6 @@ impl Transformer {
         inverse * projected_point
     }
 
-    pub fn get_gl_coordinate(&self, screen_coordinate: na::Point2<i32>) -> na::Point2<f32> {
-        na::Point2::new(
-            (screen_coordinate.x as f32 / ((self.viewport_size.x as f32) / 2.0)) - 1.0, 
-            (screen_coordinate.y as f32 / ((self.viewport_size.y as f32) / 2.0)) - 1.0
-        )
-    }
 }
 
 
@@ -153,11 +134,11 @@ mod tests {
     use super::IsometricRotation;
     use super::Direction;
     use super::Transformer;
+    use super::super::coords::*;
 
     #[test]   
     fn test_isometric_projection_with_top_left_at_top() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -184,7 +165,6 @@ mod tests {
      #[test]   
     fn test_isometric_projection_with_top_right_at_top() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopRightAtTop,
@@ -211,7 +191,6 @@ mod tests {
         #[test]   
     fn test_isometric_projection_with_bottom_right_at_top() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::BottomRightAtTop,
@@ -238,7 +217,6 @@ mod tests {
        #[test]   
     fn test_isometric_projection_with_bottom_left_at_top() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::BottomLeftAtTop,
@@ -265,7 +243,6 @@ mod tests {
     #[test]   
     fn test_isometric_projection_with_z() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -280,7 +257,6 @@ mod tests {
     #[test]   
     fn test_x_scale() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(3.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -295,7 +271,6 @@ mod tests {
      #[test]   
     fn test_y_scale() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 3.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -310,7 +285,6 @@ mod tests {
     #[test]   
     fn test_both_scale() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(3.0, 3.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -325,7 +299,6 @@ mod tests {
      #[test]   
     fn centre_of_scaling_should_not_move() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -340,15 +313,14 @@ mod tests {
     }
 
     #[test]   
-    fn test_scale_method() {
+    fn test_scale_method() { // TODO only tests uniform scaling
         let mut transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
         };
 
-        transformer.scale(na::Point4::new(1.0, 1.0, 0.0, 1.0), 3.0);
+        transformer.scale(na::Point4::new(1.0, 1.0, 0.0, 1.0), GLCoord2D{x: 3.0, y: 3.0});
        
         assert_eq!(
             transformer.compute_transform_matrix(0.0) * na::Point4::new(1.0, 0.0, 0.0, 1.0),
@@ -359,7 +331,6 @@ mod tests {
     #[test]   
     fn test_x_translate() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(-1.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -374,7 +345,6 @@ mod tests {
     #[test]   
     fn test_y_translate() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.5),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -389,7 +359,6 @@ mod tests {
     #[test]   
     fn test_both_translate() {
         let transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(-1.0, 0.5),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -404,7 +373,6 @@ mod tests {
     #[test]   
     fn test_translate_method() {
         let mut transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -421,7 +389,6 @@ mod tests {
     #[test]   
     fn centre_of_rotation_should_not_move() {
         let mut transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -440,7 +407,6 @@ mod tests {
     fn test_rotation_clockwise() {
 
         let mut transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,
@@ -482,7 +448,6 @@ mod tests {
     fn test_rotation_anticlockwise() {
 
         let mut transformer = Transformer{
-            viewport_size: na::Point2::new(1024, 512),
             scale: na::Point2::new(1.0, 1.0),
             translation: na::Point2::new(0.0, 0.0),
             rotation: IsometricRotation::TopLeftAtTop,

@@ -1,5 +1,5 @@
 pub mod engine;
 pub mod transformer;
-mod coords;
+pub mod coords;
 mod shader;
 mod program;
