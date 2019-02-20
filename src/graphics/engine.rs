@@ -25,7 +25,7 @@ impl GraphicsEngine {
             terrain_lines: VBO::new(gl::LINES),
             selected_cell: VBO::new(gl::TRIANGLES),
             program,
-            transformer: Transformer::new(na::Point2::new(1.0, viewport_size.width as f32 / viewport_size.height as f32)),
+            transformer: Transformer::new(GLCoord2D{x: 1.0, y: viewport_size.width as f32 / viewport_size.height as f32}),
             viewport_size,
         };
         out.set_viewport_size(viewport_size);
@@ -67,17 +67,20 @@ impl GraphicsEngine {
     pub fn draw(&self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            self.load_transform_matrix(self.transformer.compute_transform_matrix(0.0));
+            self.transformer.compute_transform_matrix(0.0);
+            self.load_transform_matrix(self.transformer.get_transform_matrix());
             self.terrain_triangles.draw();
-            self.load_transform_matrix(self.transformer.compute_transform_matrix(-0.001));
+            self.transformer.compute_transform_matrix(-0.001);
+            self.load_transform_matrix(self.transformer.get_transform_matrix());
             self.terrain_lines.draw();
-            self.load_transform_matrix(self.transformer.compute_transform_matrix(-0.002));
+            self.transformer.compute_transform_matrix(-0.002);
+            self.load_transform_matrix(self.transformer.get_transform_matrix());
             self.selected_cell.draw();
         }
     }
 
     pub fn set_viewport_size(&mut self, viewport_size: glutin::dpi::PhysicalSize) {
-        self.transformer.scale(na::Point4::new(0.0, 0.0, 0.0, 1.0),
+        self.transformer.scale(GLCoord4D{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
             GLCoord2D{
                 x: ((self.viewport_size.width as f32) / (viewport_size.width as f32)),
                 y: ((self.viewport_size.height as f32) / (viewport_size.height as f32))
@@ -161,40 +164,6 @@ impl GraphicsEngine {
         );
     }
 
-    fn get_z_bit(&self, screen_coordinate: na::Point2<i32>) -> f32 {
-        let mut buffer: Vec<f32> = vec![0.0];
-        unsafe {
-            gl::ReadPixels(
-                screen_coordinate.x as i32, //TODO proper conversion to i32
-                screen_coordinate.y as i32,
-                1,
-                1,
-                gl::DEPTH_COMPONENT,
-                gl::FLOAT,
-                buffer.as_mut_ptr() as *mut c_void
-            );
-        }
-        2.0 * buffer[0] - 1.0
-    }
-
-    pub fn get_3d_cursor_position(&self, screen_coordinate: na::Point2<i32>) -> na::Point4<f32> {
-        let z = self.get_z_bit(screen_coordinate);
-        let gl_coordinate = self.get_gl_coordinate(screen_coordinate);
-        na::Point4::new(
-            gl_coordinate.x as f32,
-            gl_coordinate.y as f32,
-            z,
-            1.0
-        )
-    }
-
-
-    pub fn get_gl_coordinate(&self, screen_coordinate: na::Point2<i32>) -> na::Point2<f32> {
-        na::Point2::new(
-            (screen_coordinate.x as f32 / ((self.viewport_size.width as f32) / 2.0)) - 1.0, 
-            (screen_coordinate.y as f32 / ((self.viewport_size.height as f32) / 2.0)) - 1.0
-        )
-    }
 }
 
 impl ZFinder for GraphicsEngine {

@@ -96,20 +96,15 @@ impl IsometricEngine {
                             _ => (),
                         },
                         glutin::WindowEvent::CursorMoved{ position, .. } => {
-                            let position: (i32, i32) = position.to_physical(dpi_factor).into();
-                            let screen_coordinate = na::Point2::new(position.0, physical_window_size.height as i32 - position.1); //TODO inconsistent use of window size
-                            let cursor_position = graphics.get_3d_cursor_position(screen_coordinate);
+                            let cursor_position = position.to_physical(dpi_factor).to_gl_coord_2d(physical_window_size).to_gl_coord_4d(graphics);
                             current_cursor_position = Some(cursor_position);
-                            let world_position = graphics.get_transformer().unproject(cursor_position);
+                            let world_position = cursor_position.to_world_coord(graphics.get_transformer());
                             graphics.select_cell(&terrain, na::Point2::new(world_position.x as i32, world_position.y as i32));
                         },
                         _ => (),
                     };
-                    if let Some((x, y)) = drag_controller.handle(event) {
-                        graphics.get_transformer().translate(na::Point2::new(
-                            (-x / (logical_window_size.width / 2.0)) as f32,
-                            (y / (logical_window_size.height / 2.0)) as f32,
-                        ));
+                    if let Some(logical_position) = drag_controller.handle(event) {
+                        graphics.get_transformer().translate(logical_position.to_physical(dpi_factor).to_gl_coord_2d(physical_window_size));
                     }
                 }
                 _ => (),
@@ -135,7 +130,7 @@ impl DragController {
         }
     }
 
-    fn handle(&mut self, event: glutin::WindowEvent) -> Option<(f64, f64)> {
+    fn handle(&mut self, event: glutin::WindowEvent) -> Option<glutin::dpi::LogicalPosition> {
         match event {
             glutin::WindowEvent::MouseInput{
                 state,
@@ -151,7 +146,7 @@ impl DragController {
             glutin::WindowEvent::CursorMoved{ position, .. } => {
                 let out = if self.dragging {
                     if let Some(last_pos) = self.last_pos {
-                        Some((last_pos.x - position.x, last_pos.y - position.y))
+                        Some(glutin::dpi::LogicalPosition::new(last_pos.x - position.x, last_pos.y - position.y))
                     } else {
                         None
                     }
