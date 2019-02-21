@@ -1,10 +1,12 @@
 use super::coords::*;
 
+#[derive(Debug)]
 pub enum Direction {
     Clockwise,
     AntiClockwise
 }
 
+#[derive(Debug)]
 pub enum IsometricRotation {
     TopLeftAtTop,
     TopRightAtTop,
@@ -31,7 +33,7 @@ impl IsometricRotation {
         }
     }
 
-    fn rotate(&self, direction: Direction) -> IsometricRotation {
+    fn rotate(&self, direction: &Direction) -> IsometricRotation {
         match direction {
             Direction::Clockwise => match *self {
                 IsometricRotation::TopLeftAtTop => IsometricRotation::BottomLeftAtTop,
@@ -70,7 +72,7 @@ impl Transformer {
         }
     }
 
-    pub fn compute_transform_matrix(&self, z_adjustment: f32) {
+    pub fn compute_transform_matrix(&mut self, z_adjustment: f32) {
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
             self.scale.x, 0.0, 0.0, self.translation.x,
             0.0, self.scale.y, 0.0, self.translation.y,
@@ -79,25 +81,29 @@ impl Transformer {
         );
 
         let isometric_matrix = self.compute_isometric_matrix(z_adjustment);
-        let projection_matrix = scale_matrix * isometric_matrix;
-        let inverse_matrix = projection_matrix.try_inverse().unwrap();
+        self.projection_matrix = scale_matrix * isometric_matrix;
+        self.inverse_matrix = self.projection_matrix.try_inverse().unwrap();
     }
 
     pub fn get_transform_matrix(&self) -> na::Matrix4<f32> {
         self.projection_matrix
     }
 
-    fn transform_maintaining_centre(&mut self, centre: GLCoord4D, transformation: Box<FnMut(&Self) -> ()>) {
+    fn transform_maintaining_centre(&mut self, centre: GLCoord4D, mut transformation: Box<FnMut(&mut Self) -> ()>) {
+        let old_x = centre.x;
+        let old_y = centre.y;
         let world_point = self.unproject(centre);
         transformation(self);
-        let centre_new = self.project(world_point);
-        self.translate(GLCoord2D{x: centre.x - centre_new.x, y: centre.y - centre_new.y});
+        self.compute_transform_matrix(0.0);
+        let centre = self.project(world_point);
+        self.translation.x += old_x - centre.x;
+        self.translation.y += old_y - centre.y;
     }
 
     pub fn scale(&mut self, centre: GLCoord4D, delta: GLCoord2D) {
         self.transform_maintaining_centre(
             centre,
-            Box::new(|mut transform| {
+            Box::new(move |transform| {
                 transform.scale.x = transform.scale.x * delta.x;
                 transform.scale.y = transform.scale.y * delta.y;
             })
@@ -120,11 +126,11 @@ impl Transformer {
         )
     }
 
-    pub fn rotate(&mut self, centre: GLCoord4D, direction: Direction) {
+    pub fn rotate(&mut self, centre: GLCoord4D, direction: &'static Direction) {
         self.transform_maintaining_centre(
             centre,
-            Box::new(|mut transform| {
-                transform.rotation.rotate(direction);
+            Box::new(move |transform| {
+                transform.rotation = transform.rotation.rotate(direction);
             })
         );
     }
@@ -175,6 +181,8 @@ impl Transformer {
 //             na::Point4::new(-1.0, -0.5, 0.0, 1.0),
 //         );
 //     }
+
+// }
 
 //      #[test]   
 //     fn test_isometric_projection_with_top_right_at_top() {

@@ -85,8 +85,8 @@ impl IsometricEngine {
                                 state: glutin::ElementState::Pressed,
                                 modifiers, .. } => if let Some(cursor_position) = current_cursor_position {
                                     match modifiers {
-                                        glutin::ModifiersState{ shift: true, .. } => graphics.get_transformer().rotate(cursor_position, Direction::Clockwise),
-                                        _ => graphics.get_transformer().rotate(cursor_position, Direction::AntiClockwise),
+                                        glutin::ModifiersState{ shift: true, .. } => graphics.get_transformer().rotate(cursor_position, &Direction::Clockwise),
+                                        _ => graphics.get_transformer().rotate(cursor_position, &Direction::AntiClockwise),
                                     }
                             },
                             glutin::KeyboardInput{
@@ -96,15 +96,17 @@ impl IsometricEngine {
                             _ => (),
                         },
                         glutin::WindowEvent::CursorMoved{ position, .. } => {
-                            let cursor_position = position.to_physical(dpi_factor).to_gl_coord_2d(physical_window_size).to_gl_coord_4d(graphics);
-                            current_cursor_position = Some(cursor_position);
+                            let cursor_position = position.to_physical(dpi_factor).to_gl_coord_4d(physical_window_size, graphics);
                             let world_position = cursor_position.to_world_coord(graphics.get_transformer());
+                            current_cursor_position = Some(cursor_position);
                             graphics.select_cell(&terrain, na::Point2::new(world_position.x as i32, world_position.y as i32));
                         },
                         _ => (),
                     };
                     if let Some(logical_position) = drag_controller.handle(event) {
-                        graphics.get_transformer().translate(logical_position.to_physical(dpi_factor).to_gl_coord_2d(physical_window_size));
+                        let physical_delta = logical_position.to_physical(dpi_factor);
+                        let gl_delta = GLCoord2D{x: (physical_delta.x / physical_window_size.width) as f32 * -2.0, y: (physical_delta.y / physical_window_size.height) as f32 * 2.0};
+                        graphics.get_transformer().translate(gl_delta);
                     }
                 }
                 _ => (),

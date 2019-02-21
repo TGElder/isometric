@@ -64,18 +64,18 @@ impl GraphicsEngine {
         self.program.load_matrix("transform", transform_matrix);
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&mut self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            self.transformer.compute_transform_matrix(0.0);
-            self.load_transform_matrix(self.transformer.get_transform_matrix());
-            self.terrain_triangles.draw();
-            self.transformer.compute_transform_matrix(-0.001);
-            self.load_transform_matrix(self.transformer.get_transform_matrix());
-            self.terrain_lines.draw();
             self.transformer.compute_transform_matrix(-0.002);
             self.load_transform_matrix(self.transformer.get_transform_matrix());
             self.selected_cell.draw();
+            self.transformer.compute_transform_matrix(-0.001);
+            self.load_transform_matrix(self.transformer.get_transform_matrix());
+            self.terrain_lines.draw();
+            self.transformer.compute_transform_matrix(0.0);
+            self.load_transform_matrix(self.transformer.get_transform_matrix());
+            self.terrain_triangles.draw();
         }
     }
 
@@ -168,7 +168,7 @@ impl GraphicsEngine {
 
 impl ZFinder for GraphicsEngine {
 
-    fn get_z_at(&self, screen_coordinate: GLCoord2D) -> f32 {
+    fn get_z_at(&self, screen_coordinate: glutin::dpi::PhysicalPosition) -> f32 {
         let mut buffer: Vec<f32> = vec![0.0];
         unsafe {
             gl::ReadPixels(
