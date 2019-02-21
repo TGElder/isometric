@@ -103,9 +103,7 @@ impl IsometricEngine {
                         },
                         _ => (),
                     };
-                    if let Some(logical_position) = drag_controller.handle(event) {
-                        let physical_delta = logical_position.to_physical(dpi_factor);
-                        let gl_delta = GLCoord2D{x: (physical_delta.x / physical_window_size.width) as f32 * -2.0, y: (physical_delta.y / physical_window_size.height) as f32 * 2.0};
+                    if let Some(gl_delta) = drag_controller.handle(event, dpi_factor, physical_window_size) {
                         graphics.get_transformer().translate(gl_delta);
                     }
                 }
@@ -121,7 +119,7 @@ impl IsometricEngine {
 
 pub struct DragController {
     dragging: bool,
-    last_pos: Option<glutin::dpi::LogicalPosition>,
+    last_pos: Option<GLCoord2D>,
 }
 
 impl DragController {
@@ -132,7 +130,7 @@ impl DragController {
         }
     }
 
-    fn handle(&mut self, event: glutin::WindowEvent) -> Option<glutin::dpi::LogicalPosition> {
+    fn handle(&mut self, event: glutin::WindowEvent, dpi_factor: f64, physical_window_size: glutin::dpi::PhysicalSize) -> Option<GLCoord2D> {
         match event {
             glutin::WindowEvent::MouseInput{
                 state,
@@ -146,9 +144,10 @@ impl DragController {
                 None
             }
             glutin::WindowEvent::CursorMoved{ position, .. } => {
+                let position = position.to_physical(dpi_factor).to_gl_coord_2d(physical_window_size);
                 let out = if self.dragging {
-                    if let Some(last_pos) = self.last_pos {
-                        Some(glutin::dpi::LogicalPosition::new(last_pos.x - position.x, last_pos.y - position.y))
+                    if let Some(ref last_pos) = self.last_pos {
+                        Some(GLCoord2D{x: position.x - last_pos.x, y: position.y - last_pos.y})
                     } else {
                         None
                     }
