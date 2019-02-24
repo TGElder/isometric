@@ -1,7 +1,7 @@
 extern crate glutin;
 
 use ::graphics::engine::GraphicsEngine;
-use ::graphics::transformer::Direction;
+use ::graphics::transform::Direction;
 use ::graphics::coords::*;
 
 use self::glutin::GlContext;

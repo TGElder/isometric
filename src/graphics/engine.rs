@@ -3,8 +3,8 @@ use super::shader::Shader;
 use std::ffi::{CString, c_void};
 use std::marker::PhantomData;
 
-use super::transformer::Transformer;
-use super::transformer::IsometricRotation;
+use super::transform::Transform;
+use super::transform::IsometricRotation;
 use super::coords::*;
 
 pub struct GraphicsEngine {
@@ -13,7 +13,7 @@ pub struct GraphicsEngine {
     selected_cell: VBO<ColoredVertex>,
     program: Program,
     viewport_size: glutin::dpi::PhysicalSize,
-    transformer: Transformer,
+    transform: Transform,
 }
 
 impl GraphicsEngine {
@@ -26,7 +26,7 @@ impl GraphicsEngine {
             terrain_lines: VBO::new(gl::LINES),
             selected_cell: VBO::new(gl::TRIANGLES),
             program,
-            transformer: Transformer::new(
+            transform: Transform::new(
                 GLCoord2D::new(1.0, viewport_size.width as f32 / viewport_size.height as f32),
                 GLCoord2D::new(0.0, 0.0),
                 IsometricRotation::TopLeftAtTop),
@@ -36,8 +36,8 @@ impl GraphicsEngine {
         out
     }
 
-    pub fn get_transformer(&mut self) -> &mut Transformer {
-        &mut self.transformer
+    pub fn get_transformer(&mut self) -> &mut Transform {
+        &mut self.transform
     }
 
     fn load_program() -> Program {
@@ -71,20 +71,20 @@ impl GraphicsEngine {
     pub fn draw(&mut self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            self.transformer.compute_projection_matrix(-0.002);
-            self.load_projection_matrix(self.transformer.get_projection_matrix());
+            self.transform.compute_projection_matrix(-0.002);
+            self.load_projection_matrix(self.transform.get_projection_matrix());
             self.selected_cell.draw();
-            self.transformer.compute_projection_matrix(-0.001);
-            self.load_projection_matrix(self.transformer.get_projection_matrix());
+            self.transform.compute_projection_matrix(-0.001);
+            self.load_projection_matrix(self.transform.get_projection_matrix());
             self.terrain_lines.draw();
-            self.transformer.compute_projection_matrix(0.0);
-            self.load_projection_matrix(self.transformer.get_projection_matrix());
+            self.transform.compute_projection_matrix(0.0);
+            self.load_projection_matrix(self.transform.get_projection_matrix());
             self.terrain_triangles.draw();
         }
     }
 
     pub fn set_viewport_size(&mut self, viewport_size: glutin::dpi::PhysicalSize) {
-        self.transformer.scale(GLCoord4D{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
+        self.transform.scale(GLCoord4D{x: 0.0, y: 0.0, z: 0.0, w: 1.0},
             GLCoord2D{
                 x: ((self.viewport_size.width as f32) / (viewport_size.width as f32)),
                 y: ((self.viewport_size.height as f32) / (viewport_size.height as f32))

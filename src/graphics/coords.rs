@@ -1,5 +1,5 @@
 extern crate glutin;
-use super::transformer::Transformer;
+use super::transform::Transform;
 
 pub trait PhysicalPositionExt {
     fn to_gl_coord_2d(self, physical_size: glutin::dpi::PhysicalSize) -> GLCoord2D;
@@ -77,7 +77,7 @@ impl GLCoord4D {
         GLCoord4D{x, y, z, w}
     }
 
-    pub fn to_world_coord(self, transformer: &Transformer) -> WorldCoord {
+    pub fn to_world_coord(self, transformer: &Transform) -> WorldCoord {
         transformer.unproject(self)
     }
 }
@@ -116,7 +116,7 @@ impl WorldCoord {
         WorldCoord{x, y, z}
     }
 
-    pub fn to_gl_coord_4d(self, transformer: &Transformer) -> GLCoord4D {
+    pub fn to_gl_coord_4d(self, transformer: &Transform) -> GLCoord4D {
         transformer.project(self)
     }
 }
@@ -146,7 +146,7 @@ impl Into<na::Point4<f32>> for WorldCoord {
 mod tests {
 
     use super::*;
-    use super::super::transformer::IsometricRotation;
+    use super::super::transform::IsometricRotation;
 
     #[test]   
     fn physical_position_to_gl_2d_left_top() {
@@ -211,18 +211,18 @@ mod tests {
 
     #[test]
     fn test_gl_4d_to_world() {
-        let mut transformer = Transformer::new(
+        let mut transform = Transform::new(
             GLCoord2D::new(1.0, 2.0),
             GLCoord2D::new(3.0, 4.0),
             IsometricRotation::TopLeftAtTop
         );
 
-        transformer.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix(0.0);
 
         let gl_coord_4 = GLCoord4D::new(5.0, 6.0, 7.0, 8.0);
-        let expected = transformer.unproject(gl_coord_4);
+        let expected = transform.unproject(gl_coord_4);
        
-        assert_eq!(gl_coord_4.to_world_coord(&transformer), expected);
+        assert_eq!(gl_coord_4.to_world_coord(&transform), expected);
     }
 
     #[test]
@@ -241,18 +241,18 @@ mod tests {
 
     #[test]
     fn test_world_to_gl_4d() {
-        let mut transformer = Transformer::new(
+        let mut transform = Transform::new(
             GLCoord2D::new(1.0, 2.0),
             GLCoord2D::new(3.0, 4.0),
             IsometricRotation::TopLeftAtTop
         );
 
-        transformer.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix(0.0);
 
         let world_coord = WorldCoord::new(5.0, 6.0, 7.0);
-        let expected = transformer.project(world_coord);
+        let expected = transform.project(world_coord);
        
-        assert_eq!(world_coord.to_gl_coord_4d(&transformer), expected);
+        assert_eq!(world_coord.to_gl_coord_4d(&transform), expected);
     }
 
     #[test]
