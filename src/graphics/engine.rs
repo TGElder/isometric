@@ -4,6 +4,7 @@ use std::ffi::{CString, c_void};
 use std::marker::PhantomData;
 
 use super::transformer::Transformer;
+use super::transformer::IsometricRotation;
 use super::coords::*;
 
 pub struct GraphicsEngine {
@@ -25,7 +26,10 @@ impl GraphicsEngine {
             terrain_lines: VBO::new(gl::LINES),
             selected_cell: VBO::new(gl::TRIANGLES),
             program,
-            transformer: Transformer::new(GLCoord2D{x: 1.0, y: viewport_size.width as f32 / viewport_size.height as f32}),
+            transformer: Transformer::new(
+                GLCoord2D::new(1.0, viewport_size.width as f32 / viewport_size.height as f32),
+                GLCoord2D::new(0.0, 0.0),
+                IsometricRotation::TopLeftAtTop),
             viewport_size,
         };
         out.set_viewport_size(viewport_size);
@@ -60,21 +64,21 @@ impl GraphicsEngine {
         return shader_program;
     }
 
-    fn load_transform_matrix(&self, transform_matrix: na::Matrix4<f32>) {
-        self.program.load_matrix("transform", transform_matrix);
+    fn load_projection_matrix(&self, projection_matrix: na::Matrix4<f32>) {
+        self.program.load_matrix("projection", projection_matrix);
     }
 
     pub fn draw(&mut self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            self.transformer.compute_transform_matrix(-0.002);
-            self.load_transform_matrix(self.transformer.get_transform_matrix());
+            self.transformer.compute_projection_matrix(-0.002);
+            self.load_projection_matrix(self.transformer.get_projection_matrix());
             self.selected_cell.draw();
-            self.transformer.compute_transform_matrix(-0.001);
-            self.load_transform_matrix(self.transformer.get_transform_matrix());
+            self.transformer.compute_projection_matrix(-0.001);
+            self.load_projection_matrix(self.transformer.get_projection_matrix());
             self.terrain_lines.draw();
-            self.transformer.compute_transform_matrix(0.0);
-            self.load_transform_matrix(self.transformer.get_transform_matrix());
+            self.transformer.compute_projection_matrix(0.0);
+            self.load_projection_matrix(self.transformer.get_projection_matrix());
             self.terrain_triangles.draw();
         }
     }
@@ -168,12 +172,12 @@ impl GraphicsEngine {
 
 impl ZFinder for GraphicsEngine {
 
-    fn get_z_at(&self, screen_coordinate: glutin::dpi::PhysicalPosition) -> f32 {
+    fn get_z_at(&self, buffer_coordinate: BufferCoordinate) -> f32 {
         let mut buffer: Vec<f32> = vec![0.0];
         unsafe {
             gl::ReadPixels(
-                screen_coordinate.x as i32, //TODO proper conversion to i32
-                screen_coordinate.y as i32,
+                buffer_coordinate.x,
+                buffer_coordinate.y,
                 1,
                 1,
                 gl::DEPTH_COMPONENT,

@@ -56,23 +56,23 @@ pub struct Transformer{
     pub scale: GLCoord2D,
     pub translation: GLCoord2D,
     pub rotation: IsometricRotation,
-    pub projection_matrix: na::Matrix4<f32>,
-    pub inverse_matrix: na::Matrix4<f32>,
+    projection_matrix: na::Matrix4<f32>,
+    inverse_matrix: na::Matrix4<f32>,
 }
 
 impl Transformer {
     
-    pub fn new(scale: GLCoord2D) -> Transformer {
+    pub fn new(scale: GLCoord2D, translation: GLCoord2D, rotation: IsometricRotation) -> Transformer {
         Transformer{
             scale,
-            translation: GLCoord2D{x: 0.0, y: 0.0},
-            rotation: IsometricRotation::TopLeftAtTop,
+            translation,
+            rotation,
             projection_matrix: na::Matrix4::identity(),
             inverse_matrix: na::Matrix4::identity(),
         }
     }
 
-    pub fn compute_transform_matrix(&mut self, z_adjustment: f32) {
+    pub fn compute_projection_matrix(&mut self, z_adjustment: f32) {
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
             self.scale.x, 0.0, 0.0, self.translation.x,
             0.0, self.scale.y, 0.0, self.translation.y,
@@ -85,8 +85,24 @@ impl Transformer {
         self.inverse_matrix = self.projection_matrix.try_inverse().unwrap();
     }
 
-    pub fn get_transform_matrix(&self) -> na::Matrix4<f32> {
+    pub fn get_projection_matrix(&self) -> na::Matrix4<f32> {
         self.projection_matrix
+    }
+
+    fn compute_isometric_matrix(&self, z_adjustment: f32) -> na::Matrix4<f32> {
+        let c = self.rotation.c();
+        let s = self.rotation.s();
+        na::Matrix4::new(
+            c, -s, 0.0, 0.0,
+            -s / 2.0, -c / 2.0, 128.0, 0.0,
+            0.0, 0.0, -1.0 + z_adjustment, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+        )
+    }
+
+    pub fn translate(&mut self, delta: GLCoord2D) {
+        self.translation.x = self.translation.x + delta.x;
+        self.translation.y = self.translation.y + delta.y;
     }
 
     fn transform_maintaining_centre(&mut self, centre: GLCoord4D, mut transformation: Box<FnMut(&mut Self) -> ()>) {
@@ -94,7 +110,7 @@ impl Transformer {
         let old_y = centre.y;
         let world_point = self.unproject(centre);
         transformation(self);
-        self.compute_transform_matrix(0.0);
+        self.compute_projection_matrix(0.0);
         let centre = self.project(world_point);
         self.translation.x += old_x - centre.x;
         self.translation.y += old_y - centre.y;
@@ -108,22 +124,6 @@ impl Transformer {
                 transform.scale.y = transform.scale.y * delta.y;
             })
         );
-    }
-
-    pub fn translate(&mut self, delta: GLCoord2D) {
-        self.translation.x = self.translation.x + delta.x;
-        self.translation.y = self.translation.y + delta.y;
-    }
-
-    fn compute_isometric_matrix(&self, z_adjustment: f32) -> na::Matrix4<f32> {
-        let c = self.rotation.c();
-        let s = self.rotation.s();
-        na::Matrix4::new(
-            c, -s, 0.0, 0.0,
-            -s / 2.0, -c / 2.0, 128.0, 0.0,
-            0.0, 0.0, -1.0 + z_adjustment, 0.0,
-            0.0, 0.0, 0.0, 1.0,
-        )
     }
 
     pub fn rotate(&mut self, centre: GLCoord4D, direction: &'static Direction) {
