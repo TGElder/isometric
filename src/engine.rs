@@ -1,8 +1,9 @@
 extern crate glutin;
 
-use ::graphics::engine::GraphicsEngine;
+use ::graphics::engine::{Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
+use ::graphics::drawing::terrain::TerrainDrawing;
 
 use self::glutin::GlContext;
 
@@ -34,7 +35,6 @@ impl IsometricEngine {
 
         let dpi_factor = gl_window.get_hidpi_factor();
         let mut graphics = GraphicsEngine::new(gl_window.window().get_inner_size().unwrap().to_physical(dpi_factor));
-        graphics.load_terrain(&terrain);
 
         IsometricEngine {
             events_loop,
@@ -48,6 +48,7 @@ impl IsometricEngine {
     pub fn run(&mut self) {
         let mut current_cursor_position = None;
         let mut running = true;
+        let drawings: Vec<Box<Drawing>> = vec![Box::new(TerrainDrawing::from_heights(&self.terrain))];
         while running {
             let graphics = &mut self.graphics;
             let events_loop = &mut self.events_loop;
@@ -99,7 +100,7 @@ impl IsometricEngine {
                             let cursor_position = position.to_physical(dpi_factor).to_gl_coord_4d(physical_window_size, graphics);
                             let world_position = cursor_position.to_world_coord(graphics.get_transformer());
                             current_cursor_position = Some(cursor_position);
-                            graphics.select_cell(&terrain, na::Point2::new(world_position.x as i32, world_position.y as i32));
+                            //graphics.select_cell(&terrain, na::Point2::new(world_position.x as i32, world_position.y as i32));
                         },
                         _ => (),
                     };
@@ -110,7 +111,7 @@ impl IsometricEngine {
                 _ => (),
             });
 
-            graphics.draw();
+            graphics.draw(&drawings);
 
             self.window.swap_buffers().unwrap();
         }
