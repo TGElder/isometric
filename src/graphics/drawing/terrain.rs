@@ -17,11 +17,19 @@ impl Drawing for TerrainDrawing {
 
 impl TerrainDrawing {
     pub fn from_heights(heights: &na::DMatrix<f32>) -> TerrainDrawing {
+        let mut out = TerrainDrawing{
+            terrain_triangles: VBO::new(gl::TRIANGLES),
+        };
+        out.terrain_triangles.load(TerrainDrawing::get_vertices(heights));
+        out
+    }
+
+    fn get_vertices(heights: &na::DMatrix<f32>) -> Vec<f32> {
         let width = heights.shape().0;
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
-        for x in 0..(width - 1) {
-            for y in 0..(height - 1) {
+        for y in 0..(height - 1) {
+            for x in 0..(width - 1) {
                 
                 let a = (x as f32, y as f32, heights[(x, y)]);
                 let a = (a.0, a.1, a.2, (a.2 / 2.0) + 0.5);
@@ -42,17 +50,9 @@ impl TerrainDrawing {
                 ].iter().cloned());
             }
         }
-
-        let mut out = TerrainDrawing{
-            terrain_triangles: VBO::new(gl::TRIANGLES),
-        };
-
-        out.terrain_triangles.load(triangle_vertices);
-
-        out
+        triangle_vertices
     }
 }
-
 
 pub struct TerrainGridDrawing {
     terrain_lines: VBO<Vertex>,
@@ -70,11 +70,19 @@ impl Drawing for TerrainGridDrawing {
 
 impl TerrainGridDrawing {
     pub fn from_heights(heights: &na::DMatrix<f32>) -> TerrainGridDrawing {
+        let mut out = TerrainGridDrawing{
+            terrain_lines: VBO::new(gl::LINES),
+        };
+        out.terrain_lines.load(TerrainGridDrawing::get_vertices(heights));
+        out
+    }
+
+    fn get_vertices(heights: &na::DMatrix<f32>) -> Vec<f32> {
         let width = heights.shape().0;
         let height = heights.shape().1;
         let mut line_vertices: Vec<f32> = Vec::with_capacity(width * height * 24);
-        for x in 0..(width - 1) {
-            for y in 0..(height - 1) {
+        for y in 0..(height - 1) {
+            for x in 0..(width - 1) {
                 
                 let a = (x as f32, y as f32, heights[(x, y)]);
                 let a = (a.0, a.1, a.2, (a.2 / 2.0) + 0.5);
@@ -97,13 +105,106 @@ impl TerrainGridDrawing {
                 ].iter().cloned());
             }
         }
+        line_vertices
+    }
+}
 
-        let mut out = TerrainGridDrawing{
-            terrain_lines: VBO::new(gl::LINES),
-        };
+#[cfg(test)]
+mod tests {
 
-        out.terrain_lines.load(line_vertices);
+    use super::*;
 
-        out
+    #[test]   
+    fn test_terrain_drawing_get_vertices() {
+        let heights = na::DMatrix::from_row_slice(3, 3, &[
+            0.9, 0.8, 0.7,
+            0.6, 0.5, 0.4,
+            0.3, 0.2, 0.1
+        ]).transpose();
+
+        let actual = TerrainDrawing::get_vertices(&heights);
+
+        let expected = vec![
+            0.0, 0.0, 0.9, 0.95, 0.95, 0.95,
+            0.0, 1.0, 0.6, 0.8, 0.8, 0.8,
+            1.0, 1.0, 0.5, 0.75, 0.75, 0.75,
+            0.0, 0.0, 0.9, 0.95, 0.95, 0.95,
+            1.0, 1.0, 0.5, 0.75, 0.75, 0.75,
+            1.0, 0.0, 0.8, 0.9, 0.9, 0.9,
+
+            1.0, 0.0, 0.8, 0.9, 0.9, 0.9,
+            1.0, 1.0, 0.5, 0.75, 0.75, 0.75,
+            2.0, 1.0, 0.4, 0.7, 0.7, 0.7,
+            1.0, 0.0, 0.8, 0.9, 0.9, 0.9,
+            2.0, 1.0, 0.4, 0.7, 0.7, 0.7,
+            2.0, 0.0, 0.7, 0.85, 0.85, 0.85,
+
+            0.0, 1.0, 0.6, 0.8, 0.8, 0.8,
+            0.0, 2.0, 0.3, 0.65, 0.65, 0.65,
+            1.0, 2.0, 0.2, 0.6, 0.6, 0.6,
+            0.0, 1.0, 0.6, 0.8, 0.8, 0.8,
+            1.0, 2.0, 0.2, 0.6, 0.6, 0.6,
+            1.0, 1.0, 0.5, 0.75, 0.75, 0.75,
+
+            1.0, 1.0, 0.5, 0.75, 0.75, 0.75,
+            1.0, 2.0, 0.2, 0.6, 0.6, 0.6,
+            2.0, 2.0, 0.1, 0.55, 0.55, 0.55,
+            1.0, 1.0, 0.5, 0.75, 0.75, 0.75,
+            2.0, 2.0, 0.1, 0.55, 0.55, 0.55,
+            2.0, 1.0, 0.4, 0.7, 0.7, 0.7
+        ];
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]   
+    fn test_terrain_drawing_grid_get_vertices() {
+       let heights = na::DMatrix::from_row_slice(3, 3, &[
+            0.9, 0.8, 0.7,
+            0.6, 0.5, 0.4,
+            0.3, 0.2, 0.1
+        ]).transpose();
+
+        let actual = TerrainGridDrawing::get_vertices(&heights);
+
+        let expected = vec![
+            0.0, 0.0, 0.9,
+            1.0, 0.0, 0.8,
+            1.0, 0.0, 0.8,
+            1.0, 1.0, 0.5,
+            1.0, 1.0, 0.5,
+            0.0, 1.0, 0.6,
+            0.0, 1.0, 0.6,
+            0.0, 0.0, 0.9,
+
+            1.0, 0.0, 0.8,
+            2.0, 0.0, 0.7,
+            2.0, 0.0, 0.7,
+            2.0, 1.0, 0.4,
+            2.0, 1.0, 0.4,
+            1.0, 1.0, 0.5,
+            1.0, 1.0, 0.5,
+            1.0, 0.0, 0.8,
+
+            0.0, 1.0, 0.6,
+            1.0, 1.0, 0.5,
+            1.0, 1.0, 0.5,
+            1.0, 2.0, 0.2,
+            1.0, 2.0, 0.2,
+            0.0, 2.0, 0.3,
+            0.0, 2.0, 0.3,
+            0.0, 1.0, 0.6,
+
+            1.0, 1.0, 0.5,
+            2.0, 1.0, 0.4,
+            2.0, 1.0, 0.4,
+            2.0, 2.0, 0.1,
+            2.0, 2.0, 0.1,
+            1.0, 2.0, 0.2,
+            1.0, 2.0, 0.2,
+            1.0, 1.0, 0.5,
+        ];
+
+        assert_eq!(actual, expected);
     }
 }
