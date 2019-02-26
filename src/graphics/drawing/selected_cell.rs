@@ -10,6 +10,10 @@ impl Drawing for SelectedCellDrawing {
     fn draw(&self) {
         self.vbo.draw();
     }
+
+    fn get_z_mod(&self) -> f32 {
+        0.001
+    }
 }
 
 impl SelectedCellDrawing {

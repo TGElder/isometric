@@ -217,7 +217,7 @@ mod tests {
             IsometricRotation::TopLeftAtTop
         );
 
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         let gl_coord_4 = GLCoord4D::new(5.0, 6.0, 7.0, 8.0);
         let expected = transform.unproject(gl_coord_4);
@@ -247,7 +247,7 @@ mod tests {
             IsometricRotation::TopLeftAtTop
         );
 
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         let world_coord = WorldCoord::new(5.0, 6.0, 7.0);
         let expected = transform.project(world_coord);

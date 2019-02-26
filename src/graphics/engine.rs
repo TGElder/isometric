@@ -57,6 +57,10 @@ impl GraphicsEngine {
         return shader_program;
     }
 
+    fn load_z_mod(&self, z_mod: f32) {
+        self.program.load_float("z_mod", z_mod);
+    }
+
     fn load_projection_matrix(&self, projection_matrix: na::Matrix4<f32>) {
         self.program.load_matrix("projection", projection_matrix);
     }
@@ -64,9 +68,10 @@ impl GraphicsEngine {
     pub fn draw(&mut self, drawings: &Vec<&Drawing>) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            self.transform.compute_projection_matrix(0.0);
+            self.transform.compute_projection_matrix();
             self.load_projection_matrix(self.transform.get_projection_matrix());
             for drawing in drawings {
+                self.load_z_mod(drawing.get_z_mod());
                 drawing.draw();
             }
         }
@@ -90,6 +95,7 @@ impl GraphicsEngine {
 
 pub trait Drawing {
     fn draw(&self);
+    fn get_z_mod(&self) -> f32;
 }
 
 impl ZFinder for GraphicsEngine {

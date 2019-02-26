@@ -3,7 +3,7 @@ extern crate glutin;
 use ::graphics::engine::{Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
-use ::graphics::drawing::terrain::TerrainDrawing;
+use ::graphics::drawing::terrain::{TerrainDrawing, TerrainGridDrawing};
 use ::graphics::drawing::selected_cell::SelectedCellDrawing;
 
 use self::glutin::GlContext;
@@ -35,7 +35,7 @@ impl IsometricEngine {
         }
 
         let dpi_factor = gl_window.get_hidpi_factor();
-        let mut graphics = GraphicsEngine::new(gl_window.window().get_inner_size().unwrap().to_physical(dpi_factor));
+        let graphics = GraphicsEngine::new(gl_window.window().get_inner_size().unwrap().to_physical(dpi_factor));
 
         IsometricEngine {
             events_loop,
@@ -50,6 +50,7 @@ impl IsometricEngine {
         let mut current_cursor_position = None;
         let mut running = true;
         let terrain_drawing = TerrainDrawing::from_heights(&self.terrain);
+        let terrain_grid_drawing = TerrainGridDrawing::from_heights(&self.terrain);
         let mut selected_cell_drawing = None;
         while running {
             let graphics = &mut self.graphics;
@@ -113,7 +114,7 @@ impl IsometricEngine {
                 _ => (),
             });
 
-            let mut drawings: Vec<&Drawing> = vec![&terrain_drawing];
+            let mut drawings: Vec<&Drawing> = vec![&terrain_drawing, &terrain_grid_drawing];
             if let Some(ref selected_cell_drawing) = selected_cell_drawing {
                 drawings.push(selected_cell_drawing)
             }

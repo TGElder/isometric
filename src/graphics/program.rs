@@ -75,14 +75,24 @@ impl Program {
         }
     }
 
+    pub fn load_float(&self, variable: &str, float: f32) {
+        unsafe {
+            let float_location = gl::GetUniformLocation(
+                self.id(),
+                CString::new(variable).unwrap().as_ptr() as *const gl::types::GLchar,
+            );
+            gl::Uniform1f(float_location, float);
+        }
+    }
+
     pub fn load_matrix(&self, variable: &str, matrix: na::Matrix4<f32>) {
         unsafe {
-            let mvp_location = gl::GetUniformLocation(
+            let matrix_location = gl::GetUniformLocation(
                 self.id(),
                 CString::new(variable).unwrap().as_ptr() as *const gl::types::GLchar,
             );
             let proj_ptr = matrix.as_slice().as_ptr();
-            gl::UniformMatrix4fv(mvp_location, 1, gl::FALSE, proj_ptr);
+            gl::UniformMatrix4fv(matrix_location, 1, gl::FALSE, proj_ptr);
         }
     }
 }

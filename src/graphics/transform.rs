@@ -72,7 +72,7 @@ impl Transform {
         }
     }
 
-    pub fn compute_projection_matrix(&mut self, z_adjustment: f32) {
+    pub fn compute_projection_matrix(&mut self) {
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
             self.scale.x, 0.0, 0.0, self.translation.x,
             0.0, self.scale.y, 0.0, self.translation.y,
@@ -80,7 +80,7 @@ impl Transform {
             0.0, 0.0, 0.0, 1.0,
         );
 
-        let isometric_matrix = self.compute_isometric_matrix(z_adjustment);
+        let isometric_matrix = self.compute_isometric_matrix();
         self.projection_matrix = scale_matrix * isometric_matrix;
         self.inverse_matrix = self.projection_matrix.try_inverse().unwrap();
     }
@@ -89,13 +89,13 @@ impl Transform {
         self.projection_matrix
     }
 
-    fn compute_isometric_matrix(&self, z_adjustment: f32) -> na::Matrix4<f32> {
+    fn compute_isometric_matrix(&self) -> na::Matrix4<f32> {
         let c = self.rotation.c();
         let s = self.rotation.s();
         na::Matrix4::new(
             c, -s, 0.0, 0.0,
             -s / 2.0, -c / 2.0, 1.0, 0.0,
-            0.0, 0.0, -1.0 + z_adjustment, 0.0,
+            0.0, 0.0, -1.0, 0.0,
             0.0, 0.0, 0.0, 1.0,
         )
     }
@@ -110,7 +110,7 @@ impl Transform {
         let old_y = center.y;
         let world_point = self.unproject(center);
         transformation(self);
-        self.compute_projection_matrix(0.0);
+        self.compute_projection_matrix();
         let center = self.project(world_point);
         self.translation.x += old_x - center.x;
         self.translation.y += old_y - center.y;
@@ -163,7 +163,7 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(0.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(1.0, -0.5, 0.0, 1.0));
@@ -178,7 +178,7 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopRightAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(0.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(1.0, 0.5, 0.0, 1.0));
@@ -193,7 +193,7 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::BottomRightAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(0.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(-1.0, 0.5, 0.0, 1.0));
@@ -208,7 +208,7 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::BottomLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(0.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(-1.0, -0.5, 0.0, 1.0));
@@ -223,7 +223,7 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 10.0)), GLCoord4D::new(1.0, 9.5, -10.0, 1.0));
     }
@@ -235,7 +235,7 @@ mod tests {
             GLCoord2D::new(-1.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(0.0, -0.5, 0.0, 1.0));
     }
@@ -247,7 +247,7 @@ mod tests {
             GLCoord2D::new(0.0, 0.5),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(1.0, 0.0, 0.0, 1.0));
     }
@@ -259,7 +259,7 @@ mod tests {
             GLCoord2D::new(-1.0, 0.5),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
     }
@@ -272,7 +272,7 @@ mod tests {
             IsometricRotation::TopLeftAtTop,
         );
         transform.translate(GLCoord2D::new(-1.0, 0.5));
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
     }
@@ -284,7 +284,7 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(3.0, -0.5, 0.0, 1.0));
     }
@@ -296,7 +296,7 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(1.0, -1.5, 0.0, 1.0));
     }
@@ -308,7 +308,7 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(3.0, -1.5, 0.0, 1.0));
     }
@@ -321,9 +321,9 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         transform.scale(GLCoord4D::new(1.0, -0.5, 0.0, 1.0), GLCoord2D::new(2.0, 3.0));
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
 
         assert_eq!(transform.project(WorldCoord::new(0.0, 1.0, 0.0)), GLCoord4D::new(-3.0, -0.5, 0.0, 1.0));
     }
@@ -335,11 +335,11 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         let center_of_scaling = GLCoord4D::new(12.0, 34.0, 0.0, 1.0);
         let world_coord_at_center = transform.unproject(center_of_scaling);
         transform.scale(center_of_scaling, GLCoord2D::new(3.0, 3.0));
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(world_coord_at_center), center_of_scaling);
     }
 
@@ -350,25 +350,25 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, -2.0, 0.0, 1.0));
 
         let center_of_rotation = GLCoord4D::new(0.0, -1.0, 0.0, 1.0);
 
         transform.rotate(center_of_rotation, &Direction::Clockwise);
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(-2.0, -1.0, 0.0, 1.0));
 
         transform.rotate(center_of_rotation, &Direction::Clockwise);
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
 
         transform.rotate(center_of_rotation, &Direction::Clockwise);
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(2.0, -1.0, 0.0, 1.0));
 
         transform.rotate(center_of_rotation, &Direction::Clockwise);
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, -2.0, 0.0, 1.0));
     }
 
@@ -379,25 +379,25 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, -2.0, 0.0, 1.0));
 
         let center_of_rotation = GLCoord4D::new(0.0, -1.0, 0.0, 1.0);
 
         transform.rotate(center_of_rotation, &Direction::AntiClockwise);
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(2.0, -1.0, 0.0, 1.0));
 
         transform.rotate(center_of_rotation, &Direction::AntiClockwise);
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
 
         transform.rotate(center_of_rotation, &Direction::AntiClockwise);
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(-2.0, -1.0, 0.0, 1.0));
 
         transform.rotate(center_of_rotation, &Direction::AntiClockwise);
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, -2.0, 0.0, 1.0));
     }
 
@@ -408,11 +408,11 @@ mod tests {
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         let center_of_scaling = GLCoord4D::new(12.0, 34.0, 0.0, 1.0);
         let world_coord_at_center = transform.unproject(center_of_scaling);
         transform.rotate(center_of_scaling, &Direction::Clockwise);
-        transform.compute_projection_matrix(0.0);
+        transform.compute_projection_matrix();
         assert_eq!(transform.project(world_coord_at_center), center_of_scaling);
     }
 
