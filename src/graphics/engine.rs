@@ -61,7 +61,7 @@ impl GraphicsEngine {
         self.program.load_matrix("projection", projection_matrix);
     }
 
-    pub fn draw(&mut self, drawings: &Vec<Box<Drawing>>) {
+    pub fn draw(&mut self, drawings: &Vec<&Drawing>) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             self.transform.compute_projection_matrix(0.0);

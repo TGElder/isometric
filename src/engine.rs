@@ -4,6 +4,7 @@ use ::graphics::engine::{Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
 use ::graphics::drawing::terrain::TerrainDrawing;
+use ::graphics::drawing::selected_cell::SelectedCellDrawing;
 
 use self::glutin::GlContext;
 
@@ -48,7 +49,8 @@ impl IsometricEngine {
     pub fn run(&mut self) {
         let mut current_cursor_position = None;
         let mut running = true;
-        let drawings: Vec<Box<Drawing>> = vec![Box::new(TerrainDrawing::from_heights(&self.terrain))];
+        let terrain_drawing = TerrainDrawing::from_heights(&self.terrain);
+        let mut selected_cell_drawing = None;
         while running {
             let graphics = &mut self.graphics;
             let events_loop = &mut self.events_loop;
@@ -98,9 +100,9 @@ impl IsometricEngine {
                         },
                         glutin::WindowEvent::CursorMoved{ position, .. } => {
                             let cursor_position = position.to_physical(dpi_factor).to_gl_coord_4d(physical_window_size, graphics);
-                            let world_position = cursor_position.to_world_coord(graphics.get_transformer());
+                            let world_coordinate = cursor_position.to_world_coord(graphics.get_transformer());
                             current_cursor_position = Some(cursor_position);
-                            //graphics.select_cell(&terrain, na::Point2::new(world_position.x as i32, world_position.y as i32));
+                            selected_cell_drawing = SelectedCellDrawing::select_cell(terrain, world_coordinate);
                         },
                         _ => (),
                     };
@@ -110,6 +112,11 @@ impl IsometricEngine {
                 }
                 _ => (),
             });
+
+            let mut drawings: Vec<&Drawing> = vec![&terrain_drawing];
+            if let Some(ref selected_cell_drawing) = selected_cell_drawing {
+                drawings.push(selected_cell_drawing)
+            }
 
             graphics.draw(&drawings);
 
