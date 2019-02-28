@@ -14,13 +14,13 @@ pub struct GraphicsEngine {
 
 impl GraphicsEngine {
 
-    pub fn new(viewport_size: glutin::dpi::PhysicalSize) -> GraphicsEngine {
+    pub fn new(z_scale: f32, viewport_size: glutin::dpi::PhysicalSize) -> GraphicsEngine {
         let program = GraphicsEngine::load_program();
 
         let mut out = GraphicsEngine {
             program,
             transform: Transform::new(
-                GLCoord2D::new(1.0, viewport_size.width as f32 / viewport_size.height as f32),
+                GLCoord3D::new(1.0, viewport_size.width as f32 / viewport_size.height as f32, z_scale),
                 GLCoord2D::new(0.0, 0.0),
                 IsometricRotation::TopLeftAtTop),
             viewport_size,

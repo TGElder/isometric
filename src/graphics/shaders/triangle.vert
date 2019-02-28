@@ -12,6 +12,7 @@ out VS_OUTPUT {
 
 void main()
 {
-    gl_Position = projection * vec4(Position.x, Position.y, Position.z + z_mod, 1.0);
+    gl_Position = projection * vec4(Position, 1.0);
+    gl_Position.z += z_mod;
     OUT.Color = Color;
 }

@@ -35,7 +35,7 @@ impl IsometricEngine {
         }
 
         let dpi_factor = gl_window.get_hidpi_factor();
-        let graphics = GraphicsEngine::new(gl_window.window().get_inner_size().unwrap().to_physical(dpi_factor));
+        let graphics = GraphicsEngine::new(10.0, gl_window.window().get_inner_size().unwrap().to_physical(dpi_factor));
 
         IsometricEngine {
             events_loop,

@@ -64,6 +64,19 @@ impl GLCoord2D {
     }
 }
 
+#[derive(PartialEq, Debug)]
+pub struct GLCoord3D{
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+impl GLCoord3D {
+    pub fn new(x: f32, y: f32, z: f32) -> GLCoord3D {
+        GLCoord3D{x, y, z}
+    }
+}
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct GLCoord4D{
     pub x: f32,
@@ -212,7 +225,7 @@ mod tests {
     #[test]
     fn test_gl_4d_to_world() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 2.0),
+            GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
             IsometricRotation::TopLeftAtTop
         );
@@ -242,7 +255,7 @@ mod tests {
     #[test]
     fn test_world_to_gl_4d() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 2.0),
+            GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
             IsometricRotation::TopLeftAtTop
         );

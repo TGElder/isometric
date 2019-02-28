@@ -53,7 +53,7 @@ impl IsometricRotation {
 }
 
 pub struct Transform{
-    pub scale: GLCoord2D,
+    pub scale: GLCoord3D,
     pub translation: GLCoord2D,
     pub rotation: IsometricRotation,
     projection_matrix: na::Matrix4<f32>,
@@ -62,7 +62,7 @@ pub struct Transform{
 
 impl Transform {
     
-    pub fn new(scale: GLCoord2D, translation: GLCoord2D, rotation: IsometricRotation) -> Transform {
+    pub fn new(scale: GLCoord3D, translation: GLCoord2D, rotation: IsometricRotation) -> Transform {
         Transform{
             scale,
             translation,
@@ -76,7 +76,7 @@ impl Transform {
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
             self.scale.x, 0.0, 0.0, self.translation.x,
             0.0, self.scale.y, 0.0, self.translation.y,
-            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, self.scale.z, 0.0,
             0.0, 0.0, 0.0, 1.0,
         );
 
@@ -159,7 +159,7 @@ mod tests {
     #[test]   
     fn test_isometric_projection_with_top_left_at_top() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -174,7 +174,7 @@ mod tests {
     #[test]   
     fn test_isometric_projection_with_top_right_at_top() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopRightAtTop,
         );
@@ -189,7 +189,7 @@ mod tests {
     #[test]   
     fn test_isometric_projection_with_bottom_right_at_top() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::BottomRightAtTop,
         );
@@ -204,7 +204,7 @@ mod tests {
     #[test]   
     fn test_isometric_projection_with_bottom_left_at_top() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::BottomLeftAtTop,
         );
@@ -219,7 +219,7 @@ mod tests {
     #[test]   
     fn test_isometric_projection_with_z() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -231,7 +231,7 @@ mod tests {
     #[test]   
     fn test_x_translate() {
          let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(-1.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -243,7 +243,7 @@ mod tests {
     #[test]   
     fn test_y_translate() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.5),
             IsometricRotation::TopLeftAtTop,
         );
@@ -255,7 +255,7 @@ mod tests {
     #[test]   
     fn test_both_translate() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(-1.0, 0.5),
             IsometricRotation::TopLeftAtTop,
         );
@@ -267,7 +267,7 @@ mod tests {
     #[test]   
     fn test_translate_method() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -280,7 +280,7 @@ mod tests {
     #[test]   
     fn test_x_scale() {
         let mut transform = Transform::new(
-            GLCoord2D::new(3.0, 1.0),
+            GLCoord3D::new(3.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -292,7 +292,7 @@ mod tests {
      #[test]   
     fn test_y_scale() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 3.0),
+            GLCoord3D::new(1.0, 3.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -304,7 +304,7 @@ mod tests {
     #[test]   
     fn test_both_scale() {
         let mut transform = Transform::new(
-            GLCoord2D::new(3.0, 3.0),
+            GLCoord3D::new(3.0, 3.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -317,7 +317,7 @@ mod tests {
     #[test]   
     fn test_scale_method() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -331,7 +331,7 @@ mod tests {
     #[test]   
     fn world_point_under_center_of_scaling_should_stay_the_same() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -346,7 +346,7 @@ mod tests {
     #[test]   
     fn test_rotation_clockwise() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -375,7 +375,7 @@ mod tests {
     #[test]   
     fn test_rotation_anticlockwise() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
@@ -404,7 +404,7 @@ mod tests {
     #[test]   
     fn world_point_under_center_of_rotation_should_stay_the_same() {
         let mut transform = Transform::new(
-            GLCoord2D::new(1.0, 1.0),
+            GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
