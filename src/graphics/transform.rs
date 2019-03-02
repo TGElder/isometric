@@ -302,7 +302,19 @@ mod tests {
     }
 
     #[test]   
-    fn test_both_scale() {
+    fn test_z_scale() {
+        let mut transform = Transform::new(
+            GLCoord3D::new(1.0, 1.0, 3.0),
+            GLCoord2D::new(0.0, 0.0),
+            IsometricRotation::TopLeftAtTop,
+        );
+        transform.compute_projection_matrix();
+
+        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 10.0)), GLCoord4D::new(1.0, 9.5, -30.0, 1.0));
+    }
+
+    #[test]   
+    fn test_xy_scale() {
         let mut transform = Transform::new(
             GLCoord3D::new(3.0, 3.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
