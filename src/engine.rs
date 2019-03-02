@@ -54,7 +54,7 @@ impl IsometricEngine {
         let terrain_drawing = TerrainDrawing::from_heights(&self.terrain);
         let terrain_grid_drawing = TerrainGridDrawing::from_heights(&self.terrain);
         let mut selected_cell_drawing = None;
-        let mut event_handlers: Vec<Box<EventHandler>> = vec![Box::new(ShutdownHandler::new())];
+        let mut event_handlers: Vec<Box<EventHandler>> = vec![Box::new(AsyncEventHandler::new(Box::new(ShutdownHandler::new())))];
         while running {
             let graphics = &mut self.graphics;
             let events_loop = &mut self.events_loop;
@@ -64,8 +64,8 @@ impl IsometricEngine {
             let logical_window_size = self.window.window().get_inner_size().unwrap();
             let physical_window_size = logical_window_size.to_physical(dpi_factor);
             let terrain = &self.terrain;
-            events_loop.poll_events(|ref event| {
-                match event {
+            events_loop.poll_events(|event| {
+                match &event {
                 glutin::Event::WindowEvent { event, .. } => {
                     match event {
                         glutin::WindowEvent::Resized(logical_size) => {
@@ -106,26 +106,21 @@ impl IsometricEngine {
                         },
                         _ => (),
                     };
-                    if let Some(gl_delta) = drag_controller.handle(event, dpi_factor, physical_window_size) {
+                    if let Some(gl_delta) = drag_controller.handle(&event, dpi_factor, physical_window_size) {
                         graphics.get_transformer().translate(gl_delta);
                     }
                 }
                 _ => (),
             };
+            let event_arc = Arc::new(Event::GlutinEvent{glutin_event: event});
             for handler in &mut event_handlers {
-                handler.handle_event(Event::GlutinEvent{glutin_event: &event});
-            }
-            });
-
-            for handler in &mut event_handlers {
-                if let Some(commands) = handler.get_commands() {
-                    for command in commands {
-                        match command {
-                            Command::Shutdown => running = false,
-                        }
+                for command in handler.handle_event(event_arc.clone()) {
+                    match command {
+                        Command::Shutdown => running = false,
                     }
                 }
             }
+            });
 
             let mut drawings: Vec<&Drawing> = vec![&terrain_drawing, &terrain_grid_drawing, &sea_drawing];
             if let Some(ref selected_cell_drawing) = selected_cell_drawing {
@@ -136,16 +131,23 @@ impl IsometricEngine {
 
             self.window.swap_buffers().unwrap();
         }
+
+        for handler in &mut event_handlers {
+            handler.handle_event(Arc::new(Event::Shutdown));
+        }
     }
 }
 
-pub enum Event<'a> {
-    GlutinEvent{glutin_event: &'a glutin::Event},
+
+pub enum Event {
+    Shutdown,
+    GlutinEvent{glutin_event: glutin::Event},
 }
 
+use std::sync::{Arc, Mutex};
+
 pub trait EventHandler {
-    fn handle_event(&mut self, event: Event);
-    fn get_commands(&mut self) -> Option<Vec<Command>>;
+    fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command>;
 }
 
 pub enum Command {
@@ -162,24 +164,102 @@ impl ShutdownHandler {
     }
 }
 
+
+
 impl EventHandler for ShutdownHandler {
-    fn handle_event(&mut self, event: Event) {
-        match event {
-            Event::GlutinEvent{glutin_event: glutin::Event::WindowEvent { event: glutin::WindowEvent::CloseRequested, ..}} => self.shutdown = true,
+    fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
+        match *event {
+            Event::GlutinEvent{glutin_event: glutin::Event::WindowEvent { event: glutin::WindowEvent::CloseRequested, ..}} => vec![Command::Shutdown],
             Event::GlutinEvent{glutin_event: glutin::Event::WindowEvent { event: glutin::WindowEvent::KeyboardInput{ input: glutin::KeyboardInput{
                                 virtual_keycode: Some(glutin::VirtualKeyCode::Escape), 
                                 state: glutin::ElementState::Pressed,
-                                .. }, ..}, ..}} => self.shutdown = true,
-            _ => (),
+                                .. }, ..}, ..}} => vec![Command::Shutdown],
+            _ => vec![],
         }
+    }
+}
 
-    }
-    fn get_commands(&mut self) -> Option<Vec<Command>> {
-        match self.shutdown {
-            true => Some(vec![Command::Shutdown]),
-            false => None,
+use std::thread;
+use std::thread::JoinHandle;
+use std::sync::mpsc;
+use std::sync::mpsc::{Sender, Receiver, RecvError, TryRecvError};
+
+pub struct AsyncEventHandler {
+    event_tx: Sender<Arc<Event>>,
+    command_rx: Receiver<Vec<Command>>,
+}
+
+impl AsyncEventHandler {
+    pub fn new(mut event_handler: Box<EventHandler + Send>) -> AsyncEventHandler {
+        let (event_tx, event_rx) = mpsc::channel();
+        let (command_tx, command_rx) = mpsc::channel();
+        
+        thread::spawn(move || {
+            let send_commands = |commands: Vec<Command>| {
+                match command_tx.send(commands) {
+                    Ok(_) => true,
+                    _ => panic!("Command receiver in AsyncEventHandler hung up!"),
+                }
+            };
+
+            let mut handle_event = |event: Arc<Event>| {
+                match *event {
+                    Event::Shutdown => {
+                        println!("Shutting down event handler");
+                        false
+                    },
+                    _ => send_commands(event_handler.handle_event(event)),
+                }
+            };
+
+            let mut handle_message = |event: Result<Arc<Event>, RecvError>| {
+                match event {
+                    Ok(event) => handle_event(event),
+                    _ => panic!("Event sender in AsyncEventHandler hung up!"),
+                }
+            };
+
+            while handle_message(event_rx.recv()) {}
+
+            
+        });
+        AsyncEventHandler{
+            event_tx,
+            command_rx,
         }
     }
+
+    fn send_event(&mut self, event: Arc<Event>) {
+        match self.event_tx.send(event) {
+            Ok(_) => (),
+            _ => panic!("Event receiver in AsyncEventHandler hung up!"),
+        }
+    }
+
+    fn get_commands(&mut self) -> Vec<Command> {
+        let mut out = vec![];
+        loop {
+            match &mut self.command_rx.try_recv() {
+                Ok(commands) => out.append(commands),
+                Err(TryRecvError::Empty) => return out,
+                Err(TryRecvError::Disconnected) => panic!("Command sender in AsyncEventHandler hung up!"),
+            };
+        }
+    }
+}
+
+impl EventHandler for AsyncEventHandler {
+    fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
+        if let Event::Shutdown = *event {
+            self.send_event(event);
+            vec![]
+        } else {
+            self.send_event(event);
+            self.get_commands()
+        }
+    }
+
+   
 }
 
 
