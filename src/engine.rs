@@ -54,6 +54,7 @@ impl IsometricEngine {
         let terrain_drawing = TerrainDrawing::from_heights(&self.terrain);
         let terrain_grid_drawing = TerrainGridDrawing::from_heights(&self.terrain);
         let mut selected_cell_drawing = None;
+        let mut event_handlers: Vec<Box<EventHandler>> = vec![Box::new(ShutdownHandler::new())];
         while running {
             let graphics = &mut self.graphics;
             let events_loop = &mut self.events_loop;
@@ -63,10 +64,10 @@ impl IsometricEngine {
             let logical_window_size = self.window.window().get_inner_size().unwrap();
             let physical_window_size = logical_window_size.to_physical(dpi_factor);
             let terrain = &self.terrain;
-            events_loop.poll_events(|event| match event {
+            events_loop.poll_events(|ref event| {
+                match event {
                 glutin::Event::WindowEvent { event, .. } => {
                     match event {
-                        glutin::WindowEvent::CloseRequested => running = false,
                         glutin::WindowEvent::Resized(logical_size) => {
                             let physical_size = logical_size.to_physical(dpi_factor);
                             window.resize(physical_size);
@@ -75,10 +76,10 @@ impl IsometricEngine {
                         glutin::WindowEvent::MouseWheel { delta, .. } => {
                             if let Some(cursor_position) = current_cursor_position {
                                 match delta {
-                                    glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => {
+                                    glutin::MouseScrollDelta::LineDelta(_, d) if d > &0.0 => {
                                         graphics.get_transformer().scale(cursor_position, GLCoord2D{x: 2.0, y: 2.0}) //TODO GLCoords make constant
                                     }
-                                    glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => {
+                                    glutin::MouseScrollDelta::LineDelta(_, d) if d < &0.0 => {
                                         graphics.get_transformer().scale(cursor_position, GLCoord2D{x: 0.5, y: 0.5})
                                     }
                                     _ => (),
@@ -94,11 +95,7 @@ impl IsometricEngine {
                                         glutin::ModifiersState{ shift: true, .. } => graphics.get_transformer().rotate(cursor_position, &Direction::Clockwise),
                                         _ => graphics.get_transformer().rotate(cursor_position, &Direction::AntiClockwise),
                                     }
-                            },
-                            glutin::KeyboardInput{
-                                virtual_keycode: Some(glutin::VirtualKeyCode::Escape), 
-                                state: glutin::ElementState::Pressed,
-                                .. } => running = false,
+                            }
                             _ => (),
                         },
                         glutin::WindowEvent::CursorMoved{ position, .. } => {
@@ -114,7 +111,21 @@ impl IsometricEngine {
                     }
                 }
                 _ => (),
+            };
+            for handler in &mut event_handlers {
+                handler.handle_event(Event::GlutinEvent{glutin_event: &event});
+            }
             });
+
+            for handler in &mut event_handlers {
+                if let Some(commands) = handler.get_commands() {
+                    for command in commands {
+                        match command {
+                            Command::Shutdown => running = false,
+                        }
+                    }
+                }
+            }
 
             let mut drawings: Vec<&Drawing> = vec![&terrain_drawing, &terrain_grid_drawing, &sea_drawing];
             if let Some(ref selected_cell_drawing) = selected_cell_drawing {
@@ -127,6 +138,51 @@ impl IsometricEngine {
         }
     }
 }
+
+pub enum Event<'a> {
+    GlutinEvent{glutin_event: &'a glutin::Event},
+}
+
+pub trait EventHandler {
+    fn handle_event(&mut self, event: Event);
+    fn get_commands(&mut self) -> Option<Vec<Command>>;
+}
+
+pub enum Command {
+    Shutdown,
+}
+
+pub struct ShutdownHandler {
+    shutdown: bool,
+}
+
+impl ShutdownHandler {
+    pub fn new() -> ShutdownHandler {
+        ShutdownHandler{shutdown: false}
+    }
+}
+
+impl EventHandler for ShutdownHandler {
+    fn handle_event(&mut self, event: Event) {
+        match event {
+            Event::GlutinEvent{glutin_event: glutin::Event::WindowEvent { event: glutin::WindowEvent::CloseRequested, ..}} => self.shutdown = true,
+            Event::GlutinEvent{glutin_event: glutin::Event::WindowEvent { event: glutin::WindowEvent::KeyboardInput{ input: glutin::KeyboardInput{
+                                virtual_keycode: Some(glutin::VirtualKeyCode::Escape), 
+                                state: glutin::ElementState::Pressed,
+                                .. }, ..}, ..}} => self.shutdown = true,
+            _ => (),
+        }
+
+    }
+    fn get_commands(&mut self) -> Option<Vec<Command>> {
+        match self.shutdown {
+            true => Some(vec![Command::Shutdown]),
+            false => None,
+        }
+    }
+}
+
+
 
 pub struct DragController {
     dragging: bool,
@@ -141,7 +197,7 @@ impl DragController {
         }
     }
 
-    fn handle(&mut self, event: glutin::WindowEvent, dpi_factor: f64, physical_window_size: glutin::dpi::PhysicalSize) -> Option<GLCoord2D> {
+    fn handle(&mut self, event: &glutin::WindowEvent, dpi_factor: f64, physical_window_size: glutin::dpi::PhysicalSize) -> Option<GLCoord2D> {
         match event {
             glutin::WindowEvent::MouseInput{
                 state,
