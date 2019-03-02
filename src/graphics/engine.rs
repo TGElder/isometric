@@ -98,7 +98,9 @@ pub trait Drawing {
     fn get_z_mod(&self) -> f32;
 }
 
-impl ZFinder for GraphicsEngine {
+pub struct GLZFinder {}
+
+impl ZFinder for GLZFinder {
 
     fn get_z_at(&self, buffer_coordinate: BufferCoordinate) -> f32 {
         let mut buffer: Vec<f32> = vec![0.0];
