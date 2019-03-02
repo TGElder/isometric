@@ -5,6 +5,7 @@ use ::graphics::transform::Direction;
 use ::graphics::coords::*;
 use ::graphics::drawing::terrain::{TerrainDrawing, TerrainGridDrawing};
 use ::graphics::drawing::selected_cell::SelectedCellDrawing;
+use ::graphics::drawing::sea::SeaDrawing;
 
 use self::glutin::GlContext;
 
@@ -49,6 +50,7 @@ impl IsometricEngine {
     pub fn run(&mut self) {
         let mut current_cursor_position = None;
         let mut running = true;
+        let sea_drawing = SeaDrawing::new(self.terrain.shape().0 as f32, self.terrain.shape().1 as f32, 10.0);
         let terrain_drawing = TerrainDrawing::from_heights(&self.terrain);
         let terrain_grid_drawing = TerrainGridDrawing::from_heights(&self.terrain);
         let mut selected_cell_drawing = None;
@@ -114,7 +116,7 @@ impl IsometricEngine {
                 _ => (),
             });
 
-            let mut drawings: Vec<&Drawing> = vec![&terrain_drawing, &terrain_grid_drawing];
+            let mut drawings: Vec<&Drawing> = vec![&terrain_drawing, &terrain_grid_drawing, &sea_drawing];
             if let Some(ref selected_cell_drawing) = selected_cell_drawing {
                 drawings.push(selected_cell_drawing)
             }

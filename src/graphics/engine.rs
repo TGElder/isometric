@@ -87,7 +87,7 @@ impl GraphicsEngine {
         self.viewport_size = viewport_size;
         unsafe {
             gl::Viewport(0, 0, viewport_size.width as i32, viewport_size.height as i32);
-            gl::ClearColor(0.0, 0.0, 1.0, 1.0);
+            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
         }
     }
 

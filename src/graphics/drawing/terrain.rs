@@ -67,7 +67,7 @@ impl Drawing for TerrainGridDrawing {
     }
 
     fn get_z_mod(&self) -> f32 {
-        -0.002
+        -0.0002
     }
 }
 
