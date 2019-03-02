@@ -30,8 +30,10 @@ impl TerrainDrawing {
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
 
+        let max_height = heights.iter().max_by(float_ordering).unwrap();
+
         let with_color = |point: (f32, f32, f32)|
-            (point.0, point.1, point.2, (point.2 / 2.0) + 0.5);
+            (point.0, point.1, point.2, (point.2 / (max_height * 2.0)) + 0.5);
 
         for y in 0..(height - 1) {
             for x in 0..(width - 1) {

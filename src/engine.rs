@@ -19,7 +19,7 @@ pub struct IsometricEngine {
 impl IsometricEngine {
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
 
-    pub fn new(title: &str, width: u32, height: u32, terrain: na::DMatrix<f32>) -> IsometricEngine {
+    pub fn new(title: &str, width: u32, height: u32, terrain: na::DMatrix<f32>, max_z: f32) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title(title)
@@ -35,7 +35,7 @@ impl IsometricEngine {
         }
 
         let dpi_factor = gl_window.get_hidpi_factor();
-        let graphics = GraphicsEngine::new(10.0, gl_window.window().get_inner_size().unwrap().to_physical(dpi_factor));
+        let graphics = GraphicsEngine::new(1.0/max_z, gl_window.window().get_inner_size().unwrap().to_physical(dpi_factor));
 
         IsometricEngine {
             events_loop,

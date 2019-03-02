@@ -53,9 +53,9 @@ impl IsometricRotation {
 }
 
 pub struct Transform{
-    pub scale: GLCoord3D,
-    pub translation: GLCoord2D,
-    pub rotation: IsometricRotation,
+    scale: GLCoord3D,
+    translation: GLCoord2D,
+    rotation: IsometricRotation,
     projection_matrix: na::Matrix4<f32>,
     inverse_matrix: na::Matrix4<f32>,
 }
@@ -73,12 +73,12 @@ impl Transform {
     }
 
     pub fn compute_projection_matrix(&mut self) {
-        let scale_matrix: na::Matrix4<f32> = na::Matrix4::new(
+        let scale_matrix: na::Matrix4<f32> = na::Matrix4::from_vec(vec![
             self.scale.x, 0.0, 0.0, self.translation.x,
             0.0, self.scale.y, 0.0, self.translation.y,
             0.0, 0.0, self.scale.z, 0.0,
-            0.0, 0.0, 0.0, 1.0,
-        );
+            0.0, 0.0, 0.0, 1.0,]
+        ).transpose();
 
         let isometric_matrix = self.compute_isometric_matrix();
         self.projection_matrix = scale_matrix * isometric_matrix;
@@ -92,12 +92,12 @@ impl Transform {
     fn compute_isometric_matrix(&self) -> na::Matrix4<f32> {
         let c = self.rotation.c();
         let s = self.rotation.s();
-        na::Matrix4::new(
+        na::Matrix4::from_vec(vec![
             c, -s, 0.0, 0.0,
             -s / 2.0, -c / 2.0, 1.0, 0.0,
             0.0, 0.0, -1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
-        )
+            0.0, 0.0, 0.0, 1.0,]
+        ).transpose()
     }
 
     pub fn translate(&mut self, delta: GLCoord2D) {
