@@ -1,5 +1,4 @@
-pub mod engine;
-mod graphics;
-mod utils;
+mod coords;
+mod transform;
 
 extern crate nalgebra as na;
