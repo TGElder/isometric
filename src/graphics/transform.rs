@@ -126,11 +126,11 @@ impl Transform {
         );
     }
 
-    pub fn rotate(&mut self, center: GLCoord4D, direction: &'static Direction) {
+    pub fn rotate(&mut self, center: GLCoord4D, direction: Direction) {
         self.transform_maintaining_center(
             center,
             Box::new(move |transform| {
-                transform.rotation = transform.rotation.rotate(direction);
+                transform.rotation = transform.rotation.rotate(&direction);
             })
         );
     }
@@ -367,19 +367,19 @@ mod tests {
 
         let center_of_rotation = GLCoord4D::new(0.0, -1.0, 0.0, 1.0);
 
-        transform.rotate(center_of_rotation, &Direction::Clockwise);
+        transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(-2.0, -1.0, 0.0, 1.0));
 
-        transform.rotate(center_of_rotation, &Direction::Clockwise);
+        transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
 
-        transform.rotate(center_of_rotation, &Direction::Clockwise);
+        transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(2.0, -1.0, 0.0, 1.0));
 
-        transform.rotate(center_of_rotation, &Direction::Clockwise);
+        transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, -2.0, 0.0, 1.0));
     }
@@ -396,19 +396,19 @@ mod tests {
 
         let center_of_rotation = GLCoord4D::new(0.0, -1.0, 0.0, 1.0);
 
-        transform.rotate(center_of_rotation, &Direction::AntiClockwise);
+        transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(2.0, -1.0, 0.0, 1.0));
 
-        transform.rotate(center_of_rotation, &Direction::AntiClockwise);
+        transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
 
-        transform.rotate(center_of_rotation, &Direction::AntiClockwise);
+        transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(-2.0, -1.0, 0.0, 1.0));
 
-        transform.rotate(center_of_rotation, &Direction::AntiClockwise);
+        transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
         assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, -2.0, 0.0, 1.0));
     }
@@ -423,7 +423,7 @@ mod tests {
         transform.compute_projection_matrix();
         let center_of_scaling = GLCoord4D::new(12.0, 34.0, 0.0, 1.0);
         let world_coord_at_center = transform.unproject(center_of_scaling);
-        transform.rotate(center_of_scaling, &Direction::Clockwise);
+        transform.rotate(center_of_scaling, Direction::Clockwise);
         transform.compute_projection_matrix();
         assert_eq!(transform.project(world_coord_at_center), center_of_scaling);
     }

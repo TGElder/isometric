@@ -16,7 +16,6 @@ impl ZoomHandler {
 
     fn handle_mouse_scroll_delta(&self, delta: glutin::MouseScrollDelta) -> Vec<Command> {
         if let Some(center) = self.cursor_position {
-            println!("Scaling");
             match delta {
                 glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => {
                     vec![Command::Scale{center, scale: GLCoord2D::new(2.0, 2.0)}]

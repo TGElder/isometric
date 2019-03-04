@@ -5,6 +5,7 @@ use ::events::{EventHandler, AsyncEventHandler};
 use ::event_handlers::shutdown::ShutdownHandler;
 use ::event_handlers::cursor_handler::CursorHandler;
 use ::event_handlers::zoom::ZoomHandler;
+use ::event_handlers::rotate::RotateHandler;
 use ::event_handlers::resize::{ResizeRelay, DPIRelay, Resizer};
 
 use ::graphics::engine::{Drawing, GraphicsEngine};
@@ -29,7 +30,7 @@ pub enum Command {
     Shutdown,
     Resize(glutin::dpi::PhysicalSize),
     Scale{center: GLCoord4D, scale: GLCoord2D},
-    //Rotate{center: GLCoord4D, direction: Direction},
+    Rotate{center: GLCoord4D, direction: Direction},
     Event(Event),
 }
 
@@ -74,7 +75,7 @@ impl IsometricEngine {
     pub fn run(&mut self) {
         //let mut current_cursor_position = None;
         let mut running = true;
-        let mut events = vec![Event::Resize(self.window.window().get_inner_size().unwrap().to_physical(self.window.get_hidpi_factor()))]; //TODO
+        let mut events = vec![]; //TODO
         let sea_drawing = SeaDrawing::new(self.terrain.shape().0 as f32, self.terrain.shape().1 as f32, 10.0);
         let terrain_drawing = TerrainDrawing::from_heights(&self.terrain);
         let terrain_grid_drawing = TerrainGridDrawing::from_heights(&self.terrain);
@@ -83,11 +84,12 @@ impl IsometricEngine {
         let logical_window_size = self.window.window().get_inner_size().unwrap();
         let mut event_handlers: Vec<Box<EventHandler>> = vec![
             Box::new(AsyncEventHandler::new(Box::new(ShutdownHandler::new()))),
-            Box::new(CursorHandler::new(dpi_factor, logical_window_size)),
-            Box::new(ZoomHandler::new()),
-            Box::new(ResizeRelay::new(dpi_factor)),
             Box::new(DPIRelay::new()),
             Box::new(Resizer::new()),
+            Box::new(CursorHandler::new(dpi_factor, logical_window_size)),
+            Box::new(ResizeRelay::new(dpi_factor)),
+            Box::new(ZoomHandler::new()),
+            Box::new(RotateHandler::new()),
         ];
         while running {
             let graphics = &mut self.graphics;
@@ -129,9 +131,9 @@ impl IsometricEngine {
                         //     }
                         // },
                         // glutin::WindowEvent::KeyboardInput{ input, .. } => match input {
-                        //     glutin::KeyboardInput{
-                        //         virtual_keycode: Some(glutin::VirtualKeyCode::Space), 
-                        //         state: glutin::ElementState::Pressed,
+                            // glutin::KeyboardInput{
+                            //     virtual_keycode: Some(glutin::VirtualKeyCode::Space), 
+                            //     state: glutin::ElementState::Pressed,
                         //         modifiers, .. } => if let Some(cursor_position) = current_cursor_position {
                         //             match modifiers {
                         //                 glutin::ModifiersState{ shift: true, .. } => graphics.get_transformer().rotate(cursor_position, &Direction::Clockwise),
@@ -167,6 +169,7 @@ impl IsometricEngine {
                                 graphics.set_viewport_size(physical_size);
                             }
                             Command::Scale{center, scale} => graphics.get_transformer().scale(center, scale),
+                            Command::Rotate{center, direction} => graphics.get_transformer().rotate(center, direction),    
                             Command::Event(event) => next_events.push(event),
                         }
                     }
