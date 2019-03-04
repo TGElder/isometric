@@ -5,6 +5,7 @@ use ::events::{EventHandler, AsyncEventHandler};
 use ::event_handlers::shutdown::ShutdownHandler;
 use ::event_handlers::cursor_handler::CursorHandler;
 use ::event_handlers::zoom::ZoomHandler;
+use ::event_handlers::resize::{ResizeRelay, DPIRelay, Resizer};
 
 use ::graphics::engine::{Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
@@ -18,13 +19,15 @@ use self::glutin::GlContext;
 
 pub enum Event {
     Shutdown,
-    Resize{physical_size: glutin::dpi::PhysicalSize},
+    Resize(glutin::dpi::PhysicalSize),
+    DPIChanged(f64),
     CursorMoved{position: GLCoord4D},
-    GlutinEvent{glutin_event: glutin::Event},
+    GlutinEvent(glutin::Event),
 }
 
 pub enum Command {
     Shutdown,
+    Resize(glutin::dpi::PhysicalSize),
     Scale{center: GLCoord4D, scale: GLCoord2D},
     //Rotate{center: GLCoord4D, direction: Direction},
     Event(Event),
@@ -71,15 +74,20 @@ impl IsometricEngine {
     pub fn run(&mut self) {
         //let mut current_cursor_position = None;
         let mut running = true;
-        let mut events = vec![Event::Resize{physical_size: self.window.window().get_inner_size().unwrap().to_physical(self.window.get_hidpi_factor())}]; //TODO
+        let mut events = vec![Event::Resize(self.window.window().get_inner_size().unwrap().to_physical(self.window.get_hidpi_factor()))]; //TODO
         let sea_drawing = SeaDrawing::new(self.terrain.shape().0 as f32, self.terrain.shape().1 as f32, 10.0);
         let terrain_drawing = TerrainDrawing::from_heights(&self.terrain);
         let terrain_grid_drawing = TerrainGridDrawing::from_heights(&self.terrain);
         //let mut selected_cell_drawing = None;
+        let dpi_factor = self.window.get_hidpi_factor();
+        let logical_window_size = self.window.window().get_inner_size().unwrap();
         let mut event_handlers: Vec<Box<EventHandler>> = vec![
             Box::new(AsyncEventHandler::new(Box::new(ShutdownHandler::new()))),
-            Box::new(CursorHandler::new()),
+            Box::new(CursorHandler::new(dpi_factor, logical_window_size)),
             Box::new(ZoomHandler::new()),
+            Box::new(ResizeRelay::new(dpi_factor)),
+            Box::new(DPIRelay::new()),
+            Box::new(Resizer::new()),
         ];
         while running {
             let graphics = &mut self.graphics;
@@ -90,19 +98,23 @@ impl IsometricEngine {
             let logical_window_size = self.window.window().get_inner_size().unwrap();
             let physical_window_size = logical_window_size.to_physical(dpi_factor);
             let terrain = &self.terrain;
-            // let mut captured_events = vec![];
-            // events_loop.poll_events(|event| {
-            //     captured_events.push(event);
-            // });
             events_loop.poll_events(|event| {
-                match &event {
-                glutin::Event::WindowEvent { event, .. } => {
-                    match event {
-                        glutin::WindowEvent::Resized(logical_size) => {
-                            let physical_size = logical_size.to_physical(dpi_factor);
-                            window.resize(physical_size);
-                            graphics.set_viewport_size(physical_size);
-                        }
+                if let glutin::Event::WindowEvent { ref event, .. } = event {
+                    if let Some(gl_delta) = drag_controller.handle(event, dpi_factor, physical_window_size) {
+                        graphics.get_transformer().translate(gl_delta);
+                    }
+                }
+                events.push(Event::GlutinEvent(event));
+            });
+            // events_loop.poll_events(|event| {
+            //     match &event {
+            //     glutin::Event::WindowEvent { event, .. } => {
+            //         match event {
+            //             glutin::WindowEvent::Resized(logical_size) => {
+            //                 let physical_size = logical_size.to_physical(dpi_factor);
+            //                 window.resize(physical_size);
+            //                 graphics.set_viewport_size(physical_size);
+            //             }
                         // glutin::WindowEvent::MouseWheel { delta, .. } => {
                         //     if let Some(cursor_position) = current_cursor_position {
                         //         match delta {
@@ -134,25 +146,15 @@ impl IsometricEngine {
                         //     current_cursor_position = Some(cursor_position);
                         //     selected_cell_drawing = SelectedCellDrawing::select_cell(terrain, world_coordinate);
                         // },
-                        _ => (),
-                    };
-                    if let Some(gl_delta) = drag_controller.handle(&event, dpi_factor, physical_window_size) {
-                        graphics.get_transformer().translate(gl_delta);
-                    }
-                }
-                _ => (),
-            };
-            let event_arc = Arc::new(Event::GlutinEvent{glutin_event: event});
-            for handler in &mut event_handlers {
-                for command in handler.handle_event(event_arc.clone()) {
-                    match command {
-                        Command::Shutdown => running = false,
-                        Command::Scale{center, scale} => graphics.get_transformer().scale(center, scale),
-                        Command::Event(event) => events.push(event),
-                    }
-                }
-            }
-            });
+            //             _ => (),
+            //         };
+                    
+            //     }
+            //     _ => (),
+            // };
+            
+
+            let mut next_events: Vec<Event> = vec![];
 
             events.drain(0..).for_each(|event| {
                 let event_arc = Arc::new(event);
@@ -160,13 +162,18 @@ impl IsometricEngine {
                     for command in handler.handle_event(event_arc.clone()) {
                         match command {
                             Command::Shutdown => running = false,
+                            Command::Resize(physical_size) => {
+                                window.resize(physical_size);
+                                graphics.set_viewport_size(physical_size);
+                            }
                             Command::Scale{center, scale} => graphics.get_transformer().scale(center, scale),
-                            _ => (),
-                            //_ => events.push(event),
+                            Command::Event(event) => next_events.push(event),
                         }
                     }
                 };
             });
+
+            events = next_events;
 
             let mut drawings: Vec<&Drawing> = vec![&terrain_drawing, &terrain_grid_drawing, &sea_drawing];
             // if let Some(ref selected_cell_drawing) = selected_cell_drawing {

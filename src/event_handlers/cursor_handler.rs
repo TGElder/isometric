@@ -6,56 +6,46 @@ use ::graphics::coords::PhysicalPositionExt;
 
 pub struct CursorHandler {
     z_finder: GLZFinder,
-    dpi_factor: Option<f64>,
-    physical_window_size: Option<glutin::dpi::PhysicalSize>,
+    dpi_factor: f64,
+    physical_window_size: glutin::dpi::PhysicalSize,
 }
 
 impl CursorHandler {
-    pub fn new() -> CursorHandler {
+    pub fn new(dpi_factor: f64, logical_window_size: glutin::dpi::LogicalSize) -> CursorHandler {
         CursorHandler{
             z_finder: GLZFinder{},
-            dpi_factor: Some(1.0),
-            physical_window_size: None,
+            dpi_factor,
+            physical_window_size: logical_window_size.to_physical(dpi_factor),
         }
     }
 
     fn handle_move(&self, position: glutin::dpi::LogicalPosition) -> Vec<Command> {
-        if let Some(dpi_factor) = self.dpi_factor {
-            if let Some(physical_window_size) = self.physical_window_size {
-                return vec![
-                    Command::Event(
-                        Event::CursorMoved{
-                            position: position
-                                .to_physical(dpi_factor)
-                                .to_gl_coord_4d(physical_window_size, &self.z_finder)
-                        }
-                    )
-                ];
-            };
-        };
-        vec![]
+        return vec![
+            Command::Event(
+                Event::CursorMoved{
+                    position: position
+                        .to_physical(self.dpi_factor)
+                        .to_gl_coord_4d(self.physical_window_size, &self.z_finder)
+                }
+            )
+        ];
     }
 }
 
 impl EventHandler for CursorHandler {
     fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
         match *event {
-            Event::GlutinEvent{
-                glutin_event: glutin::Event::WindowEvent{
+            Event::GlutinEvent(
+                glutin::Event::WindowEvent{
                     event: glutin::WindowEvent::CursorMoved{
                         position,
                         ..
                     },
                     ..
                 },
-            } => self.handle_move(position),
-            Event::GlutinEvent{
-                glutin_event: glutin::Event::WindowEvent{
-                    event: glutin::WindowEvent::HiDpiFactorChanged(dpi_factor),
-                    ..
-                }
-            } => {self.dpi_factor = Some(dpi_factor); vec![]}, //TODO too many vec![]s
-            Event::Resize{physical_size} => {self.physical_window_size = Some(physical_size); vec![]},
+            ) => self.handle_move(position),
+            Event::DPIChanged(dpi) => {self.dpi_factor = dpi; vec![]},
+            Event::Resize(physical_size) => {self.physical_window_size = physical_size; vec![]}, //TODO too many vec![]s
             _ => vec![]
         }
     }

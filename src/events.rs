@@ -30,7 +30,7 @@ impl AsyncEventHandler {
             let mut handle_event = |event: Arc<Event>| {
                 match *event {
                     Event::Shutdown => {
-                        println!("Shutting down event handler");
+                        println!("Shutting down AsyncEventHandler");
                         false
                     },
                     _ => send_commands(event_handler.handle_event(event)),

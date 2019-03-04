@@ -13,14 +13,14 @@ impl ShutdownHandler {
 impl EventHandler for ShutdownHandler {
     fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
         match *event {
-            Event::GlutinEvent{
-                glutin_event: glutin::Event::WindowEvent{
+            Event::GlutinEvent(
+                glutin::Event::WindowEvent{
                     event: glutin::WindowEvent::CloseRequested,
                     ..
                 }
-            } => vec![Command::Shutdown],
-            Event::GlutinEvent{
-                glutin_event: glutin::Event::WindowEvent{
+            ) => vec![Command::Shutdown],
+            Event::GlutinEvent(
+                glutin::Event::WindowEvent{
                     event: glutin::WindowEvent::KeyboardInput{
                         input: glutin::KeyboardInput{
                             virtual_keycode: Some(glutin::VirtualKeyCode::Escape), 
@@ -31,7 +31,7 @@ impl EventHandler for ShutdownHandler {
                     },
                     ..
                 },
-            } => vec![Command::Shutdown],
+            ) => vec![Command::Shutdown],
             _ => vec![],
         }
     }
