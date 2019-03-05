@@ -1,6 +1,8 @@
 extern crate glutin;
 
 use std::sync::Arc;
+use std::collections::HashMap;
+
 use ::events::{EventHandler, AsyncEventHandler};
 use ::event_handlers::shutdown::ShutdownHandler;
 use ::event_handlers::cursor_handler::CursorHandler;
@@ -9,23 +11,25 @@ use ::event_handlers::scroll::Scroller;
 use ::event_handlers::zoom::ZoomHandler;
 use ::event_handlers::rotate::RotateHandler;
 use ::event_handlers::resize::{ResizeRelay, DPIRelay, Resizer};
-
+use ::event_handlers::selected_cell::SelectedCell;
 
 use ::graphics::engine::{Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
 use ::graphics::drawing::terrain::{TerrainDrawing, TerrainGridDrawing};
-use ::graphics::drawing::selected_cell::SelectedCellDrawing;
 use ::graphics::drawing::sea::SeaDrawing;
+
 
 use self::glutin::GlContext;
 
 
 pub enum Event {
+    Start,
     Shutdown,
     Resize(glutin::dpi::PhysicalSize),
     DPIChanged(f64),
-    CursorMoved{position: GLCoord4D},
+    CursorMoved(GLCoord4D),
+    WorldPositionChanged(WorldCoord),
     GlutinEvent(glutin::Event),
     Drag(GLCoord4D),
 }
@@ -37,6 +41,9 @@ pub enum Command {
     Scale{center: GLCoord4D, scale: GLCoord2D},
     Rotate{center: GLCoord4D, direction: Direction},
     Event(Event),
+    ComputeWorldPosition(GLCoord4D),
+    Draw{name: String, drawing: Box<Drawing + Send>},
+    Erase(String),
 }
 
 pub struct IsometricEngine {
@@ -76,40 +83,21 @@ impl IsometricEngine {
     }
 
     pub fn run(&mut self) {
-        //let mut current_cursor_position = None;
         let mut running = true;
-        let mut events = vec![]; //TODO
-        let sea_drawing = SeaDrawing::new(self.terrain.shape().0 as f32, self.terrain.shape().1 as f32, 10.0);
-        let terrain_drawing = TerrainDrawing::from_heights(&self.terrain);
-        let terrain_grid_drawing = TerrainGridDrawing::from_heights(&self.terrain);
-        //let mut selected_cell_drawing = None;
-        let dpi_factor = self.window.get_hidpi_factor();
-        let logical_window_size = self.window.window().get_inner_size().unwrap();
-        let mut event_handlers: Vec<Box<EventHandler>> = vec![
-            Box::new(AsyncEventHandler::new(Box::new(ShutdownHandler::new()))),
-            Box::new(DPIRelay::new()),
-            Box::new(Resizer::new()),
-            Box::new(CursorHandler::new(dpi_factor, logical_window_size)),
-            Box::new(DragHandler::new()),
-            Box::new(ResizeRelay::new(dpi_factor)),
-            Box::new(Scroller::new()),
-            Box::new(ZoomHandler::new()),
-            Box::new(RotateHandler::new()),
-        ];
+        let mut events = vec![Event::Start];
+        let mut drawings = self.init_drawings();
+        let mut event_handlers = self.init_event_handlers(&self.terrain);
+    
         while running {
-            let graphics = &mut self.graphics;
-            let events_loop = &mut self.events_loop;
-            let window = &self.window;
-            let dpi_factor = window.get_hidpi_factor();
-            let logical_window_size = self.window.window().get_inner_size().unwrap();
-            let physical_window_size = logical_window_size.to_physical(dpi_factor);
-            let terrain = &self.terrain;
-            events_loop.poll_events(|event| {
+            
+            self.events_loop.poll_events(|event| {
                 events.push(Event::GlutinEvent(event));
             });
             
             let mut next_events: Vec<Event> = vec![];
 
+            let graphics = &mut self.graphics;
+            let window = &self.window;
             events.drain(0..).for_each(|event| {
                 let event_arc = Arc::new(event);
                 for handler in &mut event_handlers {
@@ -124,6 +112,9 @@ impl IsometricEngine {
                             Command::Scale{center, scale} => graphics.get_transformer().scale(center, scale),
                             Command::Rotate{center, direction} => graphics.get_transformer().rotate(center, direction),    
                             Command::Event(event) => next_events.push(event),
+                            Command::ComputeWorldPosition(gl_coord) => next_events.push(Event::WorldPositionChanged(gl_coord.to_world_coord(&graphics.get_transformer()))),
+                            Command::Draw{name, drawing} => {drawings.insert(name, drawing);},
+                            Command::Erase(name) => {drawings.remove(&name);},
                         }
                     }
                 };
@@ -131,12 +122,8 @@ impl IsometricEngine {
 
             events = next_events;
 
-            let mut drawings: Vec<&Drawing> = vec![&terrain_drawing, &terrain_grid_drawing, &sea_drawing];
-            // if let Some(ref selected_cell_drawing) = selected_cell_drawing {
-            //     drawings.push(selected_cell_drawing)
-            // }
-
-            graphics.draw(&drawings);
+            let to_draw: Vec<&Drawing> = drawings.values().map(|drawing| drawing.as_ref()).collect();
+            graphics.draw(&to_draw);
 
             self.window.swap_buffers().unwrap();
         }
@@ -144,6 +131,32 @@ impl IsometricEngine {
         for handler in &mut event_handlers {
             handler.handle_event(Arc::new(Event::Shutdown));
         }
+    }
+
+    fn init_drawings(&self) -> HashMap<String, Box<Drawing>> {
+        let mut drawings: HashMap<String, Box<Drawing>> = HashMap::new();
+        drawings.insert("sea".to_string(), Box::new(SeaDrawing::new(self.terrain.shape().0 as f32, self.terrain.shape().1 as f32, 10.0)));
+        drawings.insert("terrain".to_string(), Box::new(TerrainDrawing::from_heights(&self.terrain)));
+        drawings.insert("terrain_grid".to_string(), Box::new(TerrainGridDrawing::from_heights(&self.terrain)));
+        drawings
+    }
+
+    fn init_event_handlers <'a> (&self, heights: &'a na::DMatrix<f32>) -> Vec<Box<EventHandler + 'a>> {
+        let dpi_factor = self.window.get_hidpi_factor();
+        let logical_window_size = self.window.window().get_inner_size().unwrap();
+       
+        vec![
+            Box::new(AsyncEventHandler::new(Box::new(ShutdownHandler::new()))),
+            Box::new(DPIRelay::new()),
+            Box::new(Resizer::new()),
+            Box::new(CursorHandler::new(dpi_factor, logical_window_size)),
+            Box::new(DragHandler::new()),
+            Box::new(ResizeRelay::new(dpi_factor)),
+            Box::new(Scroller::new()),
+            Box::new(ZoomHandler::new()),
+            Box::new(RotateHandler::new()),
+            Box::new(SelectedCell::<'a>::new(heights))
+        ]
     }
 
 }

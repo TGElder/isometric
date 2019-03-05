@@ -20,14 +20,11 @@ impl CursorHandler {
     }
 
     fn handle_move(&self, position: glutin::dpi::LogicalPosition) -> Vec<Command> {
+        let gl_coord = position.to_physical(self.dpi_factor)
+            .to_gl_coord_4d(self.physical_window_size, &self.z_finder);
         return vec![
-            Command::Event(
-                Event::CursorMoved{
-                    position: position
-                        .to_physical(self.dpi_factor)
-                        .to_gl_coord_4d(self.physical_window_size, &self.z_finder)
-                }
-            )
+            Command::Event(Event::CursorMoved(gl_coord)),
+            Command::ComputeWorldPosition(gl_coord),
         ];
     }
 }

@@ -58,7 +58,7 @@ impl EventHandler for DragHandler {
                     ..
                 },
             ) => self.handle_mouse_state(state),
-            Event::CursorMoved{position} => self.handle_cursor_moved(position),
+            Event::CursorMoved(gl_position) => self.handle_cursor_moved(gl_position),
             _ => vec![]
         }
     }

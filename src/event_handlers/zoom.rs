@@ -43,7 +43,7 @@ impl EventHandler for ZoomHandler {
                     ..
                 },
             ) => self.handle_mouse_scroll_delta(delta),
-            Event::CursorMoved{position} => {self.cursor_position = Some(position); vec![]},
+            Event::CursorMoved(gl_position) => {self.cursor_position = Some(gl_position); vec![]},
             _ => vec![]
         }
     }

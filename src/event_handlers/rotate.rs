@@ -47,7 +47,7 @@ impl EventHandler for RotateHandler {
                 ..
                 }
             ) => self.handle_modifiers(modifiers),
-            Event::CursorMoved{position} => {self.cursor_position = Some(position); vec![]},
+            Event::CursorMoved(gl_position) => {self.cursor_position = Some(gl_position); vec![]},
             _ => vec![]
         }
     }
