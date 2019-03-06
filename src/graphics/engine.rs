@@ -1,6 +1,7 @@
 use super::program::Program;
 use super::shader::Shader;
 use std::ffi::{CString, c_void};
+use std::collections::HashMap;
 
 use super::transform::Transform;
 use super::transform::IsometricRotation;
@@ -10,6 +11,7 @@ pub struct GraphicsEngine {
     program: Program,
     viewport_size: glutin::dpi::PhysicalSize,
     transform: Transform,
+    drawings: HashMap<String, Box<Drawing>>,
 }
 
 impl GraphicsEngine {
@@ -24,6 +26,7 @@ impl GraphicsEngine {
                 GLCoord2D::new(0.0, 0.0),
                 IsometricRotation::TopLeftAtTop),
             viewport_size,
+            drawings: HashMap::new(),
         };
         out.set_viewport_size(viewport_size);
         out
@@ -65,12 +68,20 @@ impl GraphicsEngine {
         self.program.load_matrix("projection", projection_matrix);
     }
 
-    pub fn draw(&mut self, drawings: &Vec<&Drawing>) {
+    pub fn add_drawing(&mut self, name: String, drawing: Box<Drawing>) {
+        self.drawings.insert(name, drawing);
+    }
+
+    pub fn remove_drawing(&mut self, name: &String) {
+        self.drawings.remove(name);
+    }
+
+    pub fn draw(&mut self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             self.transform.compute_projection_matrix();
             self.load_projection_matrix(self.transform.get_projection_matrix());
-            for drawing in drawings {
+            for drawing in self.drawings.values() {
                 self.load_z_mod(drawing.get_z_mod());
                 drawing.draw();
             }

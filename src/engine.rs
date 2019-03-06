@@ -1,7 +1,6 @@
 extern crate glutin;
 
 use std::sync::Arc;
-use std::collections::HashMap;
 
 use ::events::{EventHandler, AsyncEventHandler};
 use ::event_handlers::shutdown::ShutdownHandler;
@@ -19,9 +18,7 @@ use ::graphics::coords::*;
 use ::graphics::drawing::terrain::{TerrainDrawing, TerrainGridDrawing};
 use ::graphics::drawing::sea::SeaDrawing;
 
-
 use self::glutin::GlContext;
-
 
 pub enum Event {
     Start,
@@ -53,7 +50,6 @@ pub struct IsometricEngine {
     running: bool,
     events: Vec<Event>,
     event_handlers: Vec<Box<EventHandler>>,
-    drawings: HashMap<String, Box<Drawing>>, //TODO move to graphics
 }
 
 impl IsometricEngine {
@@ -84,7 +80,6 @@ impl IsometricEngine {
             graphics,
             running: true,
             events: vec![Event::Start],
-            drawings: HashMap::new(),
         }
     }
 
@@ -110,10 +105,7 @@ impl IsometricEngine {
         while self.running {
             self.add_glutin_events();
             self.handle_events();
-            
-            let to_draw: Vec<&Drawing> = self.drawings.values().map(|drawing| drawing.as_ref()).collect();
-            self.graphics.draw(&to_draw);
-
+            self.graphics.draw();
             self.window.swap_buffers().unwrap();
         }
 
@@ -158,8 +150,8 @@ impl IsometricEngine {
             Command::Rotate{center, direction} => self.graphics.get_transformer().rotate(center, direction),    
             Command::Event(event) => self.events.push(event),
             Command::ComputeWorldPosition(gl_coord) => self.events.push(Event::WorldPositionChanged(gl_coord.to_world_coord(&self.graphics.get_transformer()))),
-            Command::Draw{name, drawing} => {self.drawings.insert(name, drawing);},
-            Command::Erase(name) => {self.drawings.remove(&name);},
+            Command::Draw{name, drawing} => {self.graphics.add_drawing(name, drawing)},
+            Command::Erase(name) => {self.graphics.remove_drawing(&name)},
         }
     }
     
