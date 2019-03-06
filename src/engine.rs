@@ -50,12 +50,16 @@ pub struct IsometricEngine {
     events_loop: glutin::EventsLoop,
     window: glutin::GlWindow,
     graphics: GraphicsEngine,
+    running: bool,
+    events: Vec<Event>,
+    event_handlers: Vec<Box<EventHandler>>,
+    drawings: HashMap<String, Box<Drawing>>, //TODO move to graphics
 }
 
 impl IsometricEngine {
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
 
-    pub fn new(title: &str, width: u32, height: u32, max_z: f32) -> IsometricEngine {
+    pub fn new(title: &str, width: u32, height: u32, max_z: f32, heights: na::DMatrix<f32>) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title(title)
@@ -75,65 +79,18 @@ impl IsometricEngine {
 
         IsometricEngine {
             events_loop,
+            event_handlers: IsometricEngine::init_event_handlers(&gl_window, heights),
             window: gl_window,
             graphics,
+            running: true,
+            events: vec![Event::Start],
+            drawings: HashMap::new(),
         }
     }
 
-    pub fn run(&mut self, heights: na::DMatrix<f32>) {
-        let mut running = true;
-        let mut events = vec![Event::Start];
-        let mut drawings: HashMap<String, Box<Drawing>> = HashMap::new();
-        let mut event_handlers = self.init_event_handlers(heights);
-    
-        while running {
-            
-            self.events_loop.poll_events(|event| {
-                events.push(Event::GlutinEvent(event));
-            });
-            
-            let mut next_events: Vec<Event> = vec![];
-
-            let graphics = &mut self.graphics;
-            let window = &self.window;
-            events.drain(0..).for_each(|event| {
-                let event_arc = Arc::new(event);
-                for handler in &mut event_handlers {
-                    for command in handler.handle_event(event_arc.clone()) {
-                        match command {
-                            Command::Shutdown => running = false,
-                            Command::Resize(physical_size) => {
-                                window.resize(physical_size);
-                                graphics.set_viewport_size(physical_size);
-                            },
-                            Command::Translate(translation) => graphics.get_transformer().translate(translation),
-                            Command::Scale{center, scale} => graphics.get_transformer().scale(center, scale),
-                            Command::Rotate{center, direction} => graphics.get_transformer().rotate(center, direction),    
-                            Command::Event(event) => next_events.push(event),
-                            Command::ComputeWorldPosition(gl_coord) => next_events.push(Event::WorldPositionChanged(gl_coord.to_world_coord(&graphics.get_transformer()))),
-                            Command::Draw{name, drawing} => {drawings.insert(name, drawing);},
-                            Command::Erase(name) => {drawings.remove(&name);},
-                        }
-                    }
-                };
-            });
-
-            events = next_events;
-
-            let to_draw: Vec<&Drawing> = drawings.values().map(|drawing| drawing.as_ref()).collect();
-            graphics.draw(&to_draw);
-
-            self.window.swap_buffers().unwrap();
-        }
-
-        for handler in &mut event_handlers {
-            handler.handle_event(Arc::new(Event::Shutdown));
-        }
-    }
-
-    fn init_event_handlers(&self, heights: na::DMatrix<f32>) -> Vec<Box<EventHandler>> {
-        let dpi_factor = self.window.get_hidpi_factor();
-        let logical_window_size = self.window.window().get_inner_size().unwrap();
+    fn init_event_handlers(window: &glutin::GlWindow, heights: na::DMatrix<f32>) -> Vec<Box<EventHandler>> {
+        let dpi_factor = window.get_hidpi_factor();
+        let logical_window_size = window.window().get_inner_size().unwrap();
        
         vec![
             Box::new(AsyncEventHandler::new(Box::new(ShutdownHandler::new()))),
@@ -148,6 +105,70 @@ impl IsometricEngine {
             Box::new(TerrainHandler::new(heights))
         ]
     }
+
+    pub fn run(&mut self) {    
+        while self.running {
+            self.add_glutin_events();
+            self.handle_events();
+            
+            let to_draw: Vec<&Drawing> = self.drawings.values().map(|drawing| drawing.as_ref()).collect();
+            self.graphics.draw(&to_draw);
+
+            self.window.swap_buffers().unwrap();
+        }
+
+        self.shutdown();
+    }
+
+    fn add_glutin_events(&mut self) {
+        let mut glutin_events = vec![];
+        self.events_loop.poll_events(|event| {
+            glutin_events.push(Event::GlutinEvent(event));
+        });
+        self.events.append(&mut glutin_events);
+    }
+
+    fn handle_events(&mut self) {
+        let mut events: Vec<Event> = vec![];
+        events.append(&mut self.events);
+
+        let mut commands = vec![];
+
+        events.drain(0..).for_each(|event| {
+            let event_arc = Arc::new(event);
+            for handler in self.event_handlers.iter_mut() {
+                commands.append(&mut handler.handle_event(event_arc.clone()));
+            };
+        });
+
+        for command in commands {
+            self.handle_command(command);
+        }
+    }
+
+    fn handle_command(&mut self, command: Command) {
+        match command {
+            Command::Shutdown => self.running = false,
+            Command::Resize(physical_size) => {
+                self.window.resize(physical_size);
+                self.graphics.set_viewport_size(physical_size);
+            },
+            Command::Translate(translation) => self.graphics.get_transformer().translate(translation),
+            Command::Scale{center, scale} => self.graphics.get_transformer().scale(center, scale),
+            Command::Rotate{center, direction} => self.graphics.get_transformer().rotate(center, direction),    
+            Command::Event(event) => self.events.push(event),
+            Command::ComputeWorldPosition(gl_coord) => self.events.push(Event::WorldPositionChanged(gl_coord.to_world_coord(&self.graphics.get_transformer()))),
+            Command::Draw{name, drawing} => {self.drawings.insert(name, drawing);},
+            Command::Erase(name) => {self.drawings.remove(&name);},
+        }
+    }
+    
+    fn shutdown(&mut self) {
+        for handler in &mut self.event_handlers {
+            handler.handle_event(Arc::new(Event::Shutdown));
+        }
+    }
+
 
 }
 
