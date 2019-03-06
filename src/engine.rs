@@ -50,13 +50,12 @@ pub struct IsometricEngine {
     events_loop: glutin::EventsLoop,
     window: glutin::GlWindow,
     graphics: GraphicsEngine,
-    terrain: na::DMatrix<f32>,
 }
 
 impl IsometricEngine {
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
 
-    pub fn new(title: &str, width: u32, height: u32, terrain: na::DMatrix<f32>, max_z: f32) -> IsometricEngine {
+    pub fn new(title: &str, width: u32, height: u32, max_z: f32) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title(title)
@@ -78,15 +77,14 @@ impl IsometricEngine {
             events_loop,
             window: gl_window,
             graphics,
-            terrain,
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self, heights: na::DMatrix<f32>) {
         let mut running = true;
         let mut events = vec![Event::Start];
-        let mut drawings = self.init_drawings();
-        let mut event_handlers = self.init_event_handlers(&self.terrain);
+        let mut drawings: HashMap<String, Box<Drawing>> = HashMap::new();
+        let mut event_handlers = self.init_event_handlers(heights);
     
         while running {
             
@@ -133,15 +131,7 @@ impl IsometricEngine {
         }
     }
 
-    fn init_drawings(&self) -> HashMap<String, Box<Drawing>> {
-        let mut drawings: HashMap<String, Box<Drawing>> = HashMap::new();
-        drawings.insert("sea".to_string(), Box::new(SeaDrawing::new(self.terrain.shape().0 as f32, self.terrain.shape().1 as f32, 10.0)));
-        drawings.insert("terrain".to_string(), Box::new(TerrainDrawing::from_heights(&self.terrain)));
-        drawings.insert("terrain_grid".to_string(), Box::new(TerrainGridDrawing::from_heights(&self.terrain)));
-        drawings
-    }
-
-    fn init_event_handlers <'a> (&self, heights: &'a na::DMatrix<f32>) -> Vec<Box<EventHandler + 'a>> {
+    fn init_event_handlers(&self, heights: na::DMatrix<f32>) -> Vec<Box<EventHandler>> {
         let dpi_factor = self.window.get_hidpi_factor();
         let logical_window_size = self.window.window().get_inner_size().unwrap();
        
@@ -155,8 +145,39 @@ impl IsometricEngine {
             Box::new(Scroller::new()),
             Box::new(ZoomHandler::new()),
             Box::new(RotateHandler::new()),
-            Box::new(SelectedCell::<'a>::new(heights))
+            Box::new(TerrainHandler::new(heights))
         ]
     }
 
+}
+
+pub struct TerrainHandler {
+    heights: na::DMatrix<f32>,
+}
+
+impl TerrainHandler {
+    fn new(heights: na::DMatrix<f32>) -> TerrainHandler {
+        TerrainHandler{
+            heights,
+        }
+    }
+}
+
+impl EventHandler for TerrainHandler {
+    fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
+        let mut out = vec![];
+        out.append(
+            &mut match *event {
+                Event::Start => vec![
+                    Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, 10.0))},
+                    Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::from_heights(&self.heights))},
+                    Command::Draw{name: "terrain_grid".to_string(), drawing: Box::new(TerrainGridDrawing::from_heights(&self.heights))},
+                ],
+                _ => vec![],
+            }
+        );
+        let mut selected_cell = Box::new(SelectedCell::new(&self.heights));
+        out.append(&mut selected_cell.handle_event(event.clone()));
+        out
+    }
 }
