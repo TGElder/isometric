@@ -15,7 +15,7 @@ use ::event_handlers::selected_cell::SelectedCell;
 use ::graphics::engine::{Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
-use ::graphics::drawing::terrain::{TerrainDrawing, TerrainGridDrawing};
+use ::graphics::drawing::terrain::{AltitudeColoring, TerrainDrawing, TerrainGridDrawing};
 use ::graphics::drawing::sea::SeaDrawing;
 
 use self::glutin::GlContext;
@@ -181,11 +181,14 @@ impl EventHandler for TerrainHandler {
         let mut out = vec![];
         out.append(
             &mut match *event {
-                Event::Start => vec![
-                    Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, 10.0))},
-                    Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::from_heights(&self.heights))},
-                    Command::Draw{name: "terrain_grid".to_string(), drawing: Box::new(TerrainGridDrawing::from_heights(&self.heights))},
-                ],
+                Event::Start => {
+                    let coloring = Box::new(AltitudeColoring::new(&self.heights));
+                    vec![
+                        Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, 10.0))},
+                        Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::from_heights(&self.heights, coloring))},
+                        Command::Draw{name: "terrain_grid".to_string(), drawing: Box::new(TerrainGridDrawing::from_heights(&self.heights))},
+                    ]
+                },
                 _ => vec![],
             }
         );

@@ -1,6 +1,30 @@
-use super::super::engine::Drawing;
+use super::super::engine::{Drawing, Color};
 use super::super::vertex_objects::{VBO, Vertex, ColoredVertex};
 use utils::float_ordering;
+
+pub trait Coloring {
+    fn get_color(&self, x: usize, y: usize, heights: &na::DMatrix<f32>) -> Color;
+}
+
+pub struct AltitudeColoring {
+    max_height: f32,
+}
+
+impl AltitudeColoring {
+    pub fn new(heights: & na::DMatrix<f32>) -> AltitudeColoring {
+        let max_height = heights.iter().max_by(float_ordering).unwrap();
+        AltitudeColoring{max_height: *max_height}
+    }
+}
+
+impl Coloring for AltitudeColoring {
+
+    fn get_color(&self, x: usize, y: usize, heights: &na::DMatrix<f32>) -> Color {
+        let z = heights[(x, y)];
+        let color = (z / (self.max_height * 2.0)) + 0.5;
+        Color::new(color, color, color, 1.0)
+    }
+}
 
 pub struct TerrainDrawing {
     terrain_triangles: VBO<ColoredVertex>,
@@ -17,39 +41,41 @@ impl Drawing for TerrainDrawing {
 }
 
 impl TerrainDrawing {
-    pub fn from_heights(heights: &na::DMatrix<f32>) -> TerrainDrawing {
+    pub fn from_heights(heights: &na::DMatrix<f32>, coloring: Box<Coloring>) -> TerrainDrawing {
         let mut out = TerrainDrawing{
             terrain_triangles: VBO::new(gl::TRIANGLES),
         };
-        out.terrain_triangles.load(TerrainDrawing::get_vertices(heights));
+        out.terrain_triangles.load(TerrainDrawing::get_vertices(heights, coloring));
         out
     }
 
-    fn get_vertices(heights: &na::DMatrix<f32>) -> Vec<f32> {
+    fn get_vertices(heights: &na::DMatrix<f32>, coloring: Box<Coloring>) -> Vec<f32> {
         let width = heights.shape().0;
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
 
-        let max_height = heights.iter().max_by(float_ordering).unwrap();
+        let with_z_and_color = |x: usize, y: usize| -> (f32, f32, f32, f32, f32, f32) {
+            let color = coloring.get_color(x, y, heights);
+            let z = heights[(x, y)];
+            (x as f32, y as f32, z, color.r, color.g, color.b)
+        };
 
-        let with_color = |point: (f32, f32, f32)|
-            (point.0, point.1, point.2, (point.2 / (max_height * 2.0)) + 0.5);
 
         for y in 0..(height - 1) {
             for x in 0..(width - 1) {
 
-                let a = with_color((x as f32, y as f32, heights[(x, y)]));
-                let b = with_color((x as f32 + 1.0, y as f32, heights[(x + 1, y)]));
-                let c = with_color((x as f32 + 1.0, y as f32 + 1.0, heights[(x + 1, y + 1)]));
-                let d = with_color((x as f32, y as f32 + 1.0, heights[(x, y + 1)]));
+                let a = with_z_and_color(x, y);
+                let b = with_z_and_color(x + 1, y);
+                let c = with_z_and_color(x + 1, y + 1);
+                let d = with_z_and_color(x, y + 1);
 
                 triangle_vertices.extend([
-                    a.0, a.1, a.2, a.3, a.3, a.3,
-                    d.0, d.1, d.2, d.3, d.3, d.3,
-                    c.0, c.1, c.2, c.3, c.3, c.3,
-                    a.0, a.1, a.2, a.3, a.3, a.3,
-                    c.0, c.1, c.2, c.3, c.3, c.3,
-                    b.0, b.1, b.2, b.3, b.3, b.3
+                    a.0, a.1, a.2, a.3, a.4, a.5,
+                    d.0, d.1, d.2, d.3, d.4, d.5,
+                    c.0, c.1, c.2, c.3, c.4, c.5,
+                    a.0, a.1, a.2, a.3, a.4, a.5,
+                    c.0, c.1, c.2, c.3, c.4, c.5,
+                    b.0, b.1, b.2, b.3, b.4, b.5
                 ].iter().cloned());
             }
         }
@@ -125,7 +151,8 @@ mod tests {
             30.0, 20.0, 100.0
         ]).transpose();
 
-        let actual = TerrainDrawing::get_vertices(&heights);
+        let coloring = Box::new(AltitudeColoring::new(&heights));
+        let actual = TerrainDrawing::get_vertices(&heights, coloring);
 
         let expected = vec![
             0.0, 0.0, 90.0, 0.95, 0.95, 0.95,
