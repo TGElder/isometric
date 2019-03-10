@@ -25,7 +25,7 @@ impl  HouseBuilder {
 
     fn draw(&mut self) -> Vec<Command> {
         if let Some(world_coordinate) = self.world_coordinate {
-            let world_coordinate = WorldCoord::new(world_coordinate.x.floor(), world_coordinate.y.floor(), world_coordinate.z);
+            let world_coordinate = WorldCoord::new(world_coordinate.x.floor() + 0.5, world_coordinate.y.floor() + 0.5, world_coordinate.z);
             let color = Color::new(1.0, 0.0, 0.0, 1.0);
             let drawing = HouseDrawing::new(world_coordinate, 0.25, 0.5, 0.5, color, self.light_direction);
             let name = LAYER_NAME.to_string() + &self.houses.to_string();
