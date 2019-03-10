@@ -1,7 +1,6 @@
-use super::super::engine::{Drawing, Color};
+use super::super::engine::Drawing;
 use super::super::vertex_objects::{VBO, Vertex, ColoredVertex};
-use super::square_coloring::{AltitudeColoring, SquareColoring};
-use utils::float_ordering;
+use super::utils::{SquareColoring, get_colored_vertices_from_square};
 use std::f32;
 
 pub struct TerrainDrawing {
@@ -42,16 +41,7 @@ impl TerrainDrawing {
                     na::Vector3::new(x as f32, (y + 1) as f32, heights[(x, y + 1)])
                 ];
 
-                let colors = coloring.get_colors(points);
-
-                triangle_vertices.extend([
-                    points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b,
-                    points[3].x, points[3].y, points[3].z, colors[3].r, colors[3].g, colors[3].b,
-                    points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b,
-                    points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b,
-                    points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b,
-                    points[1].x, points[1].y, points[1].z, colors[1].r, colors[1].g, colors[1].b,
-                ].iter().cloned());
+                triangle_vertices.extend(get_colored_vertices_from_square(&points, &coloring));
             }
         }
         triangle_vertices
@@ -117,6 +107,7 @@ impl TerrainGridDrawing {
 mod tests {
 
     use super::*;
+    use super::super::utils::AltitudeColoring;
 
     #[test]   
     fn test_terrain_drawing_get_vertices() {
