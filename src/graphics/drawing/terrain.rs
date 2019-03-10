@@ -1,56 +1,8 @@
 use super::super::engine::{Drawing, Color};
 use super::super::vertex_objects::{VBO, Vertex, ColoredVertex};
+use super::square_coloring::{AltitudeColoring, SquareColoring};
 use utils::float_ordering;
 use std::f32;
-
-pub trait Coloring {
-    fn get_color(&self, x: usize, y: usize, heights: &na::DMatrix<f32>) -> Color;
-}
-
-pub struct AltitudeColoring {
-    max_height: f32,
-}
-
-impl AltitudeColoring {
-    pub fn new(heights: & na::DMatrix<f32>) -> AltitudeColoring {
-        let max_height = heights.iter().max_by(float_ordering).unwrap();
-        AltitudeColoring{max_height: *max_height}
-    }
-}
-
-impl Coloring for AltitudeColoring {
-    fn get_color(&self, x: usize, y: usize, heights: &na::DMatrix<f32>) -> Color {
-        let z = heights[(x, y)];
-        let color = (z / (self.max_height * 2.0)) + 0.5;
-        Color::new(color, color, color, 1.0)
-    }
-}
-
-pub struct AngleColoring {
-    light_direction: na::Vector3<f32>,
-}
-
-impl AngleColoring {
-    pub fn new(light_direction: na::Vector3<f32>) -> AngleColoring {
-        AngleColoring{light_direction}
-    }
-}
-
-impl Coloring for AngleColoring {
-    fn get_color(&self, x: usize, y: usize, heights: &na::DMatrix<f32>) -> Color {
-        let a = na::Vector3::new(x as f32, y as f32, heights[(x, y)]);
-        let b = na::Vector3::new((x + 1) as f32, y as f32, heights[(x + 1, y)]);
-        let c = na::Vector3::new((x + 1) as f32, (y + 1) as f32, heights[(x + 1, y + 1)]);
-        let d = na::Vector3::new(x as f32, (y + 1) as f32, heights[(x, y + 1)]);
-        let u = a - c;
-        let v = b - d;
-        let normal = u.cross(&v);
-        let angle: f32 = na::Matrix::angle(&normal, &self.light_direction);
-        let color = angle / f32::consts::PI;
-        Color::new(color, color, color, 1.0)
-    }
-}
-
 
 pub struct TerrainDrawing {
     terrain_triangles: VBO<ColoredVertex>,
@@ -67,7 +19,7 @@ impl Drawing for TerrainDrawing {
 }
 
 impl TerrainDrawing {
-    pub fn from_heights(heights: &na::DMatrix<f32>, coloring: Box<Coloring>) -> TerrainDrawing {
+    pub fn from_heights(heights: &na::DMatrix<f32>, coloring: Box<SquareColoring>) -> TerrainDrawing {
         let mut out = TerrainDrawing{
             terrain_triangles: VBO::new(gl::TRIANGLES),
         };
@@ -75,33 +27,30 @@ impl TerrainDrawing {
         out
     }
 
-    fn get_vertices(heights: &na::DMatrix<f32>, coloring: Box<Coloring>) -> Vec<f32> {
+    fn get_vertices(heights: &na::DMatrix<f32>, coloring: Box<SquareColoring>) -> Vec<f32> {
         let width = heights.shape().0;
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
 
-        let with_z_and_color = |x: usize, y: usize, zx: usize, zy: usize| -> (f32, f32, f32, f32, f32, f32) {
-            let color = coloring.get_color(x, y, heights);
-            let z = heights[(zx, zy)];
-            (zx as f32, zy as f32, z, color.r, color.g, color.b)
-        };
-
-
         for y in 0..(height - 1) {
             for x in 0..(width - 1) {
 
-                let a = with_z_and_color(x, y, x, y);
-                let b = with_z_and_color(x, y, x + 1, y);
-                let c = with_z_and_color(x, y, x + 1, y + 1);
-                let d = with_z_and_color(x, y, x, y + 1);
+                let points = [
+                    na::Vector3::new(x as f32, y as f32, heights[(x, y)]),
+                    na::Vector3::new((x + 1) as f32, y as f32, heights[(x + 1, y)]),
+                    na::Vector3::new((x + 1) as f32, (y + 1) as f32, heights[(x + 1, y + 1)]),
+                    na::Vector3::new(x as f32, (y + 1) as f32, heights[(x, y + 1)])
+                ];
+
+                let colors = coloring.get_colors(points);
 
                 triangle_vertices.extend([
-                    a.0, a.1, a.2, a.3, a.4, a.5,
-                    d.0, d.1, d.2, d.3, d.4, d.5,
-                    c.0, c.1, c.2, c.3, c.4, c.5,
-                    a.0, a.1, a.2, a.3, a.4, a.5,
-                    c.0, c.1, c.2, c.3, c.4, c.5,
-                    b.0, b.1, b.2, b.3, b.4, b.5
+                    points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b,
+                    points[3].x, points[3].y, points[3].z, colors[3].r, colors[3].g, colors[3].b,
+                    points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b,
+                    points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b,
+                    points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b,
+                    points[1].x, points[1].y, points[1].z, colors[1].r, colors[1].g, colors[1].b,
                 ].iter().cloned());
             }
         }
