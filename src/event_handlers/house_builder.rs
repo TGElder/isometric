@@ -4,7 +4,7 @@ use ::events::EventHandler;
 use ::graphics::coords::WorldCoord;
 use ::graphics::engine::Color;
 use ::graphics::drawing::house::HouseDrawing;
-use ::graphics::drawing::utils::AngleColoring;
+use ::graphics::drawing::utils::AngleSquareColoring;
 
 const LAYER_NAME: &str = "house";
 
@@ -25,7 +25,9 @@ impl  HouseBuilder {
 
     fn draw(&mut self) -> Vec<Command> {
         if let Some(world_coordinate) = self.world_coordinate {
-            let drawing = HouseDrawing::new(world_coordinate, 0.25, 0.5, 0.0, Box::new(AngleColoring::new(Color::new(1.0, 0.0, 0.0, 1.0), self.light_direction)));
+            let world_coordinate = WorldCoord::new(world_coordinate.x.floor(), world_coordinate.y.floor(), world_coordinate.z);
+            let color = Color::new(1.0, 0.0, 0.0, 1.0);
+            let drawing = HouseDrawing::new(world_coordinate, 0.25, 0.5, 0.5, color, self.light_direction);
             let name = LAYER_NAME.to_string() + &self.houses.to_string();
             self.houses += 1;
             vec![Command::Draw{name, drawing: Box::new(drawing)}]

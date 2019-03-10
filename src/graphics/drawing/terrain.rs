@@ -107,7 +107,7 @@ impl TerrainGridDrawing {
 mod tests {
 
     use super::*;
-    use super::super::utils::AltitudeColoring;
+    use super::super::utils::AltitudeSquareColoring;
 
     #[test]   
     fn test_terrain_drawing_get_vertices() {
@@ -117,7 +117,7 @@ mod tests {
             30.0, 20.0, 100.0
         ]).transpose();
 
-        let coloring = Box::new(AltitudeColoring::new(&heights));
+        let coloring = Box::new(AltitudeSquareColoring::new(&heights));
         let actual = TerrainDrawing::get_vertices(&heights, coloring);
 
         let expected = vec![

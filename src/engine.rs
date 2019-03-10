@@ -16,7 +16,7 @@ use ::event_handlers::house_builder::HouseBuilder;
 use ::graphics::engine::{Color, Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
-use ::graphics::drawing::utils::AngleColoring;
+use ::graphics::drawing::utils::AngleSquareColoring;
 use ::graphics::drawing::terrain::{TerrainDrawing, TerrainGridDrawing};
 use ::graphics::drawing::sea::SeaDrawing;
 
@@ -185,7 +185,7 @@ impl EventHandler for TerrainHandler {
         out.append(
             &mut match *event {
                 Event::Start => {
-                    let coloring = Box::new(AngleColoring::new(Color::new(0.0, 1.0, 0.0, 1.0), na::Vector3::new(1.0, 0.0, 1.0)));
+                    let coloring = Box::new(AngleSquareColoring::new(Color::new(0.0, 1.0, 0.0, 1.0), na::Vector3::new(1.0, 0.0, 1.0)));
                     vec![
                         Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, 6.0))},
                         Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::from_heights(&self.heights, coloring))},

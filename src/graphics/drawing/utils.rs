@@ -2,22 +2,26 @@ use super::super::engine::Color;
 use utils::float_ordering;
 use std::f32;
 
+pub trait TriangleColoring {
+    fn get_colors(&self, points: &[na::Vector3<f32>; 3]) -> [Color; 3];
+}
+
 pub trait SquareColoring {
     fn get_colors(&self, points: &[na::Vector3<f32>; 4]) -> [Color; 4];
 }
 
-pub struct AltitudeColoring {
+pub struct AltitudeSquareColoring {
     max_height: f32,
 }
 
-impl AltitudeColoring {
-    pub fn new(heights: & na::DMatrix<f32>) -> AltitudeColoring {
+impl AltitudeSquareColoring {
+    pub fn new(heights: & na::DMatrix<f32>) -> AltitudeSquareColoring {
         let max_height = heights.iter().max_by(float_ordering).unwrap();
-        AltitudeColoring{max_height: *max_height}
+        AltitudeSquareColoring{max_height: *max_height}
     }
 }
 
-impl SquareColoring for AltitudeColoring {
+impl SquareColoring for AltitudeSquareColoring {
     fn get_colors(&self, points: &[na::Vector3<f32>; 4]) -> [Color; 4] {
         let get_color = |point: na::Vector3<f32>| {
             let color = (point.z / (self.max_height * 2.0)) + 0.5;
@@ -32,18 +36,41 @@ impl SquareColoring for AltitudeColoring {
     }
 }
 
-pub struct AngleColoring {
+pub struct AngleTriangleColoring {
     base_color: Color,
     light_direction: na::Vector3<f32>,
 }
 
-impl AngleColoring {
-    pub fn new(base_color: Color, light_direction: na::Vector3<f32>) -> AngleColoring {
-        AngleColoring{base_color, light_direction}
+impl AngleTriangleColoring {
+    pub fn new(base_color: Color, light_direction: na::Vector3<f32>) -> AngleTriangleColoring {
+        AngleTriangleColoring{base_color, light_direction}
     }
 }
 
-impl SquareColoring for AngleColoring {
+impl TriangleColoring for AngleTriangleColoring {
+    fn get_colors(&self, points: &[na::Vector3<f32>; 3]) -> [Color; 3] {
+        let u = points[0] - points[1];
+        let v = points[0] - points[2];
+        let normal = u.cross(&v);
+        let angle: f32 = na::Matrix::angle(&normal, &self.light_direction);
+        let color = angle / f32::consts::PI;
+        let color = Color::new(self.base_color.r * color, self.base_color.g * color, self.base_color.b * color, 1.0);
+        [color; 3]
+    }
+}
+
+pub struct AngleSquareColoring {
+    base_color: Color,
+    light_direction: na::Vector3<f32>,
+}
+
+impl AngleSquareColoring {
+    pub fn new(base_color: Color, light_direction: na::Vector3<f32>) -> AngleSquareColoring {
+        AngleSquareColoring{base_color, light_direction}
+    }
+}
+
+impl SquareColoring for AngleSquareColoring {
     fn get_colors(&self, points: &[na::Vector3<f32>; 4]) -> [Color; 4] {
         let u = points[0] - points[2];
         let v = points[1] - points[3];
@@ -53,6 +80,16 @@ impl SquareColoring for AngleColoring {
         let color = Color::new(self.base_color.r * color, self.base_color.g * color, self.base_color.b * color, 1.0);
         [color; 4]
     }
+}
+
+pub fn get_colored_vertices_from_triangle(points: &[na::Vector3<f32>; 3], coloring: &Box<TriangleColoring>) -> Vec<f32> {
+    let colors = coloring.get_colors(&points);
+
+    vec![
+        points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b,
+        points[1].x, points[1].y, points[1].z, colors[1].r, colors[1].g, colors[1].b,
+        points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b,
+    ]
 }
 
 pub fn get_colored_vertices_from_square(points: &[na::Vector3<f32>; 4], coloring: &Box<SquareColoring>) -> Vec<f32> {
