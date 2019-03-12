@@ -191,9 +191,9 @@ impl EventHandler for TerrainHandler {
                     let coloring = Box::new(AngleSquareColoring::new(Color::new(0.0, 1.0, 0.0, 1.0), na::Vector3::new(1.0, 0.0, 1.0)));
                     vec![
                         Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, 6.0))},
-                        Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::from_heights(&self.heights, coloring))},
-                        Command::Draw{name: "terrain_grid".to_string(), drawing: Box::new(TerrainGridDrawing::from_heights(&self.heights))},
-                        Command::Draw{name: "rivers".to_string(), drawing: Box::new(RiversDrawing::new(&self.rivers, &self.heights))},
+                        Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::new(&self.heights, &self.rivers, coloring))},
+                        // Command::Draw{name: "terrain_grid".to_string(), drawing: Box::new(TerrainGridDrawing::from_heights(&self.heights))},
+                        //Command::Draw{name: "rivers".to_string(), drawing: Box::new(RiversDrawing::new(&self.rivers, &self.heights))},
                     ]
                 },
                 _ => vec![],

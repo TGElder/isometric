@@ -4,13 +4,17 @@ use super::super::vertex_objects::{VBO, ColoredVertex};
 use super::utils::*;
 
 pub struct River {
-    from: na::Vector2<usize>,
-    to: na::Vector2<usize>,
+    pub from: na::Vector2<usize>,
+    pub to: na::Vector2<usize>,
 }
 
 impl River {
-    pub fn new(from: na::Vector2<usize>, to: na::Vector2<usize>) -> River {
-        River{from, to}
+    pub fn new(at: na::Vector2<usize>, to: na::Vector2<usize>) -> River {
+        if to.x - from.x + to.y - from.y > 0 {
+            River{from, to}
+        } else {
+            River{to, from}
+        }
     }
 }
 
