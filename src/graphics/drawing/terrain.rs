@@ -1,6 +1,7 @@
 use super::super::engine::Drawing;
 use super::super::vertex_objects::{VBO, Vertex, ColoredVertex};
 use super::utils::{SquareColoring, get_colored_vertices_from_square};
+use super::rivers::River;
 use std::f32;
 
 #[derive(Clone)]
@@ -36,7 +37,7 @@ impl Drawing for TerrainDrawing {
 }
 
 impl TerrainDrawing {
-    pub fn new(heights: &na::DMatrix<f32>, rivers: &Vec<na::Vector2<usize>>, coloring: Box<SquareColoring>) -> TerrainDrawing {
+    pub fn new(heights: &na::DMatrix<f32>, rivers: &Vec<River>, coloring: Box<SquareColoring>) -> TerrainDrawing {
         let mut out = TerrainDrawing{
             terrain_triangles: VBO::new(gl::TRIANGLES),
         };
@@ -44,21 +45,21 @@ impl TerrainDrawing {
         out
     }
 
-    fn get_vertices(heights: &na::DMatrix<f32>, rivers: &Vec<na::Vector2<usize>>, coloring: Box<SquareColoring>) -> Vec<f32> {
+    fn get_vertices(heights: &na::DMatrix<f32>, rivers: &Vec<River>, coloring: Box<SquareColoring>) -> Vec<f32> {
         let width = heights.shape().0;
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
 
-        let offsets = TerrainDrawing::get_offsets(heights, rivers);
+        let (offsets_x, offsets_y) = TerrainDrawing::get_offsets(heights, rivers);
 
         for y in 0..(height - 1) {
             for x in 0..(width - 1) {
 
                 let points = [
-                    na::Vector3::new(x as f32 + offsets[(x, y)].min(offsets[(x, y + 1)]), y as f32 + offsets[(x, y)].min(offsets[(x + 1, y)]), heights[(x, y)]),
-                    na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y)].min(offsets[(x + 1, y + 1)]), y as f32 + offsets[(x + 1, y)].min(offsets[(x, y)]), heights[(x + 1, y)]),
-                    na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y + 1)].min(offsets[(x + 1, y)]), (y + 1) as f32 - offsets[(x + 1, y + 1)].min(offsets[(x, y + 1)]), heights[(x + 1, y + 1)]),
-                    na::Vector3::new(x as f32 + offsets[(x, y + 1)].min(offsets[(x, y)]), (y + 1) as f32 - offsets[(x, y + 1)].min(offsets[(x + 1, y + 1)]), heights[(x, y + 1)]),
+                    na::Vector3::new(x as f32 + offsets_x[(x, y)], y as f32 + offsets_y[(x, y)], heights[(x, y)]),
+                    na::Vector3::new((x + 1) as f32 - offsets_x[(x + 1, y)], y as f32 + offsets_y[(x + 1, y)], heights[(x + 1, y)]),
+                    na::Vector3::new((x + 1) as f32 - offsets_x[(x + 1, y + 1)], (y + 1) as f32 - offsets_y[(x + 1, y + 1)], heights[(x + 1, y + 1)]),
+                    na::Vector3::new(x as f32 + offsets_x[(x, y + 1)], (y + 1) as f32 - offsets_y[(x, y + 1)], heights[(x, y + 1)]),
                 ];
 
                 triangle_vertices.extend(get_colored_vertices_from_square(&points, &coloring));
@@ -68,17 +69,25 @@ impl TerrainDrawing {
         triangle_vertices
     }
 
-    fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<na::Vector2<usize>>) -> na::DMatrix<f32> {
+    fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> (na::DMatrix<f32>, na::DMatrix<f32>) {
         let width = heights.shape().0;
         let height = heights.shape().1;
 
-        let mut out = na::DMatrix::zeros(width, height);
+        let mut offsets_x = na::DMatrix::zeros(width, height);
+        let mut offsets_y = na::DMatrix::zeros(width, height);
 
         for river in rivers {
-            out[(river.x, river.y)] = 0.25
+            if river.from.y == river.to.y {
+                offsets_y[(river.from.x, river.from.y)] = 0.25;
+                offsets_y[(river.to.x, river.to.y)] = 0.25;
+            } else {
+                offsets_x[(river.from.x, river.from.y)] = 0.25;
+                offsets_x[(river.to.x, river.to.y)] = 0.25;
+            }
+            
         }
 
-        out
+        (offsets_x, offsets_y)
         
     }
 

@@ -19,6 +19,7 @@ use ::graphics::coords::*;
 use ::graphics::drawing::utils::AngleSquareColoring;
 use ::graphics::drawing::terrain::{TerrainDrawing, TerrainGridDrawing};
 use ::graphics::drawing::sea::SeaDrawing;
+use ::graphics::drawing::rivers::*;
 
 use self::glutin::GlContext;
 
@@ -57,7 +58,7 @@ pub struct IsometricEngine {
 impl IsometricEngine {
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
 
-    pub fn new(title: &str, width: u32, height: u32, max_z: f32, heights: na::DMatrix<f32>, rivers: Vec<na::Vector2<usize>>) -> IsometricEngine {
+    pub fn new(title: &str, width: u32, height: u32, max_z: f32, heights: na::DMatrix<f32>, rivers: Vec<River>) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title(title)
@@ -85,7 +86,7 @@ impl IsometricEngine {
         }
     }
 
-    fn init_event_handlers(window: &glutin::GlWindow, heights: na::DMatrix<f32>, rivers: Vec<na::Vector2<usize>>) -> Vec<Box<EventHandler>> {
+    fn init_event_handlers(window: &glutin::GlWindow, heights: na::DMatrix<f32>, rivers: Vec<River>) -> Vec<Box<EventHandler>> {
         let dpi_factor = window.get_hidpi_factor();
         let logical_window_size = window.window().get_inner_size().unwrap();
        
@@ -169,11 +170,11 @@ impl IsometricEngine {
 
 pub struct TerrainHandler {
     heights: na::DMatrix<f32>,
-    rivers: Vec<na::Vector2<usize>>,
+    rivers: Vec<River>,
 }
 
 impl TerrainHandler {
-    fn new(heights: na::DMatrix<f32>, rivers: Vec<na::Vector2<usize>>) -> TerrainHandler {
+    fn new(heights: na::DMatrix<f32>, rivers: Vec<River>) -> TerrainHandler {
         TerrainHandler{
             heights,
             rivers,
