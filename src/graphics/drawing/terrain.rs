@@ -36,7 +36,7 @@ impl Drawing for TerrainDrawing {
 }
 
 impl TerrainDrawing {
-    pub fn new(heights: &na::DMatrix<f32>, rivers: &Vec<River>, coloring: Box<SquareColoring>) -> TerrainDrawing {
+    pub fn new(heights: &na::DMatrix<f32>, rivers: &Vec<na::Vector2<usize>>, coloring: Box<SquareColoring>) -> TerrainDrawing {
         let mut out = TerrainDrawing{
             terrain_triangles: VBO::new(gl::TRIANGLES),
         };
@@ -44,7 +44,7 @@ impl TerrainDrawing {
         out
     }
 
-    fn get_vertices(heights: &na::DMatrix<f32>, rivers: &Vec<River>, coloring: Box<SquareColoring>) -> Vec<f32> {
+    fn get_vertices(heights: &na::DMatrix<f32>, rivers: &Vec<na::Vector2<usize>>, coloring: Box<SquareColoring>) -> Vec<f32> {
         let width = heights.shape().0;
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
@@ -54,76 +54,32 @@ impl TerrainDrawing {
         for y in 0..(height - 1) {
             for x in 0..(width - 1) {
 
-                let offsets = &offsets[x][y];
-                let x_low = x as f32 + offsets.x_low;
-                let x_high = x as f32 + 1.0 - offsets.x_high;
-                let y_low = y as f32 + offsets.y_low;
-                let y_high = y as f32 + 1.0 - offsets.y_high;
-
                 let points = [
-                    na::Vector3::new(x_low, y_low, heights[(x, y)]),
-                    na::Vector3::new(x_high, y_low, heights[(x + 1, y)]),
-                    na::Vector3::new(x_high, y_high, heights[(x + 1, y + 1)]),
-                    na::Vector3::new(x_low, y_high, heights[(x, y + 1)])
+                    na::Vector3::new(x as f32 + offsets[(x, y)].min(offsets[(x, y + 1)]), y as f32 + offsets[(x, y)].min(offsets[(x + 1, y)]), heights[(x, y)]),
+                    na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y)].min(offsets[(x + 1, y + 1)]), y as f32 + offsets[(x + 1, y)].min(offsets[(x, y)]), heights[(x + 1, y)]),
+                    na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y + 1)].min(offsets[(x + 1, y)]), (y + 1) as f32 - offsets[(x + 1, y + 1)].min(offsets[(x, y + 1)]), heights[(x + 1, y + 1)]),
+                    na::Vector3::new(x as f32 + offsets[(x, y + 1)].min(offsets[(x, y)]), (y + 1) as f32 - offsets[(x, y + 1)].min(offsets[(x + 1, y + 1)]), heights[(x, y + 1)]),
                 ];
 
                 triangle_vertices.extend(get_colored_vertices_from_square(&points, &coloring));
 
-                if (!offsets.are_all_zero()) {
-
-                }
             }
         }
         triangle_vertices
     }
 
-    fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> Vec<Vec<Offsets>> {
+    fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<na::Vector2<usize>>) -> na::DMatrix<f32> {
         let width = heights.shape().0;
         let height = heights.shape().1;
-        let mut offsets = vec![vec![Offsets::all_zero(); width]; height];
 
-        let get_x_high = |river: &River| -> Option<(usize, usize)> {
-            if river.from.x == river.to.x && river.from.x > 0 {
-                Some((river.to.x - 1, river.to.y))
-            } else {
-                None
-            }
-        };
-
-        let get_x_low = |river: &River| -> Option<(usize, usize)> {
-            if river.from.x == river.to.x && river.from.x < width - 1 {
-                Some((river.to.x, river.to.y))
-            } else {
-                None
-            }
-        };
-
-        let get_y_high = |river: &River| -> Option<(usize, usize)> {
-            if river.from.y == river.to.y && river.from.y > 0 {
-                Some((river.to.x, river.to.y - 1))
-            } else {
-                None
-            }
-        };
-
-        let get_y_low = |river: &River| -> Option<(usize, usize)> {
-            if river.from.y == river.to.y && river.from.x < height - 1 {
-                Some((river.to.x, river.to.y))
-            } else {
-                None
-            }
-        };
-
-        let offset = 0.25;
+        let mut out = na::DMatrix::zeros(width, height);
 
         for river in rivers {
-            get_x_high(&river).iter().for_each(|p| offsets[p.0][p.1].x_high = offset);
-            get_x_low(&river).iter().for_each(|p| offsets[p.0][p.1].x_low = offset);
-            get_y_high(&river).iter().for_each(|p| offsets[p.0][p.1].y_high = offset);
-            get_y_low(&river).iter().for_each(|p| offsets[p.0][p.1].y_low = offset);
+            out[(river.x, river.y)] = 0.25
         }
 
-        offsets
+        out
+        
     }
 
     
