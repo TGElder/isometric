@@ -3,6 +3,7 @@ use super::super::engine::{Color, Drawing};
 use super::super::vertex_objects::{VBO, ColoredVertex};
 use super::utils::*;
 
+#[derive(Debug)]
 pub struct River {
     pub from: na::Vector2<usize>,
     pub to: na::Vector2<usize>,
@@ -10,10 +11,11 @@ pub struct River {
 
 impl River {
     pub fn new(from: na::Vector2<usize>, to: na::Vector2<usize>) -> River {
-        if to.x - from.x + to.y - from.y > 0 {
+        if (to.x > from.x) || (to.y > from.y) {
+            assert!(to.x > from.x || to.y > from.y);
             River{from, to}
         } else {
-            River{to, from}
+            River{from: to, to: from}
         }
     }
 }

@@ -17,7 +17,7 @@ use ::graphics::engine::{Color, Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
 use ::graphics::drawing::utils::AngleSquareColoring;
-use ::graphics::drawing::terrain::{TerrainDrawing, TerrainGridDrawing};
+use ::graphics::drawing::terrain::{TerrainDrawing, TerrainGridDrawing, RiverDebugDrawing};
 use ::graphics::drawing::sea::SeaDrawing;
 use ::graphics::drawing::rivers::*;
 
@@ -192,6 +192,7 @@ impl EventHandler for TerrainHandler {
                     vec![
                         Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, 6.0))},
                         Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::new(&self.heights, &self.rivers, coloring))},
+                        // Command::Draw{name: "river_debug".to_string(), drawing: Box::new(RiverDebugDrawing::new(&self.heights, &self.rivers))},
                         // Command::Draw{name: "terrain_grid".to_string(), drawing: Box::new(TerrainGridDrawing::from_heights(&self.heights))},
                         //Command::Draw{name: "rivers".to_string(), drawing: Box::new(RiversDrawing::new(&self.rivers, &self.heights))},
                     ]

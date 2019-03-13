@@ -6,19 +6,34 @@ use std::f32;
 
 #[derive(Clone)]
 struct Offsets {
-    x_low: f32,
-    x_high: f32,
-    y_low: f32,
-    y_high: f32,
+    up_right: na::Vector2<f32>,
+    down_right: na::Vector2<f32>,
+    down_left: na::Vector2<f32>,
+    up_left: na::Vector2<f32>,
 }
 
 impl Offsets {
     fn all_zero() -> Offsets {
-        Offsets{x_low: 0.0, x_high: 0.0, y_low: 0.0, y_high: 0.0}
+        Offsets{
+            up_right: na::Vector2::new(0.0, 0.0),
+            down_right: na::Vector2::new(0.0, 0.0),
+            down_left: na::Vector2::new(0.0, 0.0),
+            up_left: na::Vector2::new(0.0, 0.0),
+        }
     }
+}
 
-    fn are_all_zero(&self) -> bool {
-        self.x_low == 0.0 && self.x_high == 0.0 && self.y_low == 0.0 && self.y_high == 0.0
+#[derive(Clone, Debug)]
+struct RiverCompass {
+    up: bool,
+    right: bool,
+    down: bool,
+    left: bool,
+}
+
+impl RiverCompass {
+    fn all_false() -> RiverCompass {
+        RiverCompass{up: false, right: false, down: false, left: false}
     }
 }
 
@@ -50,16 +65,16 @@ impl TerrainDrawing {
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
 
-        let (offsets_x, offsets_y) = TerrainDrawing::get_offsets(heights, rivers);
+        let offsets = TerrainDrawing::get_offsets(heights, rivers);
 
         for y in 0..(height - 1) {
             for x in 0..(width - 1) {
 
                 let points = [
-                    na::Vector3::new(x as f32 + offsets_x[(x, y)], y as f32 + offsets_y[(x, y)], heights[(x, y)]),
-                    na::Vector3::new((x + 1) as f32 - offsets_x[(x + 1, y)], y as f32 + offsets_y[(x + 1, y)], heights[(x + 1, y)]),
-                    na::Vector3::new((x + 1) as f32 - offsets_x[(x + 1, y + 1)], (y + 1) as f32 - offsets_y[(x + 1, y + 1)], heights[(x + 1, y + 1)]),
-                    na::Vector3::new(x as f32 + offsets_x[(x, y + 1)], (y + 1) as f32 - offsets_y[(x, y + 1)], heights[(x, y + 1)]),
+                    na::Vector3::new(x as f32 + offsets[x][y].up_right.x, y as f32 + offsets[x][y].up_right.y, heights[(x, y)]),
+                    na::Vector3::new((x + 1) as f32 + offsets[x + 1][y].up_left.x, y as f32 + offsets[x + 1][y].up_left.y, heights[(x + 1, y)]),
+                    na::Vector3::new((x + 1) as f32 + offsets[x + 1][y + 1].down_left.x, (y + 1) as f32 + offsets[x + 1][y + 1].down_left.y, heights[(x + 1, y + 1)]),
+                    na::Vector3::new(x as f32 + offsets[x][y + 1].down_right.x, (y + 1) as f32 + offsets[x][y + 1].down_right.y, heights[(x, y + 1)]),
                 ];
 
                 triangle_vertices.extend(get_colored_vertices_from_square(&points, &coloring));
@@ -69,26 +84,66 @@ impl TerrainDrawing {
         triangle_vertices
     }
 
-    fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> (na::DMatrix<f32>, na::DMatrix<f32>) {
+    fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> Vec<Vec<Offsets>> {
         let width = heights.shape().0;
         let height = heights.shape().1;
 
-        let mut offsets_x = na::DMatrix::zeros(width, height);
-        let mut offsets_y = na::DMatrix::zeros(width, height);
+        let mut compasses = vec![vec![RiverCompass::all_false(); width]; height];
+        let mut offsets = vec![vec![Offsets::all_zero(); width]; height];
 
         for river in rivers {
-            if river.from.y == river.to.y {
-                offsets_y[(river.from.x, river.from.y)] = 0.25;
-                offsets_y[(river.to.x, river.to.y)] = 0.25;
+            if river.from.x == river.to.x {
+                compasses[river.from.x][river.from.y].up = true;
+                compasses[river.to.x][river.to.y].down = true;
             } else {
-                offsets_x[(river.from.x, river.from.y)] = 0.25;
-                offsets_x[(river.to.x, river.to.y)] = 0.25;
+                compasses[river.from.x][river.from.y].right = true;
+                compasses[river.to.x][river.to.y].left = true;
             }
-            
         }
 
-        (offsets_x, offsets_y)
-        
+        let straight = 0.2;
+        let diagonal = 0.28;
+
+        for x in 0..width {
+            for y in 0..height {
+                let compass = &compasses[x][y];
+    
+                if compass.up && compass.right {
+                    offsets[x][y].up_right = na::Vector2::new(diagonal, diagonal);
+                } else if compass.up && compass.down {
+                    offsets[x][y].up_right = na::Vector2::new(straight, 0.0);
+                } else if compass.left && compass.right {
+                    offsets[x][y].up_right = na::Vector2::new(0.0, straight);
+                };
+
+                if compass.down && compass.right {
+                    offsets[x][y].down_right = na::Vector2::new(diagonal, -diagonal);
+                } else if compass.up && compass.down {
+                    offsets[x][y].down_right = na::Vector2::new(straight, 0.0);
+                } else if compass.left && compass.right {
+                    offsets[x][y].down_right = na::Vector2::new(0.0, -straight);
+                };
+
+                if compass.down && compass.left {
+                    offsets[x][y].down_left = na::Vector2::new(-diagonal, -diagonal);
+                } else if compass.up && compass.down {
+                    offsets[x][y].down_left  = na::Vector2::new(-straight, 0.0);
+                } else if compass.left && compass.right {
+                    offsets[x][y].down_left = na::Vector2::new(0.0, -straight);
+                };
+
+                if compass.up && compass.left {
+                    offsets[x][y].up_left = na::Vector2::new(-diagonal, diagonal);
+                } else if compass.up && compass.down {
+                    offsets[x][y].up_left = na::Vector2::new(-straight, 0.0);
+                } else if compass.left && compass.right {
+                    offsets[x][y].up_left = na::Vector2::new(0.0, straight);
+                };
+            }
+        }
+
+        offsets
+    
     }
 
     
@@ -147,6 +202,42 @@ impl TerrainGridDrawing {
             }
         }
         line_vertices
+    }
+}
+
+
+pub struct RiverDebugDrawing {
+    terrain_lines: VBO<Vertex>,
+}
+
+impl Drawing for RiverDebugDrawing {
+    fn draw(&self) {
+        self.terrain_lines.draw();
+    }
+
+    fn get_z_mod(&self) -> f32 {
+        -0.0002
+    }
+}
+
+impl RiverDebugDrawing {
+    pub fn new(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> TerrainGridDrawing {
+        let mut out = TerrainGridDrawing{
+            terrain_lines: VBO::new(gl::LINES),
+        };
+
+        let mut line_vertices: Vec<f32> = vec![];
+
+        for river in rivers {
+            line_vertices.append(&mut vec![
+                river.from.x as f32, river.from.y as f32, heights[(river.from.x, river.from.y)],
+                river.to.x as f32, river.to.y as f32, heights[(river.to.x, river.to.y)],
+            ]);
+            
+        }
+
+        out.terrain_lines.load(line_vertices);
+        out
     }
 }
 
