@@ -3,7 +3,7 @@ use super::super::vertex_objects::{VBO, Vertex, ColoredVertex};
 use super::utils::{SquareColoring, get_colored_vertices_from_square};
 use std::f32;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct River {
     from: na::Vector2<usize>,
     to: na::Vector2<usize>,
