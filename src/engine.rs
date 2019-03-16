@@ -171,6 +171,7 @@ pub struct TerrainHandler {
     heights: na::DMatrix<f32>,
     rivers: Vec<River>,
     sea_level: f32,
+    world_coord: Option<WorldCoord>,
 }
 
 impl TerrainHandler {
@@ -179,25 +180,68 @@ impl TerrainHandler {
             heights,
             rivers,
             sea_level,
+            world_coord: None
         }
     }
 }
 
+impl TerrainHandler {
+    fn draw_terrain(&self) -> Command {
+        let coloring = Box::new(AngleSquareColoring::new(Color::new(0.0, 1.0, 0.0, 1.0), na::Vector3::new(1.0, 0.0, 1.0)));
+        Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::new(&self.heights, &self.rivers, coloring))}
+    }
+}
+
 impl EventHandler for TerrainHandler {
+
     fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
         let mut out = vec![];
         out.append(
             &mut match *event {
                 Event::Start => {
-                    let coloring = Box::new(AngleSquareColoring::new(Color::new(0.0, 1.0, 0.0, 1.0), na::Vector3::new(1.0, 0.0, 1.0)));
                     vec![
                         Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, self.sea_level))},
-                        Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::new(&self.heights, &self.rivers, coloring))},
+                        self.draw_terrain(),
                         //Command::Draw{name: "river_debug".to_string(), drawing: Box::new(RiverDebugDrawing::new(&self.heights, &self.rivers))},
                         // Command::Draw{name: "terrain_grid".to_string(), drawing: Box::new(TerrainGridDrawing::from_heights(&self.heights))},
                         //Command::Draw{name: "rivers".to_string(), drawing: Box::new(RiversDrawing::new(&self.rivers, &self.heights))},
                     ]
                 },
+                Event::WorldPositionChanged(world_coord) => {self.world_coord = Some(world_coord); vec![]},
+                Event::GlutinEvent(
+                    glutin::Event::WindowEvent{
+                        event: glutin::WindowEvent::KeyboardInput{
+                            input: glutin::KeyboardInput{
+                                virtual_keycode: Some(glutin::VirtualKeyCode::R), 
+                                state: glutin::ElementState::Pressed,
+                                ..
+                            },
+                        ..
+                        },
+                    ..
+                    }
+                ) => {
+                    if let Some(world_coord) = self.world_coord {
+                        let cell_x = world_coord.x.floor();
+                        let cell_y = world_coord.y.floor();
+                        let distance_to_left = world_coord.x - cell_x;
+                        let distance_to_right = (cell_x + 1.0) - world_coord.x;
+                        let distance_to_bottom = world_coord.y - cell_y;
+                        let distance_to_top = (cell_y + 1.0) - world_coord.y; 
+                        let min = distance_to_left.min(distance_to_right).min(distance_to_top).min(distance_to_bottom);
+                        let (from, to) = match min {
+                            d if d == distance_to_left => (na::Vector2::new(cell_x as usize, cell_y as usize + 1), na::Vector2::new(cell_x as usize, cell_y as usize)),
+                            d if d == distance_to_right => (na::Vector2::new(cell_x as usize + 1, cell_y as usize + 1), na::Vector2::new(cell_x as usize + 1, cell_y as usize)),
+                            d if d == distance_to_bottom => (na::Vector2::new(cell_x as usize + 1, cell_y as usize), na::Vector2::new(cell_x as usize, cell_y as usize)),
+                            d if d == distance_to_top => (na::Vector2::new(cell_x as usize + 1, cell_y as usize + 1), na::Vector2::new(cell_x as usize, cell_y as usize + 1)),
+                            _ => panic!("Should not happen: minimum of four values does not match any of those values"),
+                        };
+                        self.rivers.push(River::new(from, to, 0.2));
+                        vec![self.draw_terrain()]
+                    } else {
+                        vec![]
+                    }
+                }
                 _ => vec![],
             }
         );
@@ -205,4 +249,5 @@ impl EventHandler for TerrainHandler {
         out.append(&mut selected_cell.handle_event(event.clone()));
         out
     }
+
 }

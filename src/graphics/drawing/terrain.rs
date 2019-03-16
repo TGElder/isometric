@@ -70,6 +70,7 @@ impl Drawing for TerrainDrawing {
 
 impl TerrainDrawing {
     pub fn new(heights: &na::DMatrix<f32>, rivers: &Vec<River>, coloring: Box<SquareColoring>) -> TerrainDrawing {
+        println!("Reticulating splines");
         let mut out = TerrainDrawing{
             terrain_triangles: VBO::new(gl::TRIANGLES),
         };
