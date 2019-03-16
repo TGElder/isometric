@@ -68,9 +68,88 @@ impl Drawing for TerrainDrawing {
     }
 }
 
+fn get_river_compasses(width: usize, height: usize, rivers: &Vec<River>) -> na::DMatrix<RiverCompass> {
+    let mut compasses = na::DMatrix::from_element(width, height, RiverCompass::all_zero());
+
+    for river in rivers {
+        if river.from.x == river.to.x {
+            compasses[(river.from.x, river.from.y)].up = river.width;
+            compasses[(river.to.x, river.to.y)].down = river.width;
+        } else {
+            compasses[(river.from.x, river.from.y)].right = river.width;
+            compasses[(river.to.x, river.to.y)].left = river.width;
+        }
+    }
+
+    compasses
+}
+
+fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> na::DMatrix<Offsets> {
+    let width = heights.shape().0;
+    let height = heights.shape().1;
+
+    let compasses = get_river_compasses(width, height, rivers);
+    let mut offsets = na::DMatrix::from_element(width, height, Offsets::all_zero());
+    
+    let diagonal_mod = (2.0 as f32).sqrt();
+
+    for x in 0..width {
+        for y in 0..height {
+            let compass = &compasses[(x, y)];
+            let offsets = &mut offsets[(x, y)];
+
+            if compass.up > 0.0 && compass.right > 0.0 {
+                let diagonal = (( (compass.up + compass.right) / 2.0) * diagonal_mod).min(0.5);
+                offsets.up_right = na::Vector2::new(diagonal, diagonal);
+            } else if compass.up > 0.0 && compass.down > 0.0 {
+                offsets.up_right = na::Vector2::new((compass.up + compass.down) / 2.0, 0.0);
+            } else if compass.left > 0.0 && compass.right > 0.0 {
+                offsets.up_right = na::Vector2::new(0.0, (compass.left + compass.right) / 2.0);
+            };
+
+            if compass.down > 0.0 && compass.right > 0.0 {
+                let diagonal = (( (compass.down + compass.right) / 2.0) * diagonal_mod).min(0.5);
+                offsets.down_right = na::Vector2::new(diagonal, -diagonal);
+            } else if compass.up > 0.0 && compass.down > 0.0 {
+                offsets.down_right = na::Vector2::new((compass.up + compass.down) / 2.0, 0.0);
+            } else if compass.left > 0.0 && compass.right > 0.0 {
+                offsets.down_right = na::Vector2::new(0.0, -(compass.left + compass.right) / 2.0);
+            };
+
+            if compass.down > 0.0 && compass.left > 0.0 {
+                let diagonal = (( (compass.down + compass.left) / 2.0) * diagonal_mod).min(0.5);
+                offsets.down_left = na::Vector2::new(-diagonal, -diagonal);
+            } else if compass.up > 0.0 && compass.down > 0.0 {
+                offsets.down_left  = na::Vector2::new(-(compass.up + compass.down) / 2.0, 0.0);
+            } else if compass.left > 0.0 && compass.right > 0.0 {
+                offsets.down_left = na::Vector2::new(0.0, -(compass.left + compass.right) / 2.0);
+            };
+
+            if compass.up > 0.0 && compass.left > 0.0 {
+                let diagonal = (( (compass.up + compass.left) / 2.0) * diagonal_mod).min(0.5);
+                offsets.up_left = na::Vector2::new(-diagonal, diagonal);
+            } else if compass.up > 0.0 && compass.down > 0.0 {
+                offsets.up_left = na::Vector2::new(-(compass.up + compass.down) / 2.0, 0.0);
+            } else if compass.left > 0.0 && compass.right > 0.0 {
+                offsets.up_left = na::Vector2::new(0.0, (compass.left + compass.right) / 2.0);
+            };
+        }
+    }
+
+    offsets
+}
+
+fn get_points(x: usize, y: usize, heights: &na::DMatrix<f32>, offsets: &na::DMatrix<Offsets>) -> [na::Vector3<f32>; 4] {
+    [
+        na::Vector3::new(x as f32 + offsets[(x, y)].up_right.x, y as f32 + offsets[(x, y)].up_right.y, heights[(x, y)]),
+        na::Vector3::new((x + 1) as f32 + offsets[(x + 1, y)].up_left.x, y as f32 + offsets[(x + 1, y)].up_left.y, heights[(x + 1, y)]),
+        na::Vector3::new((x + 1) as f32 + offsets[(x + 1, y + 1)].down_left.x, (y + 1) as f32 + offsets[(x + 1, y + 1)].down_left.y, heights[(x + 1, y + 1)]),
+        na::Vector3::new(x as f32 + offsets[(x, y + 1)].down_right.x, (y + 1) as f32 + offsets[(x, y + 1)].down_right.y, heights[(x, y + 1)]),
+    ]
+}
+
 impl TerrainDrawing {
     pub fn new(heights: &na::DMatrix<f32>, rivers: &Vec<River>, coloring: Box<SquareColoring>) -> TerrainDrawing {
-        println!("Reticulating splines");
         let mut out = TerrainDrawing{
             terrain_triangles: VBO::new(gl::TRIANGLES),
         };
@@ -83,93 +162,16 @@ impl TerrainDrawing {
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
 
-        let offsets = TerrainDrawing::get_offsets(heights, rivers);
+        let offsets = get_offsets(heights, rivers);
 
         for y in 0..(height - 1) {
             for x in 0..(width - 1) {
-
-                let points = [
-                    na::Vector3::new(x as f32 + offsets[(x, y)].up_right.x, y as f32 + offsets[(x, y)].up_right.y, heights[(x, y)]),
-                    na::Vector3::new((x + 1) as f32 + offsets[(x + 1, y)].up_left.x, y as f32 + offsets[(x + 1, y)].up_left.y, heights[(x + 1, y)]),
-                    na::Vector3::new((x + 1) as f32 + offsets[(x + 1, y + 1)].down_left.x, (y + 1) as f32 + offsets[(x + 1, y + 1)].down_left.y, heights[(x + 1, y + 1)]),
-                    na::Vector3::new(x as f32 + offsets[(x, y + 1)].down_right.x, (y + 1) as f32 + offsets[(x, y + 1)].down_right.y, heights[(x, y + 1)]),
-                ];
-
+                let points = get_points(x, y, &heights, &offsets);
                 triangle_vertices.extend(get_colored_vertices_from_square(&points, &coloring));
-
             }
         }
         triangle_vertices
     }
-
-    fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> na::DMatrix<Offsets> {
-        let width = heights.shape().0;
-        let height = heights.shape().1;
-
-        let mut compasses = na::DMatrix::from_element(width, height, RiverCompass::all_zero());
-        let mut offsets = na::DMatrix::from_element(width, height, Offsets::all_zero());
-        
-        for river in rivers {
-            if river.from.x == river.to.x {
-                compasses[(river.from.x, river.from.y)].up = river.width;
-                compasses[(river.to.x, river.to.y)].down = river.width;
-            } else {
-                compasses[(river.from.x, river.from.y)].right = river.width;
-                compasses[(river.to.x, river.to.y)].left = river.width;
-            }
-        }
-
-        let diagonal_mod = (2.0 as f32).sqrt();
-
-        for x in 0..width {
-            for y in 0..height {
-                let compass = &compasses[(x, y)];
-                let offsets = &mut offsets[(x, y)];
-    
-                if compass.up > 0.0 && compass.right > 0.0 {
-                    let diagonal = (( (compass.up + compass.right) / 2.0) * diagonal_mod).min(0.5);
-                    offsets.up_right = na::Vector2::new(diagonal, diagonal);
-                } else if compass.up > 0.0 && compass.down > 0.0 {
-                    offsets.up_right = na::Vector2::new((compass.up + compass.down) / 2.0, 0.0);
-                } else if compass.left > 0.0 && compass.right > 0.0 {
-                    offsets.up_right = na::Vector2::new(0.0, (compass.left + compass.right) / 2.0);
-                };
-
-                if compass.down > 0.0 && compass.right > 0.0 {
-                    let diagonal = (( (compass.down + compass.right) / 2.0) * diagonal_mod).min(0.5);
-                    offsets.down_right = na::Vector2::new(diagonal, -diagonal);
-                } else if compass.up > 0.0 && compass.down > 0.0 {
-                    offsets.down_right = na::Vector2::new((compass.up + compass.down) / 2.0, 0.0);
-                } else if compass.left > 0.0 && compass.right > 0.0 {
-                    offsets.down_right = na::Vector2::new(0.0, -(compass.left + compass.right) / 2.0);
-                };
-
-                if compass.down > 0.0 && compass.left > 0.0 {
-                    let diagonal = (( (compass.down + compass.left) / 2.0) * diagonal_mod).min(0.5);
-                    offsets.down_left = na::Vector2::new(-diagonal, -diagonal);
-                } else if compass.up > 0.0 && compass.down > 0.0 {
-                    offsets.down_left  = na::Vector2::new(-(compass.up + compass.down) / 2.0, 0.0);
-                } else if compass.left > 0.0 && compass.right > 0.0 {
-                    offsets.down_left = na::Vector2::new(0.0, -(compass.left + compass.right) / 2.0);
-                };
-
-                if compass.up > 0.0 && compass.left > 0.0 {
-                    let diagonal = (( (compass.up + compass.left) / 2.0) * diagonal_mod).min(0.5);
-                    offsets.up_left = na::Vector2::new(-diagonal, diagonal);
-                } else if compass.up > 0.0 && compass.down > 0.0 {
-                    offsets.up_left = na::Vector2::new(-(compass.up + compass.down) / 2.0, 0.0);
-                } else if compass.left > 0.0 && compass.right > 0.0 {
-                    offsets.up_left = na::Vector2::new(0.0, (compass.left + compass.right) / 2.0);
-                };
-            }
-        }
-
-        offsets
-    
-    }
-
-    
-
 }
 
 pub struct TerrainGridDrawing {
@@ -268,6 +270,23 @@ mod tests {
 
     use super::*;
     use super::super::utils::AltitudeSquareColoring;
+
+    #[test]
+    fn test_get_river_compasses() {
+        let rivers = vec![
+            River::new(na::Vector2::new(1, 0), na::Vector2::new(1, 1), 1.0),
+            River::new(na::Vector2::new(0, 1), na::Vector2::new(1, 1), 2.0),
+            River::new(na::Vector2::new(1, 1), na::Vector2::new(1, 2), 3.0),
+            River::new(na::Vector2::new(1, 1), na::Vector2::new(2, 1), 4.0),
+        ];
+        let compasses = get_river_compasses(3, 3, &rivers);
+        assert_eq!(compasses[(0, 0)], RiverCompass{up: 0.0, down: 0.0, right: 0.0, left: 0.0});
+        assert_eq!(compasses[(1, 0)], RiverCompass{up: 1.0, down: 0.0, right: 0.0, left: 0.0});
+        assert_eq!(compasses[(0, 1)], RiverCompass{up: 0.0, down: 0.0, right: 2.0, left: 0.0});
+        assert_eq!(compasses[(1, 1)], RiverCompass{up: 3.0, down: 1.0, right: 4.0, left: 2.0});
+        assert_eq!(compasses[(1, 2)], RiverCompass{up: 0.0, down: 3.0, right: 0.0, left: 0.0});
+        assert_eq!(compasses[(2, 1)], RiverCompass{up: 0.0, down: 0.0, right: 0.0, left: 4.0});
+    }
 
     #[test]   
     fn test_terrain_drawing_get_vertices() {
