@@ -7,50 +7,47 @@ use std::f32;
 pub struct River {
     from: na::Vector2<usize>,
     to: na::Vector2<usize>,
-    width: f32,
+    from_width: f32,
+    to_width: f32,
 }
 
 impl River {
-    pub fn new(from: na::Vector2<usize>, to: na::Vector2<usize>, width: f32) -> River {
-        if (to.x > from.x) || (to.y > from.y) {
-            assert!(to.x > from.x || to.y > from.y);
-            River{from, to, width}
-        } else {
-            River{from: to, to: from, width}
-        }
+    pub fn new(from: na::Vector2<usize>, to: na::Vector2<usize>, from_width: f32, to_width: f32) -> River {
+        River{from, to, from_width, to_width}
     }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 struct Offsets {
-    up_right: na::Vector2<f32>,
-    down_right: na::Vector2<f32>,
-    down_left: na::Vector2<f32>,
-    up_left: na::Vector2<f32>,
+    right_up: na::Vector2<f32>,
+    right_down: na::Vector2<f32>,
+    left_down: na::Vector2<f32>,
+    left_up: na::Vector2<f32>,
 }
 
 impl Offsets {
     fn all_zero() -> Offsets {
         Offsets{
-            up_right: na::Vector2::new(0.0, 0.0),
-            down_right: na::Vector2::new(0.0, 0.0),
-            down_left: na::Vector2::new(0.0, 0.0),
-            up_left: na::Vector2::new(0.0, 0.0),
+            right_up: na::Vector2::new(0.0, 0.0),
+            right_down: na::Vector2::new(0.0, 0.0),
+            left_down: na::Vector2::new(0.0, 0.0),
+            left_up: na::Vector2::new(0.0, 0.0),
         }
     }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 struct RiverCompass {
-    up: f32,
-    right: f32,
-    down: f32,
-    left: f32,
+    up: bool,
+    right: bool,
+    down: bool,
+    left: bool,
+    width: f32,
 }
 
 impl RiverCompass {
-    fn all_zero() -> RiverCompass {
-        RiverCompass{up: 0.0, right: 0.0, down: 0.0, left: 0.0}
+    fn init() -> RiverCompass {
+        RiverCompass{up: false, right: false, down: false, left: false, width: 0.0}
     }
 }
 
@@ -69,25 +66,34 @@ impl Drawing for TerrainDrawing {
 }
 
 fn get_river_compasses(width: usize, height: usize, rivers: &Vec<River>) -> na::DMatrix<RiverCompass> {
-    let mut compasses = na::DMatrix::from_element(width, height, RiverCompass::all_zero());
+    let mut compasses = na::DMatrix::from_element(width, height, RiverCompass::init());
 
     for river in rivers {
+        compasses[(river.from.x, river.from.y)].width = river.from_width;
+        compasses[(river.to.x, river.to.y)].width = river.to_width;
         if river.from.x == river.to.x {
-            compasses[(river.from.x, river.from.y)].up = river.width;
-            compasses[(river.to.x, river.to.y)].down = river.width;
+            if river.from.y < river.to.y {
+                compasses[(river.from.x, river.from.y)].up = true;
+                compasses[(river.to.x, river.to.y)].down = true;
+            } else {
+                compasses[(river.from.x, river.from.y)].down = true;
+                compasses[(river.to.x, river.to.y)].up = true;
+            }
         } else {
-            compasses[(river.from.x, river.from.y)].right = river.width;
-            compasses[(river.to.x, river.to.y)].left = river.width;
+            if river.from.x < river.to.x {
+                compasses[(river.from.x, river.from.y)].right = true;
+                compasses[(river.to.x, river.to.y)].left = true;
+            } else {
+                compasses[(river.from.x, river.from.y)].left = true;
+                compasses[(river.to.x, river.to.y)].right = true;
+            }
         }
     }
 
     compasses
 }
 
-fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> na::DMatrix<Offsets> {
-    let width = heights.shape().0;
-    let height = heights.shape().1;
-
+fn get_offsets(width: usize, height: usize, rivers: &Vec<River>, square_t_junctions: bool) -> na::DMatrix<Offsets> {
     let compasses = get_river_compasses(width, height, rivers);
     let mut offsets = na::DMatrix::from_element(width, height, Offsets::all_zero());
     
@@ -96,43 +102,72 @@ fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> na::DMatrix<O
     for x in 0..width {
         for y in 0..height {
             let compass = &compasses[(x, y)];
+            
+            let half_width = compass.width / 2.0;
+
             let offsets = &mut offsets[(x, y)];
 
-            if compass.up > 0.0 && compass.right > 0.0 {
-                let diagonal = (( (compass.up + compass.right) / 2.0) * diagonal_mod).min(0.5);
-                offsets.up_right = na::Vector2::new(diagonal, diagonal);
-            } else if compass.up > 0.0 && compass.down > 0.0 {
-                offsets.up_right = na::Vector2::new((compass.up + compass.down) / 2.0, 0.0);
-            } else if compass.left > 0.0 && compass.right > 0.0 {
-                offsets.up_right = na::Vector2::new(0.0, (compass.left + compass.right) / 2.0);
-            };
+            let count  = 
+                if compass.up {1} else {0} +
+                if compass.right {1} else {0} +
+                if compass.down {1} else {0} +
+                if compass.left {1} else {0};
 
-            if compass.down > 0.0 && compass.right > 0.0 {
-                let diagonal = (( (compass.down + compass.right) / 2.0) * diagonal_mod).min(0.5);
-                offsets.down_right = na::Vector2::new(diagonal, -diagonal);
-            } else if compass.up > 0.0 && compass.down > 0.0 {
-                offsets.down_right = na::Vector2::new((compass.up + compass.down) / 2.0, 0.0);
-            } else if compass.left > 0.0 && compass.right > 0.0 {
-                offsets.down_right = na::Vector2::new(0.0, -(compass.left + compass.right) / 2.0);
-            };
+            if count == 1 {
+                if compass.down {
+                    offsets.left_down = na::Vector2::new(-half_width, 0.0);
+                    offsets.right_down = na::Vector2::new(half_width, 0.0);
+                } else if compass.up {
+                    offsets.left_up = na::Vector2::new(-half_width, 0.0);
+                    offsets.right_up = na::Vector2::new(half_width, 0.0);
+                } else if compass.left {
+                    offsets.left_down = na::Vector2::new(0.0, -half_width);
+                    offsets.left_up = na::Vector2::new(0.0, half_width);
+                } else if compass.right {
+                    offsets.right_down = na::Vector2::new(0.0, -half_width);
+                    offsets.right_up = na::Vector2::new(0.0, half_width);
+                }
+            } else {
+                let diagonal = if count == 2 || !square_t_junctions {
+                    (half_width * diagonal_mod).min(0.5)
+                } else {
+                    half_width
+                };
 
-            if compass.down > 0.0 && compass.left > 0.0 {
-                let diagonal = (( (compass.down + compass.left) / 2.0) * diagonal_mod).min(0.5);
-                offsets.down_left = na::Vector2::new(-diagonal, -diagonal);
-            } else if compass.up > 0.0 && compass.down > 0.0 {
-                offsets.down_left  = na::Vector2::new(-(compass.up + compass.down) / 2.0, 0.0);
-            } else if compass.left > 0.0 && compass.right > 0.0 {
-                offsets.down_left = na::Vector2::new(0.0, -(compass.left + compass.right) / 2.0);
-            };
+                if compass.up && compass.right {
+                    offsets.right_up = na::Vector2::new(diagonal, diagonal);
+                } else if compass.up && compass.down {
+                    offsets.right_up = na::Vector2::new(half_width, 0.0);
+                } else if compass.left && compass.right {
+                    offsets.right_up = na::Vector2::new(0.0, half_width);
+                }
 
-            if compass.up > 0.0 && compass.left > 0.0 {
-                let diagonal = (( (compass.up + compass.left) / 2.0) * diagonal_mod).min(0.5);
-                offsets.up_left = na::Vector2::new(-diagonal, diagonal);
-            } else if compass.up > 0.0 && compass.down > 0.0 {
-                offsets.up_left = na::Vector2::new(-(compass.up + compass.down) / 2.0, 0.0);
-            } else if compass.left > 0.0 && compass.right > 0.0 {
-                offsets.up_left = na::Vector2::new(0.0, (compass.left + compass.right) / 2.0);
-            };
+                if compass.down && compass.right {
+                    offsets.right_down = na::Vector2::new(diagonal, -diagonal);
+                } else if compass.up && compass.down {
+                    offsets.right_down = na::Vector2::new(half_width, 0.0);
+                } else if compass.left && compass.right {
+                    offsets.right_down = na::Vector2::new(0.0, -half_width);
+                };
+
+                if compass.down && compass.left {
+                    offsets.left_down = na::Vector2::new(-diagonal, -diagonal);
+                } else if compass.up && compass.down {
+                    offsets.left_down  = na::Vector2::new(-half_width, 0.0);
+                } else if compass.left && compass.right {
+                    offsets.left_down = na::Vector2::new(0.0, -half_width);
+                };
+
+                if compass.up && compass.left {
+                    offsets.left_up = na::Vector2::new(-diagonal, diagonal);
+                } else if compass.up && compass.down {
+                    offsets.left_up = na::Vector2::new(-half_width, 0.0);
+                } else if compass.left && compass.right {
+                    offsets.left_up = na::Vector2::new(0.0, half_width);
+                };
+            }
+
+           
         }
     }
 
@@ -141,10 +176,10 @@ fn get_offsets(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> na::DMatrix<O
 
 fn get_points(x: usize, y: usize, heights: &na::DMatrix<f32>, offsets: &na::DMatrix<Offsets>) -> [na::Vector3<f32>; 4] {
     [
-        na::Vector3::new(x as f32 + offsets[(x, y)].up_right.x, y as f32 + offsets[(x, y)].up_right.y, heights[(x, y)]),
-        na::Vector3::new((x + 1) as f32 + offsets[(x + 1, y)].up_left.x, y as f32 + offsets[(x + 1, y)].up_left.y, heights[(x + 1, y)]),
-        na::Vector3::new((x + 1) as f32 + offsets[(x + 1, y + 1)].down_left.x, (y + 1) as f32 + offsets[(x + 1, y + 1)].down_left.y, heights[(x + 1, y + 1)]),
-        na::Vector3::new(x as f32 + offsets[(x, y + 1)].down_right.x, (y + 1) as f32 + offsets[(x, y + 1)].down_right.y, heights[(x, y + 1)]),
+        na::Vector3::new(x as f32 + offsets[(x, y)].right_up.x, y as f32 + offsets[(x, y)].right_up.y, heights[(x, y)]),
+        na::Vector3::new((x + 1) as f32 + offsets[(x + 1, y)].left_up.x, y as f32 + offsets[(x + 1, y)].left_up.y, heights[(x + 1, y)]),
+        na::Vector3::new((x + 1) as f32 + offsets[(x + 1, y + 1)].left_down.x, (y + 1) as f32 + offsets[(x + 1, y + 1)].left_down.y, heights[(x + 1, y + 1)]),
+        na::Vector3::new(x as f32 + offsets[(x, y + 1)].right_down.x, (y + 1) as f32 + offsets[(x, y + 1)].right_down.y, heights[(x, y + 1)]),
     ]
 }
 
@@ -162,7 +197,7 @@ impl TerrainDrawing {
         let height = heights.shape().1;
         let mut triangle_vertices: Vec<f32> = Vec::with_capacity(width * height * 36);
 
-        let offsets = get_offsets(heights, rivers);
+        let offsets = get_offsets(width, height, rivers, true);
 
         for y in 0..(height - 1) {
             for x in 0..(width - 1) {
@@ -274,18 +309,199 @@ mod tests {
     #[test]
     fn test_get_river_compasses() {
         let rivers = vec![
-            River::new(na::Vector2::new(1, 0), na::Vector2::new(1, 1), 1.0),
-            River::new(na::Vector2::new(0, 1), na::Vector2::new(1, 1), 2.0),
-            River::new(na::Vector2::new(1, 1), na::Vector2::new(1, 2), 3.0),
-            River::new(na::Vector2::new(1, 1), na::Vector2::new(2, 1), 4.0),
+            River::new(na::Vector2::new(1, 0), na::Vector2::new(1, 1), 1.0, 3.0),
+            River::new(na::Vector2::new(0, 1), na::Vector2::new(1, 1), 2.0, 3.0),
+            River::new(na::Vector2::new(1, 1), na::Vector2::new(1, 2), 3.0, 4.0),
+            River::new(na::Vector2::new(2, 1), na::Vector2::new(1, 1), 2.0, 3.0),
         ];
         let compasses = get_river_compasses(3, 3, &rivers);
-        assert_eq!(compasses[(0, 0)], RiverCompass{up: 0.0, down: 0.0, right: 0.0, left: 0.0});
-        assert_eq!(compasses[(1, 0)], RiverCompass{up: 1.0, down: 0.0, right: 0.0, left: 0.0});
-        assert_eq!(compasses[(0, 1)], RiverCompass{up: 0.0, down: 0.0, right: 2.0, left: 0.0});
-        assert_eq!(compasses[(1, 1)], RiverCompass{up: 3.0, down: 1.0, right: 4.0, left: 2.0});
-        assert_eq!(compasses[(1, 2)], RiverCompass{up: 0.0, down: 3.0, right: 0.0, left: 0.0});
-        assert_eq!(compasses[(2, 1)], RiverCompass{up: 0.0, down: 0.0, right: 0.0, left: 4.0});
+        assert_eq!(compasses[(0, 0)], RiverCompass{up: false, down: false, right: false, left: false, width: 0.0});
+        assert_eq!(compasses[(1, 0)], RiverCompass{up: true, down: false, right: false, left: false, width: 1.0});
+        assert_eq!(compasses[(0, 1)], RiverCompass{up: false, down: false, right: true, left: false, width: 2.0});
+        assert_eq!(compasses[(1, 1)], RiverCompass{up: true, down: true, right: true, left: true, width: 3.0});
+        assert_eq!(compasses[(1, 2)], RiverCompass{up: false, down: true, right: false, left: false, width: 4.0});
+        assert_eq!(compasses[(2, 1)], RiverCompass{up: false, down: false, right: false, left: true, width: 2.0});
+    }
+
+    #[test]
+    fn test_get_offsets_vertical_stub() {
+        let rivers = vec![
+            River::new(na::Vector2::new(1, 2), na::Vector2::new(1, 1), 0.1, 0.2),
+        ];
+
+        let actual = get_offsets(3, 3, &rivers, false)[(1, 1)];
+
+        let expected = Offsets{
+            left_up: na::Vector2::new(-0.1, 0.0),
+            right_up: na::Vector2::new(0.1, 0.0),
+            left_down: na::Vector2::new(0.0, 0.0),
+            right_down: na::Vector2::new(0.0, 0.0),
+        };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_get_offsets_horizontal_stub() {
+        let rivers = vec![
+            River::new(na::Vector2::new(0, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+        ];
+
+        let actual = get_offsets(3, 3, &rivers, false)[(1, 1)];
+
+        let expected = Offsets{
+            left_up: na::Vector2::new(0.0, 0.1),
+            right_up: na::Vector2::new(0.0, 0.0),
+            left_down: na::Vector2::new(0.0, -0.1),
+            right_down: na::Vector2::new(0.0, 0.0),
+        };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_get_offsets_vertical_continuing() {
+        let rivers = vec![
+            River::new(na::Vector2::new(1, 0), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(1, 1), na::Vector2::new(1, 2), 0.2, 3.0),
+        ];
+
+        let actual = get_offsets(3, 3, &rivers, false)[(1, 1)];
+
+        let expected = Offsets{
+            left_up: na::Vector2::new(-0.1, 0.0),
+            right_up: na::Vector2::new(0.1, 0.0),
+            left_down: na::Vector2::new(-0.1, 0.0),
+            right_down: na::Vector2::new(0.1, 0.0),
+        };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_get_offsets_horizontal_continuing() {
+        let rivers = vec![
+            River::new(na::Vector2::new(0, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(1, 1), na::Vector2::new(2, 1), 0.2, 0.3),
+        ];
+
+        let actual = get_offsets(3, 3, &rivers, false)[(1, 1)];
+
+        let expected = Offsets{
+            left_up: na::Vector2::new(0.0, 0.1),
+            right_up: na::Vector2::new(0.0, 0.1),
+            left_down: na::Vector2::new(0.0, -0.1),
+            right_down: na::Vector2::new(0.0, -0.1),
+        };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_get_offsets_corner() {
+        let rivers = vec![
+            River::new(na::Vector2::new(0, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(1, 1), na::Vector2::new(1, 0), 0.2, 0.3),
+        ];
+
+        let actual = get_offsets(3, 3, &rivers, false)[(1, 1)];
+
+        let diagonal = (2.0 as f32).sqrt() * 0.1;
+
+        let expected = Offsets{
+            left_up: na::Vector2::new(0.0, 0.0),
+            right_up: na::Vector2::new(0.0, 0.0),
+            left_down: na::Vector2::new(-diagonal, -diagonal),
+            right_down: na::Vector2::new(0.0, 0.0),
+        };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_get_offsets_t_junction() {
+        let rivers = vec![
+            River::new(na::Vector2::new(0, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(2, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(1, 1), na::Vector2::new(1, 0), 0.2, 0.3),
+        ];
+
+        let actual = get_offsets(3, 3, &rivers, false)[(1, 1)];
+
+        let diagonal = (2.0 as f32).sqrt() * 0.1;
+
+        let expected = Offsets{
+            left_up: na::Vector2::new(0.0, 0.1),
+            right_up: na::Vector2::new(0.0, 0.1),
+            left_down: na::Vector2::new(-diagonal, -diagonal),
+            right_down: na::Vector2::new(diagonal, -diagonal),
+        };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_get_offsets_t_junction_square() {
+        let rivers = vec![
+            River::new(na::Vector2::new(0, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(2, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(1, 1), na::Vector2::new(1, 0), 0.2, 0.3),
+        ];
+
+        let actual = get_offsets(3, 3, &rivers, true)[(1, 1)];
+
+        let expected = Offsets{
+            left_up: na::Vector2::new(0.0, 0.1),
+            right_up: na::Vector2::new(0.0, 0.1),
+            left_down: na::Vector2::new(-0.1, -0.1),
+            right_down: na::Vector2::new(0.1, -0.1),
+        };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_get_offsets_crossroads() {
+        let rivers = vec![
+            River::new(na::Vector2::new(0, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(2, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(1, 0), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(1, 1), na::Vector2::new(1, 2), 0.2, 0.3),
+        ];
+
+        let actual = get_offsets(3, 3, &rivers, false)[(1, 1)];
+
+        let diagonal = (2.0 as f32).sqrt() * 0.1;
+
+        let expected = Offsets{
+            left_up: na::Vector2::new(-diagonal, diagonal),
+            right_up: na::Vector2::new(diagonal, diagonal),
+            left_down: na::Vector2::new(-diagonal, -diagonal),
+            right_down: na::Vector2::new(diagonal, -diagonal),
+        };
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_get_offsets_crossroads_square() {
+        let rivers = vec![
+            River::new(na::Vector2::new(0, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(2, 1), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(1, 0), na::Vector2::new(1, 1), 0.1, 0.2),
+            River::new(na::Vector2::new(1, 1), na::Vector2::new(1, 2), 0.2, 0.3),
+        ];
+
+        let actual = get_offsets(3, 3, &rivers, true)[(1, 1)];
+
+        let expected = Offsets{
+            left_up: na::Vector2::new(-0.1, 0.1),
+            right_up: na::Vector2::new(0.1, 0.1),
+            left_down: na::Vector2::new(-0.1, -0.1),
+            right_down: na::Vector2::new(0.1, -0.1),
+        };
+
+        assert_eq!(actual, expected);
     }
 
     #[test]   

@@ -236,7 +236,7 @@ impl EventHandler for TerrainHandler {
                             d if d == distance_to_top => (na::Vector2::new(cell_x as usize + 1, cell_y as usize + 1), na::Vector2::new(cell_x as usize, cell_y as usize + 1)),
                             _ => panic!("Should not happen: minimum of four values does not match any of those values"),
                         };
-                        self.rivers.push(River::new(from, to, 0.2));
+                        self.rivers.push(River::new(from, to, 0.2, 0.2));
                         vec![self.draw_terrain()]
                     } else {
                         vec![]
