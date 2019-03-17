@@ -504,6 +504,31 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    #[test]
+    fn test_get_points() {
+        let heights = na::DMatrix::from_row_slice(3, 3, &[
+            90.0, 80.0, 70.0,
+            60.0, 50.0, 40.0,
+            30.0, 20.0, 100.0
+        ]).transpose();
+
+        let mut offsets = na::DMatrix::from_element(3, 3, Offsets::all_zero());
+
+        offsets[(0, 0)].right_up = na::Vector2::new(0.1, -0.1);
+        offsets[(1, 0)].left_up = na::Vector2::new(0.2, -0.2);
+        offsets[(1, 1)].left_down = na::Vector2::new(0.3, -0.3);
+        offsets[(0, 1)].right_down = na::Vector2::new(0.4, -0.4);
+
+        let actual  = get_points(0, 0, &heights, &offsets);
+
+        let expected = [
+            na::Vector3::new(0.1, -0.1, 90.0),
+            na::Vector3::new(1.2, -0.2, 80.0),
+            na::Vector3::new(1.3, -0.7, 50.0),
+            na::Vector3::new(0.4, -0.6, 60.0),
+        ];
+    }
+
     #[test]   
     fn test_terrain_drawing_get_vertices() {
         let heights = na::DMatrix::from_row_slice(3, 3, &[
