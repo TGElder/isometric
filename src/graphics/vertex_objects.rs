@@ -65,6 +65,14 @@ impl<T: BufferType> VBO<T> {
     }
 }
 
+impl<T: BufferType> Drop for VBO<T> {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteBuffers(1, &mut self.id);
+        }
+    }
+}
+
 pub struct VAO<T: BufferType> {
     id: gl::types::GLuint,
     buffer_type: PhantomData<T>,
@@ -94,6 +102,15 @@ impl<T: BufferType> VAO<T> {
         self.bind();
         T::setup_vao();
         self.unbind();
+    }
+}
+
+
+impl<T: BufferType> Drop for VAO<T> {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteVertexArrays(1, &mut self.id);
+        }
     }
 }
 
