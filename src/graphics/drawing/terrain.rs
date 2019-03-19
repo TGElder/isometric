@@ -3,21 +3,33 @@ use super::super::vertex_objects::{VBO, Vertex, ColoredVertex};
 use super::utils::{SquareColoring, get_uniform_colored_vertices_from_square};
 use std::f32;
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Junction {
+    position: na::Vector2<usize>,
+    width: f32,
+    height: f32,
+    color: Color,
+}
+
+impl Junction {
+    pub fn new(position: na::Vector2<usize>, width: f32, height: f32, color: Color) -> Junction {
+        Junction{position, width, height, color}
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct River {
     from: na::Vector2<usize>,
     to: na::Vector2<usize>,
-    from_width: f32,
-    to_width: f32,
     color: Color,
 }
 
 impl River {
-    pub fn new(from: na::Vector2<usize>, to: na::Vector2<usize>, from_width: f32, to_width: f32, color: Color) -> River {
+    pub fn new(from: na::Vector2<usize>, to: na::Vector2<usize>, color: Color) -> River {
         if from.x < to.x || from.y < to.y {
-            River{from, to, from_width, to_width, color}
+            River{from, to, color}
         } else {
-            River{from: to, to: from, from_width: to_width, to_width: from_width, color}
+            River{from: to, to: from, color}
         }
     
     }
@@ -52,15 +64,28 @@ impl Drawing for TerrainDrawing {
     }
 }
 
-fn get_flow(width: usize, height: usize, rivers: &Vec<River>) -> na::DMatrix<f32> {
-    let mut flow = na::DMatrix::zeros(width, height);
-    
-    for river in rivers {
-        flow[(river.from.x, river.from.y)] = river.from_width;
-        flow[(river.to.x, river.to.y)] = river.to_width;
+fn get_offsets(width: usize, height: usize, junctions: &Vec<Junction>) -> na::DMatrix<na::Vector2<f32>> {
+    let mut offsets = na::DMatrix::from_element(width, height, na::Vector2::new(0.0, 0.0));
+
+    for junction in junctions {
+        let current_offsets = offsets[(junction.position.x, junction.position.y)];
+        let new_offsets = na::Vector2::new(
+            junction.width.max(current_offsets.x), junction.height.max(current_offsets.y)
+        );
+        offsets[(junction.position.x, junction.position.y)] = new_offsets;
     }
-    
-    flow
+
+    offsets
+}
+
+fn get_junction_colors(width: usize, height: usize, junctions: &Vec<Junction>) -> na::DMatrix<Color> {
+    let mut colors = na::DMatrix::from_element(width, height, Color::new(0.0, 0.0, 0.0, 0.0));
+
+    for junction in junctions {
+        colors[(junction.position.x, junction.position.y)] = junction.color;
+    }
+
+    colors
 }
 
 fn get_river_compasses(width: usize, height: usize, rivers: &Vec<River>) -> na::DMatrix<RiverCompass> {
@@ -68,16 +93,14 @@ fn get_river_compasses(width: usize, height: usize, rivers: &Vec<River>) -> na::
 
     for river in rivers {
         if river.from.x == river.to.x {
-            let min_y = river.from.y.min(river.to.y);
-            compasses[(river.from.x, min_y)].left = true;
+            compasses[(river.from.x, river.from.y)].left = true;
             if river.from.x > 0 {
-                compasses[(river.from.x - 1, min_y)].right = true;
+                compasses[(river.from.x - 1, river.from.y)].right = true;
             }
         } else {
-            let min_x = river.from.x.min(river.to.x);
-            compasses[(min_x, river.from.y)].down = true;
+            compasses[(river.from.x, river.from.y)].down = true;
             if river.from.y > 0 {
-                compasses[(min_x, river.from.y - 1)].up = true;
+                compasses[(river.from.x, river.from.y - 1)].up = true;
             }
         }
     }
@@ -85,118 +108,123 @@ fn get_river_compasses(width: usize, height: usize, rivers: &Vec<River>) -> na::
     compasses
 }
 
-fn get_middle_points(x: usize, y: usize, heights: &na::DMatrix<f32>, flow: &na::DMatrix<f32>) -> [na::Vector3<f32>; 4] {
+fn get_middle_points(x: usize, y: usize, heights: &na::DMatrix<f32>, offsets: &na::DMatrix<na::Vector2<f32>>) -> [na::Vector3<f32>; 4] {
     [
-        na::Vector3::new(x as f32 + flow[(x, y)], y as f32 + flow[(x, y)], heights[(x, y)]),
-        na::Vector3::new((x + 1) as f32 - flow[(x + 1, y)], y as f32 + flow[(x + 1, y)], heights[(x + 1, y)]),
-        na::Vector3::new((x + 1) as f32 - flow[(x + 1, y + 1)], (y + 1) as f32 - flow[(x + 1, y + 1)], heights[(x + 1, y + 1)]),
-        na::Vector3::new(x as f32 + flow[(x, y + 1)], (y + 1) as f32 - flow[(x, y + 1)], heights[(x, y + 1)]),
+        na::Vector3::new(x as f32 + offsets[(x, y)].x, y as f32 + offsets[(x, y)].y, heights[(x, y)]),
+        na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y)].x, y as f32 + offsets[(x + 1, y)].y, heights[(x + 1, y)]),
+        na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y + 1)].x, (y + 1) as f32 - offsets[(x + 1, y + 1)].y, heights[(x + 1, y + 1)]),
+        na::Vector3::new(x as f32 + offsets[(x, y + 1)].x, (y + 1) as f32 - offsets[(x, y + 1)].y, heights[(x, y + 1)]),
     ]
 }
 
-fn get_up_points(x: usize, y: usize, heights: &na::DMatrix<f32>, flow: &na::DMatrix<f32>) -> [na::Vector3<f32>; 4] {
+fn get_up_points(x: usize, y: usize, heights: &na::DMatrix<f32>, offsets: &na::DMatrix<na::Vector2<f32>>) -> [na::Vector3<f32>; 4] {
     [
-        na::Vector3::new(x as f32 + flow[(x, y)], y as f32 + flow[(x, y)], heights[(x, y)]),
-        na::Vector3::new(x as f32 + flow[(x, y)], y as f32, heights[(x, y)]),
-        na::Vector3::new((x + 1) as f32 - flow[(x + 1, y)], y as f32, heights[(x + 1, y)]),
-        na::Vector3::new((x + 1) as f32 - flow[(x + 1, y)], y as f32 + flow[(x + 1, y)], heights[(x + 1, y)]),
+        na::Vector3::new(x as f32 + offsets[(x, y)].x, y as f32 + offsets[(x, y)].y, heights[(x, y)]),
+        na::Vector3::new(x as f32 + offsets[(x, y)].x, y as f32, heights[(x, y)]),
+        na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y)].x, y as f32, heights[(x + 1, y)]),
+        na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y)].x, y as f32 + offsets[(x + 1, y)].y, heights[(x + 1, y)]),
     ]
 }
 
-fn get_right_points(x: usize, y: usize, heights: &na::DMatrix<f32>, flow: &na::DMatrix<f32>) -> [na::Vector3<f32>; 4] {
+fn get_right_points(x: usize, y: usize, heights: &na::DMatrix<f32>, offsets: &na::DMatrix<na::Vector2<f32>>) -> [na::Vector3<f32>; 4] {
     [
-        na::Vector3::new((x + 1) as f32 - flow[(x + 1, y)], y as f32 + flow[(x + 1, y)], heights[(x + 1, y)]),
-        na::Vector3::new((x + 1) as f32, y as f32 + flow[(x + 1, y)], heights[(x + 1, y)]),
-        na::Vector3::new((x + 1) as f32, (y + 1) as f32 - flow[(x + 1, y + 1)], heights[(x + 1, y + 1)]),
-        na::Vector3::new((x + 1) as f32 - flow[(x + 1, y + 1)], (y + 1) as f32 - flow[(x + 1, y + 1)], heights[(x + 1, y + 1)]),
+        na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y)].x, y as f32 + offsets[(x + 1, y)].y, heights[(x + 1, y)]),
+        na::Vector3::new((x + 1) as f32, y as f32 + offsets[(x + 1, y)].y, heights[(x + 1, y)]),
+        na::Vector3::new((x + 1) as f32, (y + 1) as f32 - offsets[(x + 1, y + 1)].y, heights[(x + 1, y + 1)]),
+        na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y + 1)].x, (y + 1) as f32 - offsets[(x + 1, y + 1)].y, heights[(x + 1, y + 1)]),
     ]
 }
 
-fn get_down_points(x: usize, y: usize, heights: &na::DMatrix<f32>, flow: &na::DMatrix<f32>) -> [na::Vector3<f32>; 4] {
+fn get_down_points(x: usize, y: usize, heights: &na::DMatrix<f32>, offsets: &na::DMatrix<na::Vector2<f32>>) -> [na::Vector3<f32>; 4] {
     [
-        na::Vector3::new((x + 1) as f32 - flow[(x + 1, y + 1)], (y + 1) as f32 - flow[(x + 1, y + 1)], heights[(x + 1, y + 1)]),
-        na::Vector3::new((x + 1) as f32 - flow[(x + 1, y + 1)], (y + 1) as f32, heights[(x + 1, y + 1)]),
-        na::Vector3::new(x as f32 + flow[(x, y + 1)], (y + 1) as f32, heights[(x, y + 1)]),
-        na::Vector3::new(x as f32 + flow[(x, y + 1)], (y + 1) as f32 - flow[(x, y + 1)], heights[(x, y + 1)]),
+        na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y + 1)].x, (y + 1) as f32 - offsets[(x + 1, y + 1)].y, heights[(x + 1, y + 1)]),
+        na::Vector3::new((x + 1) as f32 - offsets[(x + 1, y + 1)].x, (y + 1) as f32, heights[(x + 1, y + 1)]),
+        na::Vector3::new(x as f32 + offsets[(x, y + 1)].x, (y + 1) as f32, heights[(x, y + 1)]),
+        na::Vector3::new(x as f32 + offsets[(x, y + 1)].x, (y + 1) as f32 - offsets[(x, y + 1)].y, heights[(x, y + 1)]),
     ]
 }
 
-fn get_left_points(x: usize, y: usize, heights: &na::DMatrix<f32>, flow: &na::DMatrix<f32>) -> [na::Vector3<f32>; 4] {
+fn get_left_points(x: usize, y: usize, heights: &na::DMatrix<f32>, offsets: &na::DMatrix<na::Vector2<f32>>) -> [na::Vector3<f32>; 4] {
     [
-        na::Vector3::new(x as f32 + flow[(x, y + 1)], (y + 1) as f32 - flow[(x, y + 1)], heights[(x, y + 1)]),
-        na::Vector3::new(x as f32, (y + 1) as f32 - flow[(x, y + 1)], heights[(x, y + 1)]),
-        na::Vector3::new(x as f32, y as f32 + flow[(x, y)], heights[(x, y)]),
-        na::Vector3::new(x as f32 + flow[(x, y)], y as f32 + flow[(x, y)], heights[(x, y)]),
+        na::Vector3::new(x as f32 + offsets[(x, y + 1)].x, (y + 1) as f32 - offsets[(x, y + 1)].y, heights[(x, y + 1)]),
+        na::Vector3::new(x as f32, (y + 1) as f32 - offsets[(x, y + 1)].y, heights[(x, y + 1)]),
+        na::Vector3::new(x as f32, y as f32 + offsets[(x, y)].y, heights[(x, y)]),
+        na::Vector3::new(x as f32 + offsets[(x, y)].x, y as f32 + offsets[(x, y)].y, heights[(x, y)]),
     ]
 }
 
 impl TerrainDrawing {
-    pub fn new(heights: &na::DMatrix<f32>, rivers: &Vec<River>, coloring: Box<SquareColoring>) -> TerrainDrawing {
+    pub fn new(heights: &na::DMatrix<f32>, junctions: &Vec<Junction>, rivers: &Vec<River>, coloring: Box<SquareColoring>) -> TerrainDrawing {
         let mut out = TerrainDrawing{
             terrain_triangles: VBO::new(gl::TRIANGLES),
         };
         let mut vertices = vec![];
-        vertices.extend(TerrainDrawing::get_tile_vertices(heights, rivers, coloring));
-        vertices.extend(TerrainDrawing::get_river_vertices(heights, rivers));
-        vertices.extend(TerrainDrawing::get_flow_vertices(heights, rivers));
+        let offsets = get_offsets(heights.shape().0, heights.shape().1, junctions);
+        vertices.extend(TerrainDrawing::get_tile_vertices(heights, &offsets, rivers, coloring));
+        vertices.extend(TerrainDrawing::get_river_vertices(heights, &offsets, rivers));
+        let junction_colors = get_junction_colors(heights.shape().0, heights.shape().1, junctions);
+        vertices.extend(TerrainDrawing::get_junction_vertices(heights, &offsets, &junction_colors));
         out.terrain_triangles.load(vertices);
         out
     }
 
-    fn get_tile_vertices(heights: &na::DMatrix<f32>, rivers: &Vec<River>, coloring: Box<SquareColoring>) -> Vec<f32> {
+    fn get_tile_vertices(heights: &na::DMatrix<f32>, offsets: &na::DMatrix<na::Vector2<f32>>, rivers: &Vec<River>, coloring: Box<SquareColoring>) -> Vec<f32> {
         let width = heights.shape().0;
         let height = heights.shape().1;
         let mut vertices: Vec<f32> = vec![];
 
-        let flow = get_flow(width, height, rivers);
         let compasses = get_river_compasses(width, height, rivers);
 
         for y in 0..(height - 1) {
             for x in 0..(width - 1) {
-                let points = get_middle_points(x, y, &heights, &flow);
+                let points = get_middle_points(x, y, &heights, &offsets);
                 let color = coloring.get_colors(&points)[0];
                 vertices.extend(get_uniform_colored_vertices_from_square(&points, color));
 
                 let compass = compasses[(x, y)];
                 if !compass.down {
-                    vertices.extend(get_uniform_colored_vertices_from_square(&get_up_points(x, y, &heights, &flow), color));
+                    vertices.extend(get_uniform_colored_vertices_from_square(&get_up_points(x, y, &heights, &offsets), color));
                 }
                 if !compass.right {
-                    vertices.extend(get_uniform_colored_vertices_from_square(&get_right_points(x, y, &heights, &flow), color));
+                    vertices.extend(get_uniform_colored_vertices_from_square(&get_right_points(x, y, &heights, &offsets), color));
                 }
                 if !compass.up {
-                    vertices.extend(get_uniform_colored_vertices_from_square(&get_down_points(x, y, &heights, &flow), color));
+                    vertices.extend(get_uniform_colored_vertices_from_square(&get_down_points(x, y, &heights, &offsets), color));
                 }
                 if !compass.left {
-                    vertices.extend(get_uniform_colored_vertices_from_square(&get_left_points(x, y, &heights, &flow), color));
+                    vertices.extend(get_uniform_colored_vertices_from_square(&get_left_points(x, y, &heights, &offsets), color));
                 }
             }
         }
         vertices
     }
 
-    fn get_river_vertices(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> Vec<f32> {
+    fn get_river_vertices(heights: &na::DMatrix<f32>, offsets: &na::DMatrix<na::Vector2<f32>>, rivers: &Vec<River>) -> Vec<f32> {
         let mut vertices: Vec<f32> = vec![];
 
         for river in rivers {
+            let from_width = offsets[(river.from.x, river.from.y)].x;
+            let from_height = offsets[(river.from.x, river.from.y)].y;
+            let to_width = offsets[(river.to.x, river.to.y)].x;
+            let to_height = offsets[(river.to.x, river.to.y)].y;
             if river.from.x == river.to.x {
                 let down_z = heights[(river.from.x, river.from.y)];
                 let up_z = heights[(river.to.x, river.to.y)];
                 let points = [
-                    na::Vector3::new(river.from.x as f32 - river.from_width, river.from.y as f32 + river.from_width, down_z),
-                    na::Vector3::new(river.from.x as f32 + river.from_width, river.from.y as f32 + river.from_width, down_z),
-                    na::Vector3::new(river.to.x as f32 + river.to_width, river.to.y as f32 - river.to_width, up_z),
-                    na::Vector3::new(river.to.x as f32 - river.to_width, river.to.y as f32 - river.to_width, up_z),
+                    na::Vector3::new(river.from.x as f32 - from_width, river.from.y as f32 + from_height, down_z),
+                    na::Vector3::new(river.from.x as f32 + from_width, river.from.y as f32 + from_height, down_z),
+                    na::Vector3::new(river.to.x as f32 + to_width, river.to.y as f32 - to_height, up_z),
+                    na::Vector3::new(river.to.x as f32 - to_width, river.to.y as f32 - to_height, up_z),
                 ];
                 vertices.extend(get_uniform_colored_vertices_from_square(&points, river.color));
             } else {
                 let left_z = heights[(river.from.x, river.from.y)];
                 let right_z = heights[(river.to.x, river.to.y)];
                 let points = [
-                    na::Vector3::new(river.from.x as f32 + river.from_width, river.from.y as f32 + river.from_width, left_z),
-                    na::Vector3::new(river.to.x as f32 - river.to_width, river.to.y as f32 + river.to_width, right_z),
-                    na::Vector3::new(river.to.x as f32 - river.to_width, river.to.y as f32 - river.to_width, right_z),
-                    na::Vector3::new(river.from.x as f32 + river.from_width, river.from.y as f32 - river.from_width, left_z),
+                    na::Vector3::new(river.from.x as f32 + from_width, river.from.y as f32 + from_height, left_z),
+                    na::Vector3::new(river.to.x as f32 - to_width, river.to.y as f32 + to_height, right_z),
+                    na::Vector3::new(river.to.x as f32 - to_width, river.to.y as f32 - to_height, right_z),
+                    na::Vector3::new(river.from.x as f32 + from_width, river.from.y as f32 - from_height, left_z),
                 ];
                 vertices.extend(get_uniform_colored_vertices_from_square(&points, river.color));
             }
@@ -204,36 +232,27 @@ impl TerrainDrawing {
         vertices
     }
 
-     fn get_flow_vertices(heights: &na::DMatrix<f32>, rivers: &Vec<River>) -> Vec<f32> {
+     fn get_junction_vertices(heights: &na::DMatrix<f32>, offsets: &na::DMatrix<na::Vector2<f32>>, junction_colors: &na::DMatrix<Color>) -> Vec<f32> {
         let mut vertices: Vec<f32> = vec![];
-    
-        for river in rivers {
-            let x = river.from.x as f32;
-            let y = river.from.y as f32;
-            let z = heights[(river.from.x, river.from.y)];
-            let d = river.from_width;
-            let points = [
-                na::Vector3::new(x - d, y - d, z),
-                na::Vector3::new(x + d, y - d, z),
-                na::Vector3::new(x + d, y + d, z),
-                na::Vector3::new(x - d, y + d, z),
-            ];
-            vertices.extend(get_uniform_colored_vertices_from_square(&points, river.color));
 
-            let x = river.to.x as f32;
-            let y = river.to.y as f32;
-            let z = heights[(river.to.x, river.to.y)];
-            let d = river.to_width;
-            let points = [
-                na::Vector3::new(x - d, y - d, z),
-                na::Vector3::new(x + d, y - d, z),
-                na::Vector3::new(x + d, y + d, z),
-                na::Vector3::new(x - d, y + d, z),
-            ];
-            vertices.extend(get_uniform_colored_vertices_from_square(&points, river.color));
+        for x in 0..offsets.shape().0 {
+            for y in 0..offsets.shape().1 {
+                let z = heights[(x, y)];
+                let w = offsets[(x, y)].x;
+                let h = offsets[(x, y)].y;
+                let color = junction_colors[(x, y)];
+                let x = x as f32;
+                let y = y as f32;
+                let points = [
+                    na::Vector3::new(x - w, y - h, z),
+                    na::Vector3::new(x + w, y - h, z),
+                    na::Vector3::new(x + w, y + h, z),
+                    na::Vector3::new(x - w, y + h, z),
+                ];
+                vertices.extend(get_uniform_colored_vertices_from_square(&points, color));
+            }
         }
 
-        
 
         vertices
     }

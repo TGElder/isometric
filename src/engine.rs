@@ -57,7 +57,7 @@ pub struct IsometricEngine {
 impl IsometricEngine {
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
 
-    pub fn new(title: &str, width: u32, height: u32, max_z: f32, heights: na::DMatrix<f32>, rivers: Vec<River>, sea_level: f32) -> IsometricEngine {
+    pub fn new(title: &str, width: u32, height: u32, max_z: f32, event_handler: Box<EventHandler>) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title(title)
@@ -77,7 +77,7 @@ impl IsometricEngine {
 
         IsometricEngine {
             events_loop,
-            event_handlers: IsometricEngine::init_event_handlers(&gl_window, heights, rivers, sea_level),
+            event_handlers: IsometricEngine::init_event_handlers(&gl_window, event_handler),
             window: gl_window,
             graphics,
             running: true,
@@ -85,11 +85,12 @@ impl IsometricEngine {
         }
     }
 
-    fn init_event_handlers(window: &glutin::GlWindow, heights: na::DMatrix<f32>, rivers: Vec<River>, sea_level: f32) -> Vec<Box<EventHandler>> {
+    fn init_event_handlers(window: &glutin::GlWindow, event_handler: Box<EventHandler>) -> Vec<Box<EventHandler>> {
         let dpi_factor = window.get_hidpi_factor();
         let logical_window_size = window.window().get_inner_size().unwrap();
        
         vec![
+            event_handler,
             Box::new(AsyncEventHandler::new(Box::new(ShutdownHandler::new()))),
             Box::new(DPIRelay::new()),
             Box::new(Resizer::new()),
@@ -99,7 +100,6 @@ impl IsometricEngine {
             Box::new(Scroller::new()),
             Box::new(ZoomHandler::new()),
             Box::new(RotateHandler::new()),
-            Box::new(TerrainHandler::new(heights, rivers, sea_level)),
             Box::new(HouseBuilder::new(na::Vector3::new(1.0, 0.0, 1.0))),
         ]
     }
@@ -169,15 +169,17 @@ impl IsometricEngine {
 
 pub struct TerrainHandler {
     heights: na::DMatrix<f32>,
+    junctions: Vec<Junction>,
     rivers: Vec<River>,
     sea_level: f32,
     world_coord: Option<WorldCoord>,
 }
 
 impl TerrainHandler {
-    fn new(heights: na::DMatrix<f32>, rivers: Vec<River>, sea_level: f32) -> TerrainHandler {
+    pub fn new(heights: na::DMatrix<f32>, junctions: Vec<Junction>, rivers: Vec<River>, sea_level: f32) -> TerrainHandler {
         TerrainHandler{
             heights,
+            junctions,
             rivers,
             sea_level,
             world_coord: None
@@ -188,13 +190,16 @@ impl TerrainHandler {
 impl TerrainHandler {
     fn draw_terrain(&self) -> Command {
         let coloring = Box::new(AngleSquareColoring::new(Color::new(0.0, 1.0, 0.0, 1.0), na::Vector3::new(1.0, 0.0, 1.0)));
-        Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::new(&self.heights, &self.rivers, coloring))}
+        Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::new(&self.heights, &self.junctions, &self.rivers, coloring))}
     }
 }
 
 impl EventHandler for TerrainHandler {
 
     fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
+
+        let grey = Color::new(0.3, 0.3, 0.3, 1.0);
+
         let mut out = vec![];
         out.append(
             &mut match *event {
@@ -236,7 +241,14 @@ impl EventHandler for TerrainHandler {
                             d if d == distance_to_top => (na::Vector2::new(cell_x as usize + 1, cell_y as usize + 1), na::Vector2::new(cell_x as usize, cell_y as usize + 1)),
                             _ => panic!("Should not happen: minimum of four values does not match any of those values"),
                         };
-                        self.rivers.push(River::new(from, to, 0.1, 0.1, Color::new(0.3, 0.3, 0.3, 1.0)));
+                        if from.x == to.x {
+                            self.junctions.push(Junction::new(from, 0.1, 0.0, grey));
+                            self.junctions.push(Junction::new(to, 0.1, 0.0, grey));
+                        } else {
+                            self.junctions.push(Junction::new(from, 0.0, 0.1, grey));
+                            self.junctions.push(Junction::new(to, 0.0, 0.1, grey));
+                        }
+                        self.rivers.push(River::new(from, to, grey));
                         vec![self.draw_terrain()]
                     } else {
                         vec![]
