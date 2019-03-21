@@ -5,9 +5,9 @@ use std::f32;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Junction {
-    position: na::Vector2<usize>,
-    width: f32,
-    height: f32,
+    pub position: na::Vector2<usize>,
+    pub width: f32,
+    pub height: f32,
     color: Color,
 }
 
@@ -163,7 +163,7 @@ impl TerrainDrawing {
         vertices.extend(TerrainDrawing::get_tile_vertices(heights, &offsets, rivers, coloring));
         vertices.extend(TerrainDrawing::get_river_vertices(heights, &offsets, rivers));
         let junction_colors = get_junction_colors(heights.shape().0, heights.shape().1, junctions);
-        vertices.extend(TerrainDrawing::get_junction_vertices(heights, &offsets, &junction_colors));
+        // vertices.extend(TerrainDrawing::get_junction_vertices(heights, &offsets, &junction_colors));
         out.terrain_triangles.load(vertices);
         out
     }
@@ -179,20 +179,20 @@ impl TerrainDrawing {
             for x in 0..(width - 1) {
                 let points = get_middle_points(x, y, &heights, &offsets);
                 let color = coloring.get_colors(&points)[0];
-                vertices.extend(get_uniform_colored_vertices_from_square(&points, color));
+                vertices.extend(get_uniform_colored_vertices_from_square(&points, &color));
 
                 let compass = compasses[(x, y)];
                 if !compass.down {
-                    vertices.extend(get_uniform_colored_vertices_from_square(&get_up_points(x, y, &heights, &offsets), color));
+                    vertices.extend(get_uniform_colored_vertices_from_square(&get_up_points(x, y, &heights, &offsets), &color));
                 }
                 if !compass.right {
-                    vertices.extend(get_uniform_colored_vertices_from_square(&get_right_points(x, y, &heights, &offsets), color));
+                    vertices.extend(get_uniform_colored_vertices_from_square(&get_right_points(x, y, &heights, &offsets), &color));
                 }
                 if !compass.up {
-                    vertices.extend(get_uniform_colored_vertices_from_square(&get_down_points(x, y, &heights, &offsets), color));
+                    vertices.extend(get_uniform_colored_vertices_from_square(&get_down_points(x, y, &heights, &offsets), &color));
                 }
                 if !compass.left {
-                    vertices.extend(get_uniform_colored_vertices_from_square(&get_left_points(x, y, &heights, &offsets), color));
+                    vertices.extend(get_uniform_colored_vertices_from_square(&get_left_points(x, y, &heights, &offsets), &color));
                 }
             }
         }
@@ -216,7 +216,7 @@ impl TerrainDrawing {
                     na::Vector3::new(river.to.x as f32 + to_width, river.to.y as f32 - to_height, up_z),
                     na::Vector3::new(river.to.x as f32 - to_width, river.to.y as f32 - to_height, up_z),
                 ];
-                vertices.extend(get_uniform_colored_vertices_from_square(&points, river.color));
+                vertices.extend(get_uniform_colored_vertices_from_square(&points, &river.color));
             } else {
                 let left_z = heights[(river.from.x, river.from.y)];
                 let right_z = heights[(river.to.x, river.to.y)];
@@ -226,7 +226,7 @@ impl TerrainDrawing {
                     na::Vector3::new(river.to.x as f32 - to_width, river.to.y as f32 - to_height, right_z),
                     na::Vector3::new(river.from.x as f32 + from_width, river.from.y as f32 - from_height, left_z),
                 ];
-                vertices.extend(get_uniform_colored_vertices_from_square(&points, river.color));
+                vertices.extend(get_uniform_colored_vertices_from_square(&points, &river.color));
             }
         }
         vertices
@@ -249,7 +249,7 @@ impl TerrainDrawing {
                     na::Vector3::new(x + w, y + h, z),
                     na::Vector3::new(x - w, y + h, z),
                 ];
-                vertices.extend(get_uniform_colored_vertices_from_square(&points, color));
+                vertices.extend(get_uniform_colored_vertices_from_square(&points, &color));
             }
         }
 

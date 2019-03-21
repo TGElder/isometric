@@ -20,6 +20,10 @@ use ::graphics::drawing::utils::AngleSquareColoring;
 use ::graphics::drawing::terrain_old::*;
 use ::graphics::drawing::sea::SeaDrawing;
 
+use ::terrain::*;
+
+use ::graphics::drawing::terrain::node::NodeDrawing;
+
 use self::glutin::GlContext;
 
 pub enum Event {
@@ -173,16 +177,30 @@ pub struct TerrainHandler {
     rivers: Vec<River>,
     sea_level: f32,
     world_coord: Option<WorldCoord>,
+    terrain: Terrain,
 }
 
 impl TerrainHandler {
     pub fn new(heights: na::DMatrix<f32>, junctions: Vec<Junction>, rivers: Vec<River>, sea_level: f32) -> TerrainHandler {
+        let width = heights.shape().0;
+        let height = heights.shape().1;
+        let mut nodes = na::DMatrix::from_element(width, height, Node::point(0.0));
+        for x in 0..heights.shape().0 {
+            for y in 0..heights.shape().1 {
+                nodes[(x, y)].elevation = heights[(x, y)];
+            }
+        }
+        for junction in junctions.iter() {
+            nodes[(junction.position.x, junction.position.y)].width = junction.width;
+            nodes[(junction.position.x, junction.position.y)].height = junction.height;
+        }
         TerrainHandler{
             heights,
             junctions,
             rivers,
             sea_level,
-            world_coord: None
+            world_coord: None,
+            terrain: Terrain::new(nodes),
         }
     }
 }
@@ -206,6 +224,7 @@ impl EventHandler for TerrainHandler {
                 Event::Start => {
                     vec![
                         Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, self.sea_level))},
+                        Command::Draw{name: "nodes".to_string(), drawing: Box::new(NodeDrawing::new(&self.terrain, Color::new(1.0, 0.0, 0.0, 1.0)))},
                         self.draw_terrain(),
                         //Command::Draw{name: "river_debug".to_string(), drawing: Box::new(RiverDebugDrawing::new(&self.heights, &self.rivers))},
                         // Command::Draw{name: "terrain_grid".to_string(), drawing: Box::new(TerrainGridDrawing::from_heights(&self.heights))},

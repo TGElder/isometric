@@ -1,10 +1,10 @@
 use ::{v2, v3};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-struct Node {
-    width: f32,
-    height: f32,
-    elevation: f32,
+pub struct Node {
+    pub width: f32,
+    pub height: f32,
+    pub elevation: f32,
 }
 
 impl Node {
@@ -24,17 +24,17 @@ pub struct Terrain {
 
 impl Terrain {
 
-    fn new(nodes: na::DMatrix<Node>) -> Terrain {
+    pub fn new(nodes: na::DMatrix<Node>) -> Terrain {
         Terrain{
             grid: Terrain::create_grid(&nodes),
         }
     }
 
-    fn width(&self) -> usize {
+    pub fn width(&self) -> usize {
         self.grid.shape().0
     }
 
-    fn height(&self) -> usize {
+    pub fn height(&self) -> usize {
         self.grid.shape().1
     }
 
@@ -60,7 +60,7 @@ impl Terrain {
         grid
     }
 
-    fn get_border(&self, grid_index: na::Vector2<usize>) -> Vec<na::Vector3<f32>> {
+    pub fn get_border(&self, grid_index: na::Vector2<usize>) -> Vec<na::Vector3<f32>> {
         let offsets: [na::Vector2<usize>; 4] = [v2(0, 0), v2(1, 0), v2(1, 1), v2(0, 1)];
         
         let mut out = vec![];
@@ -80,7 +80,7 @@ impl Terrain {
         out
     }
 
-    fn get_triangles(&self, grid_index: na::Vector2<usize>) -> Vec<[na::Vector3<f32>; 3]> {
+    pub fn get_triangles(&self, grid_index: na::Vector2<usize>) -> Vec<[na::Vector3<f32>; 3]> {
         let border = self.get_border(grid_index);
 
         if border.len() == 4 {
@@ -92,45 +92,8 @@ impl Terrain {
         }
     }
 
-    fn iter_nodes(&self) -> NodeIterator {
-        NodeIterator::new(self)
-    }
-}
-
-struct NodeIterator<'a> {
-    terrain: &'a Terrain,
-    next: Option<na::Vector2<usize>>,
-}
-
-impl <'a> NodeIterator<'a> {
-    fn new(terrain: &'a Terrain) -> NodeIterator {
-        NodeIterator{terrain, next: Some(v2(0, 0))}
-    }
-}
-
-impl <'a> Iterator for NodeIterator<'a> {
-    type Item = na::Vector2<usize>;
-
-    fn next(&mut self) -> Option<na::Vector2<usize>> {
-        let out = self.next;
-        let next = if let Some(mut value) = out {
-            value.x += 2;
-            if value.x >= self.terrain.width() {
-                value.x = 0;
-                value.y += 2;
-                if value.y >= self.terrain.height() {
-                    None
-                } else {
-                    Some(value)
-                }
-            } else {
-                Some(value)
-            }
-        } else {
-            None
-        };
-        self.next = next;
-        out
+    pub fn get_index_for_node(&self, node_coordinate: na::Vector2<usize>) -> na::Vector2<usize> {
+        na::Vector2::new(node_coordinate.x * 2, node_coordinate.y * 2)
     }
 }
 
@@ -265,7 +228,13 @@ mod tests {
 
     #[test]
     fn test_node_iterator() {
-        let actual: Vec<na::Vector2<usize>> = terrain().iter_nodes().collect();
+        let terrain = terrain();
+        let mut actual = vec![];
+        for y in 0..3 {
+            for x in 0..3 {
+                actual.push(terrain.get_index_for_node(v2(x, y)));
+            }
+        }
         let expected = vec![
             v2(0, 0),
             v2(2, 0),
