@@ -18,8 +18,7 @@ impl Node {
     }
 }
 
-struct Terrain {
-    nodes: na::DMatrix<Node>,
+pub struct Terrain {
     grid: na::DMatrix<na::Vector3<f32>>,
 }
 
@@ -28,8 +27,15 @@ impl Terrain {
     fn new(nodes: na::DMatrix<Node>) -> Terrain {
         Terrain{
             grid: Terrain::create_grid(&nodes),
-            nodes,
         }
+    }
+
+    fn width(&self) -> usize {
+        self.grid.shape().0
+    }
+
+    fn height(&self) -> usize {
+        self.grid.shape().1
     }
 
     fn create_grid(nodes: &na::DMatrix<Node>) -> na::DMatrix<na::Vector3<f32>> {
@@ -71,6 +77,59 @@ impl Terrain {
             }
         }
 
+        out
+    }
+
+    fn get_triangles(&self, grid_index: na::Vector2<usize>) -> Vec<[na::Vector3<f32>; 3]> {
+        let border = self.get_border(grid_index);
+
+        if border.len() == 4 {
+            vec![[border[0], border[3], border[2]], [border[0], border[2], border[1]]]
+        } else if border.len() == 3 {
+            vec![[border[0], border[2], border[1]]]
+        } else {
+            vec![]
+        }
+    }
+
+    fn iter_nodes(&self) -> NodeIterator {
+        NodeIterator::new(self)
+    }
+}
+
+struct NodeIterator<'a> {
+    terrain: &'a Terrain,
+    next: Option<na::Vector2<usize>>,
+}
+
+impl <'a> NodeIterator<'a> {
+    fn new(terrain: &'a Terrain) -> NodeIterator {
+        NodeIterator{terrain, next: Some(v2(0, 0))}
+    }
+}
+
+impl <'a> Iterator for NodeIterator<'a> {
+    type Item = na::Vector2<usize>;
+
+    fn next(&mut self) -> Option<na::Vector2<usize>> {
+        let out = self.next;
+        let next = if let Some(mut value) = out {
+            value.x += 2;
+            if value.x >= self.terrain.width() {
+                value.x = 0;
+                value.y += 2;
+                if value.y >= self.terrain.height() {
+                    None
+                } else {
+                    Some(value)
+                }
+            } else {
+                Some(value)
+            }
+        } else {
+            None
+        };
+        self.next = next;
         out
     }
 }
@@ -129,15 +188,15 @@ mod tests {
         }
     }
 
-     #[test]
+    #[test]
     fn test_get_border_square() {
         let actual = terrain().get_border(v2(2, 2));
 
         assert_eq!(actual, vec![
             v3(0.5, 0.5, 4.0),
             v3(1.5, 0.5, 4.0),
-            v3(0.5, 1.5, 4.0),
             v3(1.5, 1.5, 4.0),
+            v3(0.5, 1.5, 4.0),
         ]);
     }
 
@@ -167,6 +226,59 @@ mod tests {
         let actual = terrain().get_border(v2(0, 0));
 
         assert_eq!(actual, vec![]);
+    }
+
+    #[test]
+    fn test_get_triangles_square() {
+        let actual = terrain().get_triangles(v2(2, 2));
+
+        assert_eq!(actual, vec![
+            [v3(0.5, 0.5, 4.0), v3(0.5, 1.5, 4.0), v3(1.5, 1.5, 4.0)],
+            [v3(0.5, 0.5, 4.0), v3(1.5, 1.5, 4.0), v3(1.5, 0.5, 4.0)],
+        ]);
+    }
+
+    #[test]
+    fn test_get_triangles_triangle() {
+        let actual = terrain().get_triangles(v2(2, 1));
+
+        assert_eq!(actual, vec![
+            [v3(1.0, 0.0, 0.0), v3(0.5, 0.5, 4.0), v3(1.5, 0.5, 4.0)],
+        ]);
+    }
+
+    #[test]
+    fn test_get_triangles_line() {
+        let actual = terrain().get_triangles(v2(1, 0));
+        let expected: Vec<[na::Vector3<f32>; 3]> = vec![];
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_get_triangles_point() {
+        let actual = terrain().get_triangles(v2(0, 0));
+        let expected: Vec<[na::Vector3<f32>; 3]> = vec![];
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_node_iterator() {
+        let actual: Vec<na::Vector2<usize>> = terrain().iter_nodes().collect();
+        let expected = vec![
+            v2(0, 0),
+            v2(2, 0),
+            v2(4, 0),
+            v2(0, 2),
+            v2(2, 2),
+            v2(4, 2),
+            v2(0, 4),
+            v2(2, 4),
+            v2(4, 4),
+        ];
+
+        assert_eq!(actual, expected);
     }
 
 }

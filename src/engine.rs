@@ -17,7 +17,7 @@ use ::graphics::engine::{Color, Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
 use ::graphics::drawing::utils::AngleSquareColoring;
-use ::graphics::drawing::terrain::*;
+use ::graphics::drawing::terrain_old::*;
 use ::graphics::drawing::sea::SeaDrawing;
 
 use self::glutin::GlContext;
