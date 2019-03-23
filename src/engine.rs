@@ -183,20 +183,9 @@ pub struct TerrainHandler {
 
 impl TerrainHandler {
     pub fn new(heights: na::DMatrix<f32>, junctions: Vec<Junction>, rivers: Vec<River>, sea_level: f32) -> TerrainHandler {
-        let width = heights.shape().0;
-        let height = heights.shape().1;
-        let mut nodes = na::DMatrix::from_element(width, height, Node::point(0.0));
-        for x in 0..heights.shape().0 {
-            for y in 0..heights.shape().1 {
-                nodes[(x, y)].elevation = heights[(x, y)];
-            }
-        }
-        for junction in junctions.iter() {
-            let node = nodes[(junction.position.x, junction.position.y)];
-            nodes[(junction.position.x, junction.position.y)].width = junction.width.max(node.width);
-            nodes[(junction.position.x, junction.position.y)].height = junction.height.max(node.height);
-        }
-        let terrain = Terrain::new(nodes);
+        let nodes = junctions.iter().map(|j| Node::new(j.position, j.width, j.height)).collect();
+        let edges = rivers.iter().map(|r| Edge::new(r.from, r.to)).collect();
+        let terrain = Terrain::new(&heights, &nodes, &edges);
         TerrainHandler{
             heights,
             junctions,

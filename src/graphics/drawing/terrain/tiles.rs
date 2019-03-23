@@ -2,10 +2,7 @@ use super::super::super::engine::{Color, Drawing};
 use super::super::super::vertex_objects::{VBO, ColoredVertex};
 use super::super::utils::*;
 use ::terrain::Terrain;
-use ::v2;
-
-type V2<T> = na::Vector2<T>;
-type V3<T> = na::Vector3<T>;
+use ::{v2, V2, V3};
 
 pub struct TerrainDrawing {
     vbo: VBO<ColoredVertex>,
@@ -31,7 +28,7 @@ impl TerrainDrawing {
         for x in 0..((terrain.width() - 1) / 2) {
             for y in 0..((terrain.height() - 1) / 2) {
                 let tile_index = v2(x, y);
-                let grid_index = terrain.get_index_for_tile(tile_index);
+                let grid_index = Terrain::get_index_for_tile(tile_index);
                 let border = terrain.get_border(grid_index);
                 let color = coloring.get_colors(&[border[0], border[1], border[2], border[3]])[0];
                 for triangle in trianglulate(terrain, v2(x, y), grid_index) {

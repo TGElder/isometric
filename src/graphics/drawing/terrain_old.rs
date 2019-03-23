@@ -19,8 +19,8 @@ impl Junction {
 
 #[derive(Debug, PartialEq)]
 pub struct River {
-    from: na::Vector2<usize>,
-    to: na::Vector2<usize>,
+    pub from: na::Vector2<usize>,
+    pub to: na::Vector2<usize>,
     color: Color,
 }
 

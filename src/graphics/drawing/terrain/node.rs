@@ -28,7 +28,7 @@ impl NodeDrawing {
 
         for x in 0..((terrain.width() + 1) / 2) {
             for y in 0..((terrain.height() + 1) / 2) {
-                for triangle in terrain.get_triangles(terrain.get_index_for_node(v2(x, y))) {
+                for triangle in terrain.get_triangles(Terrain::get_index_for_node(v2(x, y))) {
                     vertices.append(&mut get_uniform_colored_vertices_from_triangle(&triangle, &base_color));
                 }
             }
