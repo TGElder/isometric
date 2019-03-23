@@ -19,7 +19,7 @@ impl Node {
 }
 
 pub struct Terrain {
-    grid: na::DMatrix<na::Vector3<f32>>,
+    pub grid: na::DMatrix<na::Vector3<f32>>,
 }
 
 impl Terrain {
@@ -94,6 +94,10 @@ impl Terrain {
 
     pub fn get_index_for_node(&self, node_coordinate: na::Vector2<usize>) -> na::Vector2<usize> {
         na::Vector2::new(node_coordinate.x * 2, node_coordinate.y * 2)
+    }
+
+    pub fn get_index_for_tile(&self, tile_coordinate: na::Vector2<usize>) -> na::Vector2<usize> {
+        na::Vector2::new((tile_coordinate.x * 2) + 1, (tile_coordinate.y * 2) + 1)
     }
 }
 
@@ -227,7 +231,7 @@ mod tests {
     }
 
     #[test]
-    fn test_node_iterator() {
+    fn test_get_index_for_node() {
         let terrain = terrain();
         let mut actual = vec![];
         for y in 0..3 {
@@ -245,6 +249,25 @@ mod tests {
             v2(0, 4),
             v2(2, 4),
             v2(4, 4),
+        ];
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_get_index_for_tile() {
+        let terrain = terrain();
+        let mut actual = vec![];
+        for y in 0..2 {
+            for x in 0..2 {
+                actual.push(terrain.get_index_for_tile(v2(x, y)));
+            }
+        }
+        let expected = vec![
+            v2(1, 1),
+            v2(3, 1),
+            v2(1, 3),
+            v2(3, 3),
         ];
 
         assert_eq!(actual, expected);

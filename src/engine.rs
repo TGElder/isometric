@@ -17,11 +17,12 @@ use ::graphics::engine::{Color, Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
 use ::graphics::drawing::utils::AngleSquareColoring;
-use ::graphics::drawing::terrain_old::*;
+use ::graphics::drawing::terrain_old::{River, Junction};
 use ::graphics::drawing::sea::SeaDrawing;
 
 use ::terrain::*;
 
+use ::graphics::drawing::terrain::tiles::TerrainDrawing;
 use ::graphics::drawing::terrain::node::NodeDrawing;
 
 use self::glutin::GlContext;
@@ -191,16 +192,18 @@ impl TerrainHandler {
             }
         }
         for junction in junctions.iter() {
-            nodes[(junction.position.x, junction.position.y)].width = junction.width;
-            nodes[(junction.position.x, junction.position.y)].height = junction.height;
+            let node = nodes[(junction.position.x, junction.position.y)];
+            nodes[(junction.position.x, junction.position.y)].width = junction.width.max(node.width);
+            nodes[(junction.position.x, junction.position.y)].height = junction.height.max(node.height);
         }
+        let terrain = Terrain::new(nodes);
         TerrainHandler{
             heights,
             junctions,
             rivers,
             sea_level,
             world_coord: None,
-            terrain: Terrain::new(nodes),
+            terrain,
         }
     }
 }
@@ -208,7 +211,8 @@ impl TerrainHandler {
 impl TerrainHandler {
     fn draw_terrain(&self) -> Command {
         let coloring = Box::new(AngleSquareColoring::new(Color::new(0.0, 1.0, 0.0, 1.0), na::Vector3::new(1.0, 0.0, 1.0)));
-        Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::new(&self.heights, &self.junctions, &self.rivers, coloring))}
+        Command::Draw{name: "tiles".to_string(), drawing: Box::new(TerrainDrawing::new(&self.terrain, coloring))}
+        //Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::new(&self.heights, &self.junctions, &self.rivers, coloring))}
     }
 }
 
