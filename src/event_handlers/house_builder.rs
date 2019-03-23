@@ -4,7 +4,6 @@ use ::events::EventHandler;
 use ::graphics::coords::WorldCoord;
 use ::graphics::engine::Color;
 use ::graphics::drawing::house::HouseDrawing;
-use ::graphics::drawing::utils::AngleSquareColoring;
 
 const LAYER_NAME: &str = "house";
 

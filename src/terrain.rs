@@ -142,7 +142,7 @@ impl Terrain {
         }
     }
 
-    pub fn get_index_for_node(node_coordinate: V2<usize>) -> V2<usize> {
+    pub fn get_index_for_node(node_coordinate: &V2<usize>) -> V2<usize> {
         V2::new(node_coordinate.x * 2, node_coordinate.y * 2)
     }
 
@@ -154,8 +154,46 @@ impl Terrain {
         }
     }
 
-    pub fn get_index_for_tile(tile_coordinate: V2<usize>) -> V2<usize> {
+    pub fn get_index_for_tile(tile_coordinate: &V2<usize>) -> V2<usize> {
         V2::new((tile_coordinate.x * 2) + 1, (tile_coordinate.y * 2) + 1)
+    }
+
+
+    fn clip_to_tile(mut point: V3<f32>, tile_coordinate: &V2<usize>) -> V3<f32> {
+        let x = tile_coordinate.x as f32;
+        let y = tile_coordinate.y as f32;
+        point.x = point.x.max(x).min(x + 1.0);
+        point.y = point.y.max(y).min(y + 1.0);
+
+        point
+    }
+
+    pub fn get_triangles_for_tile(&self, tile_coordinate: &V2<usize>) -> Vec<[V3<f32>; 3]> {
+        let grid_index = Terrain::get_index_for_tile(tile_coordinate);
+        let mut out = vec![];
+        out.append(&mut self.get_triangles(grid_index));
+
+        let adjacents = vec![
+            v2(grid_index.x - 1, grid_index.y),
+            v2(grid_index.x + 1, grid_index.y),
+            v2(grid_index.x, grid_index.y - 1),
+            v2(grid_index.x, grid_index.y + 1),
+        ];
+
+        for adjacent in adjacents {
+            let triangles = self.get_triangles(adjacent);
+            let edge = self.edge[(adjacent.x, adjacent.y)];
+            if triangles.len() == 1 || (triangles.len() == 2 && !edge) {
+                for mut triangle in triangles {
+                    for p in 0..3 {
+                        triangle[p] = Terrain::clip_to_tile(triangle[p], &tile_coordinate);
+                    }
+                    out.push(triangle);
+                }
+            }
+        }
+
+        out
     }
 }
 
@@ -372,7 +410,7 @@ mod tests {
         let mut actual = vec![];
         for y in 0..3 {
             for x in 0..3 {
-                actual.push(Terrain::get_index_for_node(v2(x, y)));
+                actual.push(Terrain::get_index_for_node(&v2(x, y)));
             }
         }
         let expected = vec![
@@ -396,7 +434,7 @@ mod tests {
         let mut actual = vec![];
         for y in 0..2 {
             for x in 0..2 {
-                actual.push(Terrain::get_index_for_tile(v2(x, y)));
+                actual.push(Terrain::get_index_for_tile(&v2(x, y)));
             }
         }
         let expected = vec![

@@ -10,7 +10,6 @@ use ::event_handlers::scroll::Scroller;
 use ::event_handlers::zoom::ZoomHandler;
 use ::event_handlers::rotate::RotateHandler;
 use ::event_handlers::resize::{ResizeRelay, DPIRelay, Resizer};
-use ::event_handlers::selected_cell::SelectedCell;
 use ::event_handlers::house_builder::HouseBuilder;
 
 use ::graphics::engine::{Color, Drawing, GraphicsEngine};
@@ -19,6 +18,7 @@ use ::graphics::coords::*;
 use ::graphics::drawing::utils::AngleSquareColoring;
 use ::graphics::drawing::terrain_old::{River, Junction};
 use ::graphics::drawing::sea::SeaDrawing;
+use ::graphics::drawing::selected_cell::SelectedCellDrawing;
 
 use ::terrain::*;
 
@@ -198,6 +198,18 @@ impl TerrainHandler {
 }
 
 impl TerrainHandler {
+    fn select_cell(&self) -> Command {
+        if let Some(world_coord) = self.world_coord {
+            let drawing = SelectedCellDrawing::select_cell(&self.terrain, world_coord);
+            match drawing {
+                Some(drawing) => Command::Draw{name: "selected_cell".to_string(), drawing: Box::new(drawing)},
+                None => Command::Erase("selected_cell".to_string())
+            }
+        } else {
+            Command::Erase("selected_cell".to_string())
+        }
+    }
+    
     fn draw_terrain(&self) -> Command {
         let coloring = Box::new(AngleSquareColoring::new(Color::new(0.0, 1.0, 0.0, 1.0), na::Vector3::new(1.0, 0.0, 1.0)));
         Command::Draw{name: "tiles".to_string(), drawing: Box::new(TerrainDrawing::new(&self.terrain, coloring))}
@@ -224,7 +236,7 @@ impl EventHandler for TerrainHandler {
                         //Command::Draw{name: "rivers".to_string(), drawing: Box::new(RiversDrawing::new(&self.rivers, &self.heights))},
                     ]
                 },
-                Event::WorldPositionChanged(world_coord) => {self.world_coord = Some(world_coord); vec![]},
+                Event::WorldPositionChanged(world_coord) => {self.world_coord = Some(world_coord); vec![self.select_cell()]},
                 Event::GlutinEvent(
                     glutin::Event::WindowEvent{
                         event: glutin::WindowEvent::KeyboardInput{
@@ -269,8 +281,6 @@ impl EventHandler for TerrainHandler {
                 _ => vec![],
             }
         );
-        let mut selected_cell = Box::new(SelectedCell::new(&self.heights));
-        out.append(&mut selected_cell.handle_event(event.clone()));
         out
     }
 
