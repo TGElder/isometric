@@ -183,7 +183,7 @@ impl Terrain {
         for adjacent in adjacents {
             let triangles = self.get_triangles(adjacent);
             let edge = self.edge[(adjacent.x, adjacent.y)];
-            if triangles.len() == 1 || (triangles.len() == 2 && !edge) {
+            if !edge && (triangles.len() == 1 || triangles.len() == 2) {
                 for mut triangle in triangles {
                     for p in 0..3 {
                         triangle[p] = Terrain::clip_to_tile(triangle[p], &tile_coordinate);
@@ -216,7 +216,11 @@ mod tests {
             Node::new(v2(2, 2), 0.0, 0.0),
         ];
 
-        let edges = vec![];
+        let edges = vec![
+            Edge::new(v2(1, 1), v2(2, 1)),
+            Edge::new(v2(2, 1), v2(2, 2)),
+            Edge::new(v2(1, 2), v2(2, 2)),
+        ];
 
         Terrain::new(&elevations, &nodes, &edges)
     }
@@ -406,7 +410,6 @@ mod tests {
 
     #[test]
     fn test_get_index_for_node() {
-        let terrain = terrain();
         let mut actual = vec![];
         for y in 0..3 {
             for x in 0..3 {
@@ -430,7 +433,6 @@ mod tests {
 
     #[test]
     fn test_get_index_for_tile() {
-        let terrain = terrain();
         let mut actual = vec![];
         for y in 0..2 {
             for x in 0..2 {
@@ -445,6 +447,47 @@ mod tests {
         ];
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_clip_to_tile() {
+        let actual = Terrain::clip_to_tile(v3(9.5, 10.5, 12.0), &v2(10, 10));
+        assert_eq!(actual, v3(10.0, 10.5, 12.0));
+
+        let actual = Terrain::clip_to_tile(v3(11.5, 10.5, 12.0), &v2(10, 10));
+        assert_eq!(actual, v3(11.0, 10.5, 12.0));
+
+        let actual = Terrain::clip_to_tile(v3(10.5, 9.5, 12.0), &v2(10, 10));
+        assert_eq!(actual, v3(10.5, 10.0, 12.0));
+
+        let actual = Terrain::clip_to_tile(v3(10.5, 11.5, 12.0), &v2(10, 10));
+        assert_eq!(actual, v3(10.5, 11.0, 12.0));
+    }
+
+    #[test]
+    fn test_get_triangles_for_tile_a() {
+        let terrain = terrain();
+
+        let actual = terrain.get_triangles_for_tile(&v2(1, 0));
+
+        assert!(actual.contains(&[v3(1.0, 0.0, 0.0), v3(1.5, 0.5, 4.0), v3(1.6, 0.9, 3.0)]));
+        assert!(actual.contains(&[v3(1.0, 0.0, 0.0), v3(1.6, 0.9, 3.0), v3(2.0, 0.0, 0.0)]));
+        assert!(actual.contains(&[v3(1.0, 0.0, 0.0), v3(1.0, 0.5, 4.0), v3(1.5, 0.5, 4.0)]));
+        assert!(actual.contains(&[v3(2.0, 0.0, 0.0), v3(1.6, 0.9, 3.0), v3(2.0, 0.9, 3.0)]));
+        assert_eq!(actual.len(), 4);
+    }
+
+    #[test]
+    fn test_get_triangles_for_tile_b() {
+        let terrain = terrain();
+
+        let actual = terrain.get_triangles_for_tile(&v2(1, 1));
+
+        assert!(actual.contains(&[v3(1.5, 1.5, 4.0), v3(1.1, 1.6, 2.0), v3(2.0, 2.0, 1.0)]));
+        assert!(actual.contains(&[v3(1.5, 1.5, 4.0), v3(2.0, 2.0, 1.0), v3(1.6, 1.1, 3.0)]));
+        assert!(actual.contains(&[v3(1.0, 1.5, 4.0), v3(1.0, 1.6, 2.0), v3(1.1, 1.6, 2.0)]));
+        assert!(actual.contains(&[v3(1.0, 1.5, 4.0), v3(1.1, 1.6, 2.0), v3(1.5, 1.5, 4.0)]));
+        assert_eq!(actual.len(), 4);
     }
 
 }

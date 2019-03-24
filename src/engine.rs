@@ -183,16 +183,13 @@ pub struct TerrainHandler {
 
 impl TerrainHandler {
     pub fn new(heights: na::DMatrix<f32>, junctions: Vec<Junction>, rivers: Vec<River>, sea_level: f32) -> TerrainHandler {
-        let nodes = junctions.iter().map(|j| Node::new(j.position, j.width, j.height)).collect();
-        let edges = rivers.iter().map(|r| Edge::new(r.from, r.to)).collect();
-        let terrain = Terrain::new(&heights, &nodes, &edges);
         TerrainHandler{
+            sea_level,
+            world_coord: None,
+            terrain: TerrainHandler::compute_terrain(&heights, &junctions, &rivers),
             heights,
             junctions,
             rivers,
-            sea_level,
-            world_coord: None,
-            terrain,
         }
     }
 }
@@ -209,8 +206,15 @@ impl TerrainHandler {
             Command::Erase("selected_cell".to_string())
         }
     }
+
+    fn compute_terrain(heights: &na::DMatrix<f32>, junctions: &Vec<Junction>, rivers: &Vec<River>) -> Terrain {
+        let nodes = junctions.iter().map(|j| Node::new(j.position, j.width, j.height)).collect();
+        let edges = rivers.iter().map(|r| Edge::new(r.from, r.to)).collect();
+        Terrain::new(&heights, &nodes, &edges)
+    }
     
-    fn draw_terrain(&self) -> Command {
+    fn draw_terrain(&mut self) -> Command {
+        self.terrain = TerrainHandler::compute_terrain(&self.heights, &self.junctions, &self.rivers);
         let coloring = Box::new(AngleSquareColoring::new(Color::new(0.0, 1.0, 0.0, 1.0), na::Vector3::new(1.0, 0.0, 1.0)));
         Command::Draw{name: "tiles".to_string(), drawing: Box::new(TerrainDrawing::new(&self.terrain, coloring))}
         //Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::new(&self.heights, &self.junctions, &self.rivers, coloring))}
@@ -229,7 +233,7 @@ impl EventHandler for TerrainHandler {
                 Event::Start => {
                     vec![
                         Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, self.sea_level))},
-                        Command::Draw{name: "nodes".to_string(), drawing: Box::new(NodeDrawing::new(&self.terrain, Color::new(1.0, 0.0, 0.0, 1.0)))},
+                        Command::Draw{name: "nodes".to_string(), drawing: Box::new(NodeDrawing::new(&self.terrain, Color::new(0.0, 0.0, 1.0, 1.0)))},
                         self.draw_terrain(),
                         //Command::Draw{name: "river_debug".to_string(), drawing: Box::new(RiverDebugDrawing::new(&self.heights, &self.rivers))},
                         // Command::Draw{name: "terrain_grid".to_string(), drawing: Box::new(TerrainGridDrawing::from_heights(&self.heights))},
