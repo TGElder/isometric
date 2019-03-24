@@ -17,7 +17,7 @@ impl Node {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Edge {
     from: V2<usize>,
     to: V2<usize>,
@@ -142,8 +142,8 @@ impl Terrain {
         }
     }
 
-    pub fn get_index_for_node(node_coordinate: &V2<usize>) -> V2<usize> {
-        V2::new(node_coordinate.x * 2, node_coordinate.y * 2)
+    pub fn get_index_for_node(node: &Node) -> V2<usize> {
+        V2::new(node.position.x * 2, node.position.y * 2)
     }
 
     pub fn get_index_for_edge(edge: &Edge) -> V2<usize> {
@@ -413,7 +413,7 @@ mod tests {
         let mut actual = vec![];
         for y in 0..3 {
             for x in 0..3 {
-                actual.push(Terrain::get_index_for_node(&v2(x, y)));
+                actual.push(Terrain::get_index_for_node(&Node::point(v2(x, y))));
             }
         }
         let expected = vec![

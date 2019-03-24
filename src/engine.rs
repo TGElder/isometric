@@ -16,14 +16,12 @@ use ::graphics::engine::{Color, Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
 use ::graphics::drawing::utils::AngleSquareColoring;
-use ::graphics::drawing::terrain_old::{River, Junction};
 use ::graphics::drawing::sea::SeaDrawing;
 use ::graphics::drawing::selected_cell::SelectedCellDrawing;
 
 use ::terrain::*;
 
-use ::graphics::drawing::terrain::tiles::TerrainDrawing;
-use ::graphics::drawing::terrain::node::NodeDrawing;
+use ::graphics::drawing::terrain::*;
 
 use self::glutin::GlContext;
 
@@ -174,22 +172,26 @@ impl IsometricEngine {
 
 pub struct TerrainHandler {
     heights: na::DMatrix<f32>,
-    junctions: Vec<Junction>,
-    rivers: Vec<River>,
+    river_nodes: Vec<Node>,
+    rivers: Vec<Edge>,
+    road_nodes: Vec<Node>,
+    roads: Vec<Edge>,
     sea_level: f32,
     world_coord: Option<WorldCoord>,
     terrain: Terrain,
 }
 
 impl TerrainHandler {
-    pub fn new(heights: na::DMatrix<f32>, junctions: Vec<Junction>, rivers: Vec<River>, sea_level: f32) -> TerrainHandler {
+    pub fn new(heights: na::DMatrix<f32>, river_nodes: Vec<Node>, rivers: Vec<Edge>, sea_level: f32) -> TerrainHandler {
         TerrainHandler{
             sea_level,
             world_coord: None,
-            terrain: TerrainHandler::compute_terrain(&heights, &junctions, &rivers),
+            terrain: TerrainHandler::compute_terrain(&heights, &river_nodes, &rivers, &vec![], &vec![]),
             heights,
-            junctions,
+            river_nodes,
             rivers,
+            road_nodes: vec![],
+            roads: vec![],
         }
     }
 }
@@ -207,17 +209,35 @@ impl TerrainHandler {
         }
     }
 
-    fn compute_terrain(heights: &na::DMatrix<f32>, junctions: &Vec<Junction>, rivers: &Vec<River>) -> Terrain {
-        let nodes = junctions.iter().map(|j| Node::new(j.position, j.width, j.height)).collect();
-        let edges = rivers.iter().map(|r| Edge::new(r.from, r.to)).collect();
+    fn compute_terrain(
+        heights: &na::DMatrix<f32>, 
+        river_nodes: &Vec<Node>, 
+        rivers: &Vec<Edge>,
+        road_nodes: &Vec<Node>, 
+        roads: &Vec<Edge>,
+    ) -> Terrain {
+        let mut nodes = vec![];
+        nodes.extend(river_nodes.iter().cloned());
+        nodes.extend(road_nodes.iter().cloned());
+        let mut edges = vec![];
+        edges.extend(rivers.iter().cloned());
+        edges.extend(roads.iter().cloned());
         Terrain::new(&heights, &nodes, &edges)
     }
     
-    fn draw_terrain(&mut self) -> Command {
-        self.terrain = TerrainHandler::compute_terrain(&self.heights, &self.junctions, &self.rivers);
+    fn draw_terrain(&mut self) -> Vec<Command> {
+        self.terrain = TerrainHandler::compute_terrain(&self.heights, &self.river_nodes, &self.rivers, &self.road_nodes, &self.roads);
         let coloring = Box::new(AngleSquareColoring::new(Color::new(0.0, 1.0, 0.0, 1.0), na::Vector3::new(1.0, 0.0, 1.0)));
-        Command::Draw{name: "tiles".to_string(), drawing: Box::new(TerrainDrawing::new(&self.terrain, coloring))}
-        //Command::Draw{name: "terrain".to_string(), drawing: Box::new(TerrainDrawing::new(&self.heights, &self.junctions, &self.rivers, coloring))}
+        let river_color = Color::new(0.0, 0.0, 1.0, 1.0);
+        let road_color = Color::new(0.3, 0.3, 0.3, 1.0);
+        vec![
+            Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, self.sea_level))},
+            Command::Draw{name: "tiles".to_string(), drawing: Box::new(TerrainDrawing::new(&self.terrain, coloring))},
+            Command::Draw{name: "river".to_string(), drawing: Box::new(EdgeDrawing::new(&self.terrain, &self.rivers,river_color, 0.0))},
+            Command::Draw{name: "rivers_nodes".to_string(), drawing: Box::new(NodeDrawing::new(&self.terrain, &self.river_nodes, river_color, 0.0))},
+            Command::Draw{name: "road".to_string(), drawing: Box::new(EdgeDrawing::new(&self.terrain, &self.roads,road_color, -0.001))},
+            Command::Draw{name: "road_nodes".to_string(), drawing: Box::new(NodeDrawing::new(&self.terrain, &self.road_nodes, road_color, -0.001))},
+        ]
     }
 }
 
@@ -230,16 +250,7 @@ impl EventHandler for TerrainHandler {
         let mut out = vec![];
         out.append(
             &mut match *event {
-                Event::Start => {
-                    vec![
-                        Command::Draw{name: "sea".to_string(), drawing: Box::new(SeaDrawing::new(self.heights.shape().0 as f32, self.heights.shape().1 as f32, self.sea_level))},
-                        Command::Draw{name: "nodes".to_string(), drawing: Box::new(NodeDrawing::new(&self.terrain, Color::new(0.0, 0.0, 1.0, 1.0)))},
-                        self.draw_terrain(),
-                        //Command::Draw{name: "river_debug".to_string(), drawing: Box::new(RiverDebugDrawing::new(&self.heights, &self.rivers))},
-                        // Command::Draw{name: "terrain_grid".to_string(), drawing: Box::new(TerrainGridDrawing::from_heights(&self.heights))},
-                        //Command::Draw{name: "rivers".to_string(), drawing: Box::new(RiversDrawing::new(&self.rivers, &self.heights))},
-                    ]
-                },
+                Event::Start => self.draw_terrain(),
                 Event::WorldPositionChanged(world_coord) => {self.world_coord = Some(world_coord); vec![self.select_cell()]},
                 Event::GlutinEvent(
                     glutin::Event::WindowEvent{
@@ -270,14 +281,14 @@ impl EventHandler for TerrainHandler {
                             _ => panic!("Should not happen: minimum of four values does not match any of those values"),
                         };
                         if from.x == to.x {
-                            self.junctions.push(Junction::new(from, 0.1, 0.0, grey));
-                            self.junctions.push(Junction::new(to, 0.1, 0.0, grey));
+                            self.road_nodes.push(Node::new(from, 0.1, 0.0));
+                            self.road_nodes.push(Node::new(to, 0.1, 0.0));
                         } else {
-                            self.junctions.push(Junction::new(from, 0.0, 0.1, grey));
-                            self.junctions.push(Junction::new(to, 0.0, 0.1, grey));
+                            self.road_nodes.push(Node::new(from, 0.0, 0.1));
+                            self.road_nodes.push(Node::new(to, 0.0, 0.1));
                         }
-                        self.rivers.push(River::new(from, to, grey));
-                        vec![self.draw_terrain()]
+                        self.roads.push(Edge::new(from, to));
+                        self.draw_terrain()
                     } else {
                         vec![]
                     }

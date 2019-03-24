@@ -3,7 +3,7 @@ mod events;
 mod event_handlers;
 pub mod graphics;
 mod utils;
-mod terrain;
+pub mod terrain;
 
 extern crate nalgebra as na;
 
