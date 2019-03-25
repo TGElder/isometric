@@ -1,5 +1,5 @@
 mod engine;
-mod events;
+pub mod events;
 pub mod event_handlers;
 mod graphics;
 mod utils;
@@ -12,7 +12,9 @@ pub use engine::*;
 pub use color::Color;
 pub use graphics::drawing;
 
-extern crate nalgebra as na;
+pub extern crate nalgebra as na;
+
+pub extern crate glutin;
 
 use std::fmt::Debug;
 
