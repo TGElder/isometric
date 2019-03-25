@@ -3,18 +3,11 @@ extern crate glutin;
 use std::sync::Arc;
 
 use ::events::{EventHandler, AsyncEventHandler};
-use ::event_handlers::shutdown::ShutdownHandler;
-use ::event_handlers::cursor_handler::CursorHandler;
-use ::event_handlers::drag::DragHandler;
-use ::event_handlers::scroll::Scroller;
-use ::event_handlers::zoom::ZoomHandler;
-use ::event_handlers::rotate::RotateHandler;
-use ::event_handlers::resize::{ResizeRelay, DPIRelay, Resizer};
-use ::event_handlers::house_builder::HouseBuilder;
-
-use ::graphics::engine::{Color, Drawing, GraphicsEngine};
-use ::graphics::transform::Direction;
-use ::graphics::coords::*;
+use ::graphics::engine::GraphicsEngine;
+use ::event_handlers::*;
+use ::transform::Direction;
+use ::coords::*;
+use ::color::Color;
 
 use ::graphics::drawing::*;
 

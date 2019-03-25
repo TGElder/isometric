@@ -1,9 +1,16 @@
-pub mod engine;
+mod engine;
 mod events;
-mod event_handlers;
-pub mod graphics;
+pub mod event_handlers;
+mod graphics;
 mod utils;
 pub mod terrain;
+pub mod coords;
+mod transform;
+mod color;
+
+pub use engine::*;
+pub use color::Color;
+pub use graphics::drawing;
 
 extern crate nalgebra as na;
 

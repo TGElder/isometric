@@ -1,4 +1,5 @@
-use super::super::engine::{Color, Drawing};
+use super::Drawing;
+use ::color::Color;
 use super::super::vertex_objects::{VBO, ColoredVertex};
 use super::utils::*;
 use ::terrain::{Node, Edge, Terrain};

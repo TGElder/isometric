@@ -1,4 +1,4 @@
-use super::super::engine::Drawing;
+use super::Drawing;
 use super::super::vertex_objects::{VBO, ColoredVertex};
 
 pub struct SeaDrawing {

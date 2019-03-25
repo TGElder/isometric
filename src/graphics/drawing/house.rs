@@ -1,5 +1,6 @@
-use super::super::coords::*;
-use super::super::engine::{Color, Drawing};
+use ::coords::*;
+use super::Drawing;
+use ::color::Color;
 use super::super::vertex_objects::{VBO, ColoredVertex};
 use super::utils::*;
 

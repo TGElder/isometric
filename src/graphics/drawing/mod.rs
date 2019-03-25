@@ -9,3 +9,8 @@ pub use self::terrain::*;
 pub use self::selected_cell::*;
 pub use self::sea::*;
 pub use self::house::*;
+
+pub trait Drawing {
+    fn draw(&self);
+    fn get_z_mod(&self) -> f32;
+}

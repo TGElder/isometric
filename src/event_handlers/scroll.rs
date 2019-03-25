@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use ::engine::{Event, Command};
 use ::events::EventHandler;
-use ::graphics::coords::{GLCoord2D, GLCoord4D};
+use ::coords::{GLCoord2D, GLCoord4D};
 
 pub struct Scroller{}
 

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use ::engine::{Event, Command};
 use ::events::EventHandler;
-use ::graphics::coords::GLCoord4D;
+use ::coords::GLCoord4D;
 
 pub struct DragHandler {
     dragging: bool,

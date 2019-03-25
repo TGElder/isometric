@@ -2,7 +2,7 @@ use std::sync::Arc;
 use ::engine::{Event, Command};
 use ::events::EventHandler;
 use ::graphics::engine::GLZFinder;
-use ::graphics::coords::PhysicalPositionExt;
+use ::coords::PhysicalPositionExt;
 
 pub struct CursorHandler {
     z_finder: GLZFinder,

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use ::engine::{Event, Command};
 use ::events::EventHandler;
-use ::graphics::coords::WorldCoord;
-use ::graphics::engine::Color;
+use ::coords::WorldCoord;
+use ::color::Color;
 use ::graphics::drawing::HouseDrawing;
 
 const LAYER_NAME: &str = "house";

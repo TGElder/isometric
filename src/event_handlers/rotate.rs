@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use ::engine::{Event, Command};
 use ::events::EventHandler;
-use ::graphics::coords::GLCoord4D;
-use ::graphics::transform::Direction;
+use ::coords::GLCoord4D;
+use ::transform::Direction;
 
 pub struct RotateHandler {
     cursor_position: Option<GLCoord4D>,

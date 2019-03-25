@@ -1,4 +1,5 @@
-use super::super::engine::Color;
+use super::Drawing;
+use ::color::Color;
 use utils::float_ordering;
 use std::f32;
 
