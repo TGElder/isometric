@@ -15,13 +15,10 @@ use ::event_handlers::house_builder::HouseBuilder;
 use ::graphics::engine::{Color, Drawing, GraphicsEngine};
 use ::graphics::transform::Direction;
 use ::graphics::coords::*;
-use ::graphics::drawing::utils::AngleSquareColoring;
-use ::graphics::drawing::sea::SeaDrawing;
-use ::graphics::drawing::selected_cell::SelectedCellDrawing;
+
+use ::graphics::drawing::*;
 
 use ::terrain::*;
-
-use ::graphics::drawing::terrain::*;
 
 use self::glutin::GlContext;
 
@@ -245,8 +242,6 @@ impl EventHandler for TerrainHandler {
 
     fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
 
-        let grey = Color::new(0.3, 0.3, 0.3, 1.0);
-
         let mut out = vec![];
         out.append(
             &mut match *event {
@@ -280,15 +275,22 @@ impl EventHandler for TerrainHandler {
                             d if d == distance_to_top => (na::Vector2::new(cell_x as usize + 1, cell_y as usize + 1), na::Vector2::new(cell_x as usize, cell_y as usize + 1)),
                             _ => panic!("Should not happen: minimum of four values does not match any of those values"),
                         };
-                        if from.x == to.x {
-                            self.road_nodes.push(Node::new(from, 0.1, 0.0));
-                            self.road_nodes.push(Node::new(to, 0.1, 0.0));
+                        let from_z = self.heights[(from.x, from.y)];
+                        let to_z = self.heights[(to.x, to.y)];
+                        let rise = if from_z > to_z {from_z - to_z} else{to_z - from_z};
+                        if rise * 187.5 < 100.0 {
+                            if from.x == to.x {
+                                self.road_nodes.push(Node::new(from, 0.05, 0.0));
+                                self.road_nodes.push(Node::new(to, 0.05, 0.0));
+                            } else {
+                                self.road_nodes.push(Node::new(from, 0.0, 0.05));
+                                self.road_nodes.push(Node::new(to, 0.0, 0.05));
+                            }
+                            self.roads.push(Edge::new(from, to));
+                            self.draw_terrain()
                         } else {
-                            self.road_nodes.push(Node::new(from, 0.0, 0.1));
-                            self.road_nodes.push(Node::new(to, 0.0, 0.1));
+                            vec![]
                         }
-                        self.roads.push(Edge::new(from, to));
-                        self.draw_terrain()
                     } else {
                         vec![]
                     }
