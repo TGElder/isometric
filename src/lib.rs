@@ -11,10 +11,11 @@ mod color;
 pub use engine::*;
 pub use color::Color;
 pub use graphics::drawing;
+pub use graphics::texture::*;
 
 pub extern crate nalgebra as na;
-
 pub extern crate glutin;
+pub extern crate image;
 
 use std::fmt::Debug;
 
