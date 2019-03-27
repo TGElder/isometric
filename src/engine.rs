@@ -139,11 +139,11 @@ impl IsometricEngine {
                 self.window.resize(physical_size);
                 self.graphics.set_viewport_size(physical_size);
             },
-            Command::Translate(translation) => self.graphics.get_transformer().translate(translation),
-            Command::Scale{center, scale} => self.graphics.get_transformer().scale(center, scale),
-            Command::Rotate{center, direction} => self.graphics.get_transformer().rotate(center, direction),    
+            Command::Translate(translation) => self.graphics.get_transform().translate(translation),
+            Command::Scale{center, scale} => self.graphics.get_transform().scale(center, scale),
+            Command::Rotate{center, direction} => self.graphics.get_transform().rotate(center, direction),    
             Command::Event(event) => self.events.push(event),
-            Command::ComputeWorldPosition(gl_coord) => self.events.push(Event::WorldPositionChanged(gl_coord.to_world_coord(&self.graphics.get_transformer()))),
+            Command::ComputeWorldPosition(gl_coord) => self.events.push(Event::WorldPositionChanged(gl_coord.to_world_coord(&self.graphics.get_transform()))),
             Command::Draw{name, drawing} => {self.graphics.add_drawing(name, drawing)},
             Command::Erase(name) => {self.graphics.remove_drawing(&name)},
         }

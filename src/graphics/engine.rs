@@ -9,7 +9,8 @@ use ::coords::*;
 use super::drawing::Drawing;
 
 pub struct GraphicsEngine {
-    program: Program,
+    untextured_program: Program,
+    text_program: Program,
     viewport_size: glutin::dpi::PhysicalSize,
     transform: Transform,
     drawings: HashMap<String, Box<Drawing>>,
@@ -18,10 +19,12 @@ pub struct GraphicsEngine {
 impl GraphicsEngine {
 
     pub fn new(z_scale: f32, viewport_size: glutin::dpi::PhysicalSize) -> GraphicsEngine {
-        let program = GraphicsEngine::load_program();
+        let untextured_program = GraphicsEngine::load_program(include_str!("shaders/triangle.vert"), include_str!("shaders/triangle.frag"));
+        let text_program = GraphicsEngine::load_program(include_str!("shaders/texture.vert"), include_str!("shaders/texture.frag"));
 
         let mut out = GraphicsEngine {
-            program,
+            untextured_program,
+            text_program,
             transform: Transform::new(
                 GLCoord3D::new(1.0, viewport_size.width as f32 / viewport_size.height as f32, z_scale),
                 GLCoord2D::new(0.0, 0.0),
@@ -33,19 +36,19 @@ impl GraphicsEngine {
         out
     }
 
-    pub fn get_transformer(&mut self) -> &mut Transform {
+    pub fn get_transform(&mut self) -> &mut Transform {
         &mut self.transform
     }
 
-    fn load_program() -> Program {
+    fn load_program(vertex_shader: &'static str, fragment_shader: &'static str) -> Program {
         let vertex_shader = Shader::from_source(
-            &CString::new(include_str!("shaders/texture.vert")).unwrap(), //TODO don't like exposing CString
+            &CString::new(vertex_shader).unwrap(), //TODO don't like exposing CString
             gl::VERTEX_SHADER,
         )
         .unwrap();
 
         let fragment_shader = Shader::from_source(
-            &CString::new(include_str!("shaders/texture.frag")).unwrap(),
+            &CString::new(fragment_shader).unwrap(),
             gl::FRAGMENT_SHADER,
         )
         .unwrap();
@@ -56,17 +59,7 @@ impl GraphicsEngine {
 
         let shader_program = Program::from_shaders(&[vertex_shader, fragment_shader]).unwrap();
 
-        shader_program.set_used();
-
         return shader_program;
-    }
-
-    fn load_z_mod(&self, z_mod: f32) {
-        self.program.load_float("z_mod", z_mod);
-    }
-
-    fn load_projection_matrix(&self, projection_matrix: na::Matrix4<f32>) {
-        self.program.load_matrix("projection", projection_matrix);
     }
 
     pub fn add_drawing(&mut self, name: String, drawing: Box<Drawing>) {
@@ -81,10 +74,23 @@ impl GraphicsEngine {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             self.transform.compute_projection_matrix();
-            self.load_projection_matrix(self.transform.get_projection_matrix());
+            self.untextured_program.set_used();
+            self.untextured_program.load_matrix("projection", self.transform.get_projection_matrix());
             for drawing in self.drawings.values() {
-                self.load_z_mod(drawing.get_z_mod());
-                drawing.draw();
+                if !drawing.text() {
+                    self.untextured_program.load_float("z_mod", drawing.get_z_mod());
+                    drawing.draw();
+                }
+            }
+            self.text_program.set_used();
+            let text_matrix = self.transform.get_text_matrix();
+            println!("{:?}", text_matrix * na::Vector4::new(0.0, 0.0, -1.0, 1.0));
+            self.text_program.load_matrix("projection", self.transform.get_text_matrix());
+            for drawing in self.drawings.values() {
+                if drawing.text() {
+                    self.text_program.load_float("z_mod", drawing.get_z_mod());
+                    drawing.draw();
+                }
             }
         }
     }

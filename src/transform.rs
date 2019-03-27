@@ -85,6 +85,17 @@ impl Transform {
         self.inverse_matrix = self.projection_matrix.try_inverse().unwrap();
     }
 
+       pub fn get_text_matrix(&mut self) -> na::Matrix4<f32> {
+        let out = na::Matrix4::from_vec(vec![
+            1.0, 0.0, 0.0, self.translation.x,
+            0.0, 1.0, 0.0, self.translation.y,
+            0.0, 0.0, -1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,]
+        ).transpose();
+
+        out
+    }
+
     pub fn get_projection_matrix(&self) -> na::Matrix4<f32> {
         self.projection_matrix
     }

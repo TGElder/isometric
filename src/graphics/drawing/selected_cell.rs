@@ -18,6 +18,10 @@ impl Drawing for SelectedCellDrawing {
     fn get_z_mod(&self) -> f32 {
         -0.0001
     }
+
+    fn text(&self) -> bool {
+        false
+    }
 }
 
 impl SelectedCellDrawing {

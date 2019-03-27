@@ -15,4 +15,5 @@ pub use self::canvas::*;
 pub trait Drawing {
     fn draw(&self);
     fn get_z_mod(&self) -> f32;
+    fn text(&self) -> bool;
 }

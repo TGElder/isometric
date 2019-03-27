@@ -16,6 +16,10 @@ impl Drawing for HouseDrawing {
     fn get_z_mod(&self) -> f32 {
         0.0
     }
+
+    fn text(&self) -> bool {
+        false
+    }
 }
 
 impl HouseDrawing {

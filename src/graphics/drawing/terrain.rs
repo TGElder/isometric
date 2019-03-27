@@ -18,6 +18,10 @@ impl Drawing for NodeDrawing {
     fn get_z_mod(&self) -> f32 {
         self.z_mod
     }
+
+    fn text(&self) -> bool {
+        false
+    }
 }
 
 impl NodeDrawing {
@@ -52,6 +56,10 @@ impl Drawing for EdgeDrawing {
     fn get_z_mod(&self) -> f32 {
         self.z_mod
     }
+
+    fn text(&self) -> bool {
+        false
+    }
 }
 
 impl EdgeDrawing {
@@ -84,6 +92,10 @@ impl Drawing for TerrainDrawing {
 
     fn get_z_mod(&self) -> f32 {
         0.0
+    }
+
+    fn text(&self) -> bool {
+        false
     }
 }
 
