@@ -83,9 +83,7 @@ impl GraphicsEngine {
                 }
             }
             self.text_program.set_used();
-            let text_matrix = self.transform.get_text_matrix();
-            println!("{:?}", text_matrix * na::Vector4::new(0.0, 0.0, -1.0, 1.0));
-            self.text_program.load_matrix("projection", self.transform.get_text_matrix());
+            self.text_program.load_matrix("projection", self.transform.get_projection_matrix());
             for drawing in self.drawings.values() {
                 if drawing.text() {
                     self.text_program.load_float("z_mod", drawing.get_z_mod());

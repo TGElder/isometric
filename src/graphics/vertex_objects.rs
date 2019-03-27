@@ -174,7 +174,7 @@ impl BufferType for TexturedVertex {
                 3,
                 gl::FLOAT,
                 gl::FALSE,
-                (8 * std::mem::size_of::<f32>()) as gl::types::GLint,
+                (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
                 std::ptr::null(),
             );
             gl::EnableVertexAttribArray(1);
@@ -183,7 +183,7 @@ impl BufferType for TexturedVertex {
                 3,
                 gl::FLOAT,
                 gl::FALSE,
-                (8 * std::mem::size_of::<f32>()) as gl::types::GLint,
+                (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
                 (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
             );
             gl::EnableVertexAttribArray(2);
@@ -192,8 +192,17 @@ impl BufferType for TexturedVertex {
                 2,
                 gl::FLOAT,
                 gl::FALSE,
-                (8 * std::mem::size_of::<f32>()) as gl::types::GLint,
+                (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
                 (6 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
+            );
+            gl::EnableVertexAttribArray(3);
+            gl::VertexAttribPointer(
+                3,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
+                (8 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
             );
         }
     }
