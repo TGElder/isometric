@@ -7,6 +7,7 @@ pub mod terrain;
 pub mod coords;
 mod transform;
 mod color;
+mod font;
 
 pub use engine::*;
 pub use color::Color;

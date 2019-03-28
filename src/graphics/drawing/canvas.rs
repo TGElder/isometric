@@ -32,7 +32,7 @@ impl Canvas {
 
         let x = 344.0;
         let h = 0.025;
-        let w = 0.1;
+        let w = 0.05;
         //let z = 100.0;
         let vertices = vec![
             x, x, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, -w, -h,
