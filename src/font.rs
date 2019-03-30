@@ -1,25 +1,26 @@
 use std::fs::File;
 use std::io::Read;
 use ::graphics::texture::Texture;
+use ::{v2, V2};
 
 #[derive(Clone, Copy)]
 pub struct Glyph {
-    pub character: char,
-    pub x: i32,
-    pub y: i32,
-    pub width: i32,
-    pub height: i32,
-    pub xoffset: i32,
-    pub yoffset: i32,
-    pub xadvance: i32,
+    character: char,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
+    xoffset: i32,
+    yoffset: i32,
+    xadvance: i32,
 }
 
 impl Glyph {
     fn from_line(line: &str) -> Glyph {
-        let mut columns: Vec<&str> = line.split(",").collect();
-        let mut id: usize = columns[0].parse().unwrap();
+        let columns: Vec<&str> = line.split(",").collect();
+        let id: usize = columns[0].parse().unwrap();
         Glyph {
-            character: columns[0].parse().unwrap(),
+            character: id as u8 as char,
             x: columns[1].parse().unwrap(),
             y: columns[2].parse().unwrap(),
             width: columns[3].parse().unwrap(),
@@ -58,6 +59,24 @@ impl Font {
             glyphs: Glyph::from_csv(csv_file_name),
             texture
         }
+    }
+
+    pub fn texture(&self) -> &Texture {
+        &self.texture
+    }
+
+    fn get_glyph(&self, character: char) -> Glyph {
+        self.glyphs[character as usize].expect("Unrecognised character") //TODO better error msg, also copying?
+    }
+
+    pub fn get_texture_coords(&self, character: char) -> (V2<f32>, V2<f32>)  
+    {
+        let glyph = self.get_glyph(character);
+        (
+            self.texture.get_texture_coords(v2(glyph.x, glyph.y)),
+            self.texture.get_texture_coords(v2(glyph.x + glyph.width, glyph.y + glyph.height)),
+        )
+
     }
     
 }
