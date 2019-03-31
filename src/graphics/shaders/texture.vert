@@ -6,6 +6,7 @@ layout (location = 2) in vec2 TexCoord;
 layout (location = 3) in vec2 Offset;
 
 uniform mat4 projection;
+uniform mat2 pixel_to_screen;
 uniform float z_mod;
 
 out VS_OUTPUT {
@@ -16,8 +17,9 @@ out VS_OUTPUT {
 void main()
 {
     gl_Position = projection * vec4(Position, 1.0);
-    gl_Position.x += Offset.x;
-    gl_Position.y += Offset.y;
+    vec2 screen_offset = pixel_to_screen * Offset;
+    gl_Position.x += screen_offset.x;
+    gl_Position.y += screen_offset.y;
     gl_Position.z = -1.0;
     OUT.Color = Color;
     OUT.TexCoord = TexCoord;

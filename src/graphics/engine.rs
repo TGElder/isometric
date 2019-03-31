@@ -70,12 +70,19 @@ impl GraphicsEngine {
         self.drawings.remove(name);
     }
 
+    fn get_pixel_to_screen(&self) -> na::Matrix2<f32> {
+        na::Matrix2::new(
+            2.0 / self.viewport_size.width as f32, 0.0,
+            0.0, 2.0 / self.viewport_size.height as f32,
+        )
+    }
+
     pub fn draw(&mut self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             self.transform.compute_projection_matrix();
             self.untextured_program.set_used();
-            self.untextured_program.load_matrix("projection", self.transform.get_projection_matrix());
+            self.untextured_program.load_matrix4("projection", self.transform.get_projection_matrix());
             for drawing in self.drawings.values() {
                 if !drawing.text() {
                     self.untextured_program.load_float("z_mod", drawing.get_z_mod());
@@ -83,7 +90,8 @@ impl GraphicsEngine {
                 }
             }
             self.text_program.set_used();
-            self.text_program.load_matrix("projection", self.transform.get_projection_matrix());
+            self.text_program.load_matrix4("projection", self.transform.get_projection_matrix());
+            self.text_program.load_matrix2("pixel_to_screen", self.get_pixel_to_screen());
             for drawing in self.drawings.values() {
                 if drawing.text() {
                     self.text_program.load_float("z_mod", drawing.get_z_mod());

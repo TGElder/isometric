@@ -11,5 +11,8 @@ uniform sampler2D ourTexture;
 
 void main()
 {
-    Color = texture(ourTexture, IN.TexCoord);
+    vec4 texel = texture(ourTexture, IN.TexCoord);
+    if(texel.a == 0.0)
+        discard;
+    Color = texel;
 }

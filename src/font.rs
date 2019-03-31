@@ -8,11 +8,11 @@ pub struct Glyph {
     character: char,
     x: i32,
     y: i32,
-    width: i32,
-    height: i32,
+    pub width: i32,
+    pub height: i32,
     xoffset: i32,
     yoffset: i32,
-    xadvance: i32,
+    pub xadvance: i32,
 }
 
 impl Glyph {
@@ -65,7 +65,7 @@ impl Font {
         &self.texture
     }
 
-    fn get_glyph(&self, character: char) -> Glyph {
+    pub fn get_glyph(&self, character: char) -> Glyph {
         self.glyphs[character as usize].expect("Unrecognised character") //TODO better error msg, also copying?
     }
 
@@ -73,8 +73,8 @@ impl Font {
     {
         let glyph = self.get_glyph(character);
         (
-            self.texture.get_texture_coords(v2(glyph.x, glyph.y)),
-            self.texture.get_texture_coords(v2(glyph.x + glyph.width, glyph.y + glyph.height)),
+            self.texture.get_texture_coords(v2(glyph.x + glyph.xoffset, glyph.y + glyph.yoffset)),
+            self.texture.get_texture_coords(v2(glyph.x + glyph.xoffset + glyph.width, glyph.y + glyph.yoffset + glyph.height)),
         )
 
     }
