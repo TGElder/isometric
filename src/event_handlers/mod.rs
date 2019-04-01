@@ -6,6 +6,7 @@ pub mod scroll;
 pub mod zoom;
 pub mod rotate;
 pub mod house_builder;
+pub mod text_editor;
 
 pub use self::shutdown::*;
 pub use self::resize::*;
@@ -15,3 +16,4 @@ pub use self::scroll::*;
 pub use self::zoom::*;
 pub use self::rotate::*;
 pub use self::house_builder::*;
+pub use self::text_editor::*;
