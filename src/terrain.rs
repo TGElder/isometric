@@ -35,6 +35,14 @@ impl Edge {
         }
     }
 
+    pub fn from(&self) -> &V2<usize> {
+        &self.from
+    }
+
+    pub fn to(&self) -> &V2<usize> {
+        &self.to
+    }
+
     pub fn horizontal(&self) -> bool {
         self.from.y == self.to.y
     }
