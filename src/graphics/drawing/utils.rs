@@ -77,7 +77,7 @@ impl SquareColoring for AngleSquareColoring {
         let v = points[1] - points[3];
         let normal = u.cross(&v);
         let angle: f32 = na::Matrix::angle(&normal, &self.light_direction);
-        let color = angle / f32::consts::PI;
+        let color = angle / (f32::consts::PI / 2.0);
         let color = Color::new(self.base_color.r * color, self.base_color.g * color, self.base_color.b * color, 1.0);
         [color; 4]
     }
