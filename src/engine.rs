@@ -48,7 +48,7 @@ pub struct IsometricEngine {
 impl IsometricEngine {
     const GL_VERSION: glutin::GlRequest = glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 3));
 
-    pub fn new(title: &str, width: u32, height: u32, max_z: f32, event_handler: Box<EventHandler>) -> IsometricEngine {
+    pub fn new(title: &str, width: u32, height: u32, max_z: f32) -> IsometricEngine {
         let events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
             .with_title(title)
@@ -68,7 +68,7 @@ impl IsometricEngine {
 
         IsometricEngine {
             events_loop,
-            event_handlers: IsometricEngine::init_event_handlers(&gl_window, event_handler),
+            event_handlers: IsometricEngine::init_event_handlers(&gl_window),
             window: gl_window,
             graphics,
             running: true,
@@ -76,12 +76,15 @@ impl IsometricEngine {
         }
     }
 
-    fn init_event_handlers(window: &glutin::GlWindow, event_handler: Box<EventHandler>) -> Vec<Box<EventHandler>> {
+    pub fn add_event_handler(&mut self, event_handler: Box<EventHandler>) {
+        self.event_handlers.push(event_handler);
+    }
+
+    fn init_event_handlers(window: &glutin::GlWindow) -> Vec<Box<EventHandler>> {
         let dpi_factor = window.get_hidpi_factor();
         let logical_window_size = window.window().get_inner_size().unwrap();
        
         vec![
-            event_handler,
             Box::new(AsyncEventHandler::new(Box::new(ShutdownHandler::new()))),
             Box::new(DPIRelay::new()),
             Box::new(Resizer::new()),
@@ -90,8 +93,6 @@ impl IsometricEngine {
             Box::new(ResizeRelay::new(dpi_factor)),
             Box::new(Scroller::new()),
             Box::new(ZoomHandler::new()),
-            Box::new(RotateHandler::new()),
-            Box::new(HouseBuilder::new(na::Vector3::new(1.0, 0.0, 1.0))),
         ]
     }
 

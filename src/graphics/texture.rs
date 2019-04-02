@@ -9,18 +9,19 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn new() -> Texture {
+    pub fn new(image: DynamicImage) -> Texture {
         let mut id: gl::types::GLuint = 0;
         unsafe {
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32); //TODO move elsewhere
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32); 
-            let out = Texture{
+            let mut out = Texture{
                 id,
                 width: 0,
                 height: 0,
             };
+            out.load(image);
             out
         }
     }
@@ -33,7 +34,7 @@ impl Texture {
         gl::BindTexture(gl::TEXTURE_2D, 0);
     }
 
-    pub fn load(&mut self, image: DynamicImage) {
+    fn load(&mut self, image: DynamicImage) {
         let dimensions = image.dimensions();
         self.width = dimensions.0;
         self.height = dimensions.1;

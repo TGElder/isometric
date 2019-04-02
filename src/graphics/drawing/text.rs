@@ -2,10 +2,11 @@ use super::Drawing;
 use super::super::vertex_objects::{VBO, TexturedVertex};
 use ::font::Font;
 use ::{V3};
+use std::sync::Arc;
 
 pub struct Text {
     vbo: VBO<TexturedVertex>,
-    font: Font,
+    font: Arc<Font>,
 }
 
 impl Drawing for Text {
@@ -27,7 +28,7 @@ impl Drawing for Text {
 }
 
 impl Text {
-    pub fn new(text: &str, position: V3<f32>, font: Font) -> Text {
+    pub fn new(text: &str, position: V3<f32>, font: Arc<Font>) -> Text {
         let mut vbo = VBO::new(gl::TRIANGLES);
 
     
