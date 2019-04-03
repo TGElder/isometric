@@ -1,6 +1,8 @@
 use super::Drawing;
+use super::super::engine::DrawingType;
 use super::super::vertex_objects::{VBO, TexturedVertex};
 use super::super::texture::Texture;
+
 
 pub struct Canvas {
     vbo: VBO<TexturedVertex>,
@@ -20,8 +22,8 @@ impl Drawing for Canvas {
         0.0
     }
 
-    fn text(&self) -> bool {
-        true
+    fn drawing_type(&self) -> DrawingType {
+        DrawingType::Plain
     }
 }
 

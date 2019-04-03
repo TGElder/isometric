@@ -1,5 +1,6 @@
 use ::coords::*;
 use super::Drawing;
+use super::super::engine::DrawingType;
 use ::color::Color;
 use super::super::vertex_objects::{VBO, ColoredVertex};
 use super::utils::*;
@@ -17,8 +18,8 @@ impl Drawing for HouseDrawing {
         0.0
     }
 
-    fn text(&self) -> bool {
-        false
+    fn drawing_type(&self) -> DrawingType {
+        DrawingType::Plain
     }
 }
 

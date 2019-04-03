@@ -14,8 +14,10 @@ pub use self::house::*;
 pub use self::canvas::*;
 pub use self::text::*;
 
+use super::engine::DrawingType;
+
 pub trait Drawing {
     fn draw(&self);
     fn get_z_mod(&self) -> f32;
-    fn text(&self) -> bool;
+    fn drawing_type(&self) -> DrawingType;
 }

@@ -1,5 +1,6 @@
 use ::coords::*;
 use super::Drawing;
+use super::super::engine::DrawingType;
 use ::color::Color;
 use super::super::vertex_objects::{VBO, ColoredVertex};
 use super::utils::*;
@@ -18,9 +19,9 @@ impl Drawing for SelectedCellDrawing {
     fn get_z_mod(&self) -> f32 {
         -0.0001
     }
-
-    fn text(&self) -> bool {
-        false
+ 
+    fn drawing_type(&self) -> DrawingType {
+        DrawingType::Plain
     }
 }
 

@@ -1,4 +1,5 @@
 use super::Drawing;
+use super::super::engine::DrawingType;
 use super::super::vertex_objects::{VBO, TexturedVertex};
 use ::font::Font;
 use ::{V3};
@@ -22,8 +23,8 @@ impl Drawing for Text {
         0.0
     }
 
-    fn text(&self) -> bool {
-        true
+    fn drawing_type(&self) -> DrawingType {
+        DrawingType::Text
     }
 }
 

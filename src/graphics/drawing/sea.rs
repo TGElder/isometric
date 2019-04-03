@@ -1,4 +1,5 @@
 use super::Drawing;
+use super::super::engine::DrawingType;
 use super::super::vertex_objects::{VBO, ColoredVertex};
 
 pub struct SeaDrawing {
@@ -14,8 +15,8 @@ impl Drawing for SeaDrawing {
         0.0
     }
 
-    fn text(&self) -> bool {
-        false
+    fn drawing_type(&self) -> DrawingType {
+        DrawingType::Plain
     }
 }
 

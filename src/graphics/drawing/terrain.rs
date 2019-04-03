@@ -1,4 +1,5 @@
 use super::Drawing;
+use super::super::engine::DrawingType;
 use ::color::Color;
 use super::super::vertex_objects::{VBO, ColoredVertex};
 use super::utils::*;
@@ -19,8 +20,8 @@ impl Drawing for NodeDrawing {
         self.z_mod
     }
 
-    fn text(&self) -> bool {
-        false
+    fn drawing_type(&self) -> DrawingType {
+        DrawingType::Plain
     }
 }
 
@@ -57,8 +58,8 @@ impl Drawing for EdgeDrawing {
         self.z_mod
     }
 
-    fn text(&self) -> bool {
-        false
+    fn drawing_type(&self) -> DrawingType {
+        DrawingType::Plain
     }
 }
 
@@ -94,8 +95,8 @@ impl Drawing for TerrainDrawing {
         0.0
     }
 
-    fn text(&self) -> bool {
-        false
+    fn drawing_type(&self) -> DrawingType {
+        DrawingType::Plain
     }
 }
 
