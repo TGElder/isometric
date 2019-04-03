@@ -1,4 +1,4 @@
-use std::ffi::CStr;
+use std::ffi::CString;
 use utils::create_whitespace_cstring_with_len;
 
 pub struct Shader {
@@ -6,7 +6,11 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn from_source(source: &CStr, kind: gl::types::GLenum) -> Result<Shader, String> {
+
+    pub fn from_source(source: &'static str, kind: gl::types::GLenum) -> Result<Shader, String> {
+
+        let source = &CString::new(source).unwrap();
+
         let id = unsafe { gl::CreateShader(kind) };
         let mut success: gl::types::GLint = 1;
 

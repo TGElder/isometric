@@ -1,13 +1,22 @@
 use super::shader::Shader;
 use std::ffi::CString;
 use utils::create_whitespace_cstring_with_len;
+use super::engine::DrawingType;
 
 pub struct Program {
     id: gl::types::GLuint,
 }
 
 impl Program {
-    pub fn from_shaders(shaders: &[Shader]) -> Result<Program, String> {
+
+    pub fn from_shaders(vertex_shader: &'static str, fragment_shader: &'static str) -> Program {
+        let vertex_shader = Shader::from_source(vertex_shader, gl::VERTEX_SHADER).unwrap();
+        let fragment_shader = Shader::from_source(fragment_shader,gl::FRAGMENT_SHADER).unwrap();
+
+        return Program::from_shader_list(&[vertex_shader, fragment_shader]).unwrap();
+    }
+
+    fn from_shader_list(shaders: &[Shader]) -> Result<Program, String> {
         let id = unsafe { gl::CreateProgram() };
 
         for shader in shaders {

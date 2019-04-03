@@ -1,6 +1,5 @@
 use super::program::Program;
-use super::shader::Shader;
-use std::ffi::{CString, c_void};
+use std::ffi::c_void;
 use std::collections::HashMap;
 
 use ::transform::Transform;
@@ -8,9 +7,20 @@ use ::transform::IsometricRotation;
 use ::coords::*;
 use super::drawing::Drawing;
 
+pub enum DrawingType {
+    Plain,
+    Text
+}
+
+pub struct ProgramConfiguration {
+    program: Program,
+    before_all: Box<Fn(&GraphicsEngine, &Program) -> ()>,
+    before_drawing: Box<Fn(&Box<Drawing>, &Program) -> ()>,
+}
+
 pub struct GraphicsEngine {
-    untextured_program: Program,
-    text_program: Program,
+    untextured_program: ProgramConfiguration,
+    text_program: ProgramConfiguration,
     viewport_size: glutin::dpi::PhysicalSize,
     transform: Transform,
     drawings: HashMap<String, Box<Drawing>>,
@@ -19,8 +29,27 @@ pub struct GraphicsEngine {
 impl GraphicsEngine {
 
     pub fn new(z_scale: f32, viewport_size: glutin::dpi::PhysicalSize) -> GraphicsEngine {
-        let untextured_program = GraphicsEngine::load_program(include_str!("shaders/triangle.vert"), include_str!("shaders/triangle.frag"));
-        let text_program = GraphicsEngine::load_program(include_str!("shaders/texture.vert"), include_str!("shaders/texture.frag"));
+
+        let mut untextured_program = ProgramConfiguration{
+            program: Program::from_shaders(include_str!("shaders/triangle.vert"), include_str!("shaders/triangle.frag")),
+            before_all: Box::new(|graphics: &GraphicsEngine, program: &Program| {
+                program.load_matrix4("projection", graphics.transform.get_projection_matrix());
+            }),
+            before_drawing: Box::new(|drawing: &Box<Drawing>, program: &Program| {
+                program.load_float("z_mod", drawing.get_z_mod());
+            }),
+        };
+
+        let mut text_program = ProgramConfiguration{
+            program: Program::from_shaders(include_str!("shaders/text.vert"), include_str!("shaders/text.frag")),
+            before_all: Box::new(|graphics: &GraphicsEngine, program: &Program| {
+                program.load_matrix4("projection", graphics.transform.get_projection_matrix());
+                program.load_matrix2("pixel_to_screen", graphics.get_pixel_to_screen());
+            }),
+            before_drawing: Box::new(|drawing: &Box<Drawing>, program: & Program| {
+                program.load_float("z_mod", drawing.get_z_mod());
+            }),
+        };
 
         let mut out = GraphicsEngine {
             untextured_program,
@@ -33,33 +62,20 @@ impl GraphicsEngine {
             drawings: HashMap::new(),
         };
         out.set_viewport_size(viewport_size);
+        out.setup_open_gl();
         out
+    }
+
+    fn setup_open_gl(&mut self) {
+        unsafe {
+            gl::Enable(gl::BLEND);
+            gl::Enable(gl::DEPTH_TEST);
+            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+        }
     }
 
     pub fn get_transform(&mut self) -> &mut Transform {
         &mut self.transform
-    }
-
-    fn load_program(vertex_shader: &'static str, fragment_shader: &'static str) -> Program {
-        let vertex_shader = Shader::from_source(
-            &CString::new(vertex_shader).unwrap(), //TODO don't like exposing CString
-            gl::VERTEX_SHADER,
-        )
-        .unwrap();
-
-        let fragment_shader = Shader::from_source(
-            &CString::new(fragment_shader).unwrap(),
-            gl::FRAGMENT_SHADER,
-        )
-        .unwrap();
-
-        unsafe {
-            gl::Enable(gl::DEPTH_TEST);
-        }
-
-        let shader_program = Program::from_shaders(&[vertex_shader, fragment_shader]).unwrap();
-
-        return shader_program;
     }
 
     pub fn add_drawing(&mut self, name: String, drawing: Box<Drawing>) {
@@ -78,23 +94,24 @@ impl GraphicsEngine {
     }
 
     pub fn draw(&mut self) {
+
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
             self.transform.compute_projection_matrix();
-            self.untextured_program.set_used();
-            self.untextured_program.load_matrix4("projection", self.transform.get_projection_matrix());
+            self.untextured_program.program.set_used();
+            (self.untextured_program.before_all)(self, &self.untextured_program.program);
             for drawing in self.drawings.values() {
                 if !drawing.text() {
-                    self.untextured_program.load_float("z_mod", drawing.get_z_mod());
+                    (self.untextured_program.before_drawing)(&drawing, &mut self.untextured_program.program);
                     drawing.draw();
                 }
             }
-            self.text_program.set_used();
-            self.text_program.load_matrix4("projection", self.transform.get_projection_matrix());
-            self.text_program.load_matrix2("pixel_to_screen", self.get_pixel_to_screen());
+            self.text_program.program.set_used();
+            (self.text_program.before_all)(self, &self.text_program.program);
             for drawing in self.drawings.values() {
                 if drawing.text() {
-                    self.text_program.load_float("z_mod", drawing.get_z_mod());
+                    (self.text_program.before_drawing)(&drawing, &mut self.text_program.program);
                     drawing.draw();
                 }
             }

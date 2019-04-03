@@ -12,10 +12,7 @@ impl Texture {
     pub fn new(image: DynamicImage) -> Texture {
         let mut id: gl::types::GLuint = 0;
         unsafe {
-            gl::Enable(gl::BLEND);
-            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32); //TODO move elsewhere
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32); 
+            gl::GenTextures(1, &mut id);
             let mut out = Texture{
                 id,
                 width: 0,
@@ -26,7 +23,7 @@ impl Texture {
         }
     }
 
-    pub unsafe fn bind(&self) {        
+    pub unsafe fn bind(&self) {  
         gl::BindTexture(gl::TEXTURE_2D, self.id);
     }
 
@@ -43,6 +40,8 @@ impl Texture {
         
         unsafe {
             self.bind();
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
             gl::TexImage2D(
                 gl::TEXTURE_2D,
                 0,
