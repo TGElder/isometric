@@ -70,7 +70,12 @@ impl Font {
             panic!("Rendering of character [{}] not supported - only first 256 characters are supported.", character);
         }
 
-        self.glyphs[character as usize].or(self.glyphs['?' as usize]).expect(&format!("Rendering of character [{}] not supported in this font", character))
+        self.glyphs[character as usize]
+            .or(self.glyphs['?' as usize])
+            .expect(&format!(
+                "Rendering of character [{}] not supported in this font",
+                character
+            ))
     }
 
     pub fn get_dimensions(&self, character: char) -> (i32, i32) {
