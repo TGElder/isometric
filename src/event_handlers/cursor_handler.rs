@@ -44,7 +44,7 @@ impl EventHandler for CursorHandler {
             Event::Resize(physical_size) => {
                 self.physical_window_size = physical_size;
                 vec![]
-            } //TODO too many vec![]s
+            }
             _ => vec![],
         }
     }

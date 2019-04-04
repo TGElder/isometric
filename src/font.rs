@@ -4,15 +4,15 @@ use std::io::Read;
 use {v2, V2};
 
 #[derive(Clone, Copy)]
-pub struct Glyph {
+struct Glyph {
     character: char,
     x: i32,
     y: i32,
-    pub width: i32,
-    pub height: i32,
+    width: i32,
+    height: i32,
     xoffset: i32,
     yoffset: i32,
-    pub xadvance: i32,
+    xadvance: i32,
 }
 
 impl Glyph {
@@ -65,8 +65,17 @@ impl Font {
         &self.texture
     }
 
-    pub fn get_glyph(&self, character: char) -> Glyph {
-        self.glyphs[character as usize].expect("Unrecognised character") //TODO better error msg, also copying?
+    fn get_glyph(&self, character: char) -> Glyph {
+        if character as usize > 255 {
+            panic!("Rendering of character [{}] not supported - only first 256 characters are supported.", character);
+        }
+
+        self.glyphs[character as usize].or(self.glyphs['?' as usize]).expect(&format!("Rendering of character [{}] not supported in this font", character))
+    }
+
+    pub fn get_dimensions(&self, character: char) -> (i32, i32) {
+        let glyph = self.get_glyph(character);
+        (glyph.width, glyph.height)
     }
 
     pub fn get_texture_coords(&self, character: char) -> (V2<f32>, V2<f32>) {
@@ -79,5 +88,13 @@ impl Font {
                 glyph.y + glyph.yoffset + glyph.height,
             )),
         )
+    }
+
+    pub fn get_advance(&self, character: char) -> i32 {
+        self.get_glyph(character).xadvance
+    }
+
+    pub fn get_width(&self, text: &str) -> i32 {
+        text.chars().map(|c| self.get_glyph(c).xadvance).sum()
     }
 }

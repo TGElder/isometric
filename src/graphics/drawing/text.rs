@@ -35,16 +35,14 @@ impl Text {
 
         let mut vertices = vec![];
 
-        let total_width: f32 = text.chars().map(|character| font.get_glyph(character).xadvance as f32).sum();
+        let total_width: f32 = font.get_width(text) as f32;
         let mut xo = -total_width / 2.0;
-
 
         for character in text.chars() {
             let (top_left, bottom_right) = font.get_texture_coords(character);
             let p = position;
-            let glyph = font.get_glyph(character);
-            let w = glyph.width as f32;
-            let h = glyph.height as f32;
+            let (w, h) = font.get_dimensions(character);
+            let (w, h) = (w as f32, h as f32);
 
             vertices.append(&mut vec![
                 p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, bottom_right.y, xo, 0.0,
@@ -54,7 +52,7 @@ impl Text {
                 p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, top_left.y, xo + w, h,
                 p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, bottom_right.y, xo + w, 0.0,
             ]);
-            xo += glyph.xadvance as f32;
+            xo += font.get_advance(character) as f32;
         }
 
         vbo.load(vertices);
