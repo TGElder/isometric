@@ -30,7 +30,7 @@ pub struct GraphicsEngine {
 
 impl GraphicsEngine {
 
-    fn get_index(drawing_type: DrawingType) -> usize {
+    fn get_index(drawing_type: &DrawingType) -> usize {
         match drawing_type {
             DrawingType::Plain => 0,
             DrawingType::Text => 1,

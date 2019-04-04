@@ -1,23 +1,21 @@
-use std::marker::PhantomData;
+use super::engine::DrawingType;
 
-pub struct VBO<T: BufferType> {
+pub struct VBO {
     id: gl::types::GLuint,
-    draw_mode: gl::types::GLenum,
-    vao: VAO<T>,
+    vao: VAO,
     vertex_count: usize,
 }
 
-impl<T: BufferType> VBO<T> {
-    pub fn new(draw_mode: gl::types::GLenum) -> VBO<T> {
+impl VBO {
+    pub fn new(drawing_type: DrawingType) -> VBO {
         let mut id: gl::types::GLuint = 0;
-        let vao = VAO::new();
+        let vao = VAO::new(drawing_type);
         unsafe {
             gl::GenBuffers(1, &mut id);
             let out = VBO{
                 id,
                 vao,
                 vertex_count: 0,
-                draw_mode
             };
             out.set_vao();
             out
@@ -56,16 +54,20 @@ impl<T: BufferType> VBO<T> {
         unsafe {
             self.vao.bind();
             gl::DrawArrays(
-                self.draw_mode,
+                get_draw_mode(&self.drawing_type()),
                 0,
                 self.vertex_count as i32,
             );
             self.vao.unbind();
         }
     }
+
+    pub fn drawing_type(&self) -> &DrawingType {
+        &self.vao.drawing_type
+    }
 }
 
-impl<T: BufferType> Drop for VBO<T> {
+impl Drop for VBO {
     fn drop(&mut self) {
         unsafe {
             gl::DeleteBuffers(1, &mut self.id);
@@ -73,20 +75,20 @@ impl<T: BufferType> Drop for VBO<T> {
     }
 }
 
-pub struct VAO<T: BufferType> {
+pub struct VAO {
     id: gl::types::GLuint,
-    buffer_type: PhantomData<T>,
+    drawing_type: DrawingType,
 }
 
-impl<T: BufferType> VAO<T> {
-    pub fn new() -> VAO<T> {
+impl VAO {
+    pub fn new(drawing_type: DrawingType) -> VAO {
         let mut id: gl::types::GLuint = 0;
         unsafe {
             gl::GenVertexArrays(1, &mut id);
         }
         VAO {
             id,
-            buffer_type: PhantomData,
+            drawing_type: drawing_type,
         }
     }
 
@@ -100,13 +102,13 @@ impl<T: BufferType> VAO<T> {
 
     pub unsafe fn set(&self) {
         self.bind();
-        T::setup_vao();
+        setup_vao(&self.drawing_type);
         self.unbind();
     }
 }
 
 
-impl<T: BufferType> Drop for VAO<T> {
+impl Drop for VAO {
     fn drop(&mut self) {
         unsafe {
             gl::DeleteVertexArrays(1, &mut self.id);
@@ -114,96 +116,80 @@ impl<T: BufferType> Drop for VAO<T> {
     }
 }
 
-pub trait BufferType {
-    fn setup_vao();
-}
-
-pub struct Vertex {}
-
-impl BufferType for Vertex {
-    fn setup_vao() {
-        unsafe {
-            gl::EnableVertexAttribArray(0);
-            gl::VertexAttribPointer(
-                0,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                (3 * std::mem::size_of::<f32>()) as gl::types::GLint,
-                std::ptr::null(),
-            );
-        }
+fn setup_vao_for_plain_drawing() {
+    unsafe {
+        gl::EnableVertexAttribArray(0);
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            std::ptr::null(),
+        );
+        gl::EnableVertexAttribArray(1);
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
+        );
     }
 }
 
-pub struct ColoredVertex {}
-
-impl BufferType for ColoredVertex {
-    fn setup_vao() {
-        unsafe {
-            gl::EnableVertexAttribArray(0);
-            gl::VertexAttribPointer(
-                0,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
-                std::ptr::null(),
-            );
-            gl::EnableVertexAttribArray(1);
-            gl::VertexAttribPointer(
-                1,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
-                (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
-            );
-        }
+fn setup_vao_for_text_drawing() {
+    unsafe {
+        gl::EnableVertexAttribArray(0);
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            std::ptr::null(),
+        );
+        gl::EnableVertexAttribArray(1);
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
+        );
+        gl::EnableVertexAttribArray(2);
+        gl::VertexAttribPointer(
+            2,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            (6 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
+        );
+        gl::EnableVertexAttribArray(3);
+        gl::VertexAttribPointer(
+            3,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            (8 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
+        );
     }
 }
 
-pub struct TexturedVertex {}
+fn setup_vao(drawing_type: &DrawingType) {
+    match drawing_type {
+        DrawingType::Plain => setup_vao_for_plain_drawing(),
+        DrawingType::Text => setup_vao_for_text_drawing(),
+    }
+}
 
-impl BufferType for TexturedVertex {
-    fn setup_vao() {
-        unsafe {
-            gl::EnableVertexAttribArray(0);
-            gl::VertexAttribPointer(
-                0,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
-                std::ptr::null(),
-            );
-            gl::EnableVertexAttribArray(1);
-            gl::VertexAttribPointer(
-                1,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
-                (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
-            );
-            gl::EnableVertexAttribArray(2);
-            gl::VertexAttribPointer(
-                2,
-                2,
-                gl::FLOAT,
-                gl::FALSE,
-                (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
-                (6 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
-            );
-            gl::EnableVertexAttribArray(3);
-            gl::VertexAttribPointer(
-                3,
-                2,
-                gl::FLOAT,
-                gl::FALSE,
-                (10 * std::mem::size_of::<f32>()) as gl::types::GLint,
-                (8 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
-            );
-        }
+fn get_draw_mode(drawing_type: &DrawingType) -> gl::types::GLenum {
+    match drawing_type {
+         DrawingType::Plain => gl::TRIANGLES,
+         DrawingType::Text => gl::TRIANGLES,
     }
 }

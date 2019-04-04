@@ -2,11 +2,11 @@ use ::coords::*;
 use super::Drawing;
 use super::super::engine::DrawingType;
 use ::color::Color;
-use super::super::vertex_objects::{VBO, ColoredVertex};
 use super::utils::*;
+use super::super::vertex_objects::VBO;
 
 pub struct HouseDrawing {
-    vbo: VBO<ColoredVertex>,
+    vbo: VBO,
 }
 
 impl Drawing for HouseDrawing {
@@ -18,8 +18,8 @@ impl Drawing for HouseDrawing {
         0.0
     }
 
-    fn drawing_type(&self) -> DrawingType {
-        DrawingType::Plain
+    fn drawing_type(&self) -> &DrawingType {
+        self.vbo.drawing_type()
     }
 }
 
@@ -51,7 +51,7 @@ impl HouseDrawing {
 
         let s = na::Vector3::new(x, y, z + height + roof_height);
 
-        let mut vbo = VBO::new(gl::TRIANGLES);
+        let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
         vertices.append(&mut get_colored_vertices_from_square(&[e, h, d, a], &square_coloring));

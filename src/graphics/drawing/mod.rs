@@ -15,9 +15,10 @@ pub use self::canvas::*;
 pub use self::text::*;
 
 use super::engine::DrawingType;
+use super::vertex_objects::VBO;
 
 pub trait Drawing {
     fn draw(&self);
     fn get_z_mod(&self) -> f32;
-    fn drawing_type(&self) -> DrawingType;
+    fn drawing_type(&self) -> &DrawingType;
 }

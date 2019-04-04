@@ -1,13 +1,13 @@
 use super::Drawing;
 use super::super::engine::DrawingType;
 use ::color::Color;
-use super::super::vertex_objects::{VBO, ColoredVertex};
+use super::super::vertex_objects::VBO;
 use super::utils::*;
 use ::terrain::{Node, Edge, Terrain};
 use ::{v2, M};
 
 pub struct NodeDrawing {
-    vbo: VBO<ColoredVertex>,
+    vbo: VBO,
     z_mod: f32,
 }
 
@@ -20,15 +20,15 @@ impl Drawing for NodeDrawing {
         self.z_mod
     }
 
-    fn drawing_type(&self) -> DrawingType {
-        DrawingType::Plain
+    fn drawing_type(&self) -> &DrawingType {
+        self.vbo.drawing_type()
     }
 }
 
 impl NodeDrawing {
     pub fn new(terrain: &Terrain, nodes: &Vec<Node>, color: Color, z_mod: f32) -> NodeDrawing {
 
-        let mut vbo = VBO::new(gl::TRIANGLES);
+        let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
@@ -45,7 +45,7 @@ impl NodeDrawing {
 }
 
 pub struct EdgeDrawing {
-    vbo: VBO<ColoredVertex>,
+    vbo: VBO,
     z_mod: f32,
 }
 
@@ -58,15 +58,15 @@ impl Drawing for EdgeDrawing {
         self.z_mod
     }
 
-    fn drawing_type(&self) -> DrawingType {
-        DrawingType::Plain
+    fn drawing_type(&self) -> &DrawingType {
+        self.vbo.drawing_type()
     }
 }
 
 impl EdgeDrawing {
     pub fn new(terrain: &Terrain, nodes: &Vec<Edge>, color: Color, z_mod: f32) -> EdgeDrawing {
 
-        let mut vbo = VBO::new(gl::TRIANGLES);
+        let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
@@ -83,7 +83,7 @@ impl EdgeDrawing {
 }
 
 pub struct TerrainDrawing {
-    vbo: VBO<ColoredVertex>,
+    vbo: VBO,
 }
 
 impl Drawing for TerrainDrawing {
@@ -95,15 +95,15 @@ impl Drawing for TerrainDrawing {
         0.0
     }
 
-    fn drawing_type(&self) -> DrawingType {
-        DrawingType::Plain
+    fn drawing_type(&self) -> &DrawingType {
+        self.vbo.drawing_type()
     }
 }
 
 impl TerrainDrawing {
     pub fn from_matrix(terrain: &Terrain, color_matrix: &M<Color>, shading: &Box<SquareColoring>) -> TerrainDrawing {
 
-        let mut vbo = VBO::new(gl::TRIANGLES);
+        let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
@@ -127,7 +127,7 @@ impl TerrainDrawing {
 
     pub fn uniform(terrain: &Terrain, coloring: Box<SquareColoring>) -> TerrainDrawing {
 
-        let mut vbo = VBO::new(gl::TRIANGLES);
+        let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 

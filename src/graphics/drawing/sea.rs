@@ -1,30 +1,29 @@
 use super::Drawing;
 use super::super::engine::DrawingType;
-use super::super::vertex_objects::{VBO, ColoredVertex};
+use super::super::vertex_objects::VBO;
 
 pub struct SeaDrawing {
-    terrain_triangles: VBO<ColoredVertex>,
+    vbo: VBO,
 }
 
 impl Drawing for SeaDrawing {
     fn draw(&self) {
-        self.terrain_triangles.draw();
+        self.vbo.draw();
     }
 
     fn get_z_mod(&self) -> f32 {
         0.0
     }
 
-    fn drawing_type(&self) -> DrawingType {
-        DrawingType::Plain
+    fn drawing_type(&self) -> &DrawingType {
+        self.vbo.drawing_type()
     }
 }
 
 impl SeaDrawing {
     pub fn new(width: f32, height: f32, level: f32) -> SeaDrawing {
-        let mut out = SeaDrawing{
-            terrain_triangles: VBO::new(gl::TRIANGLES),
-        };
+        let mut vbo = VBO::new(DrawingType::Plain);
+
         let triangle_vertices = vec![
             0.0, 0.0, level, 0.0, 0.0, 1.0,
             0.0, height, level, 0.0, 0.0, 1.0,
@@ -34,7 +33,7 @@ impl SeaDrawing {
             width, 0.0, level, 0.0, 0.0, 1.0,
         ];
         
-        out.terrain_triangles.load(triangle_vertices);
-        out
+        vbo.load(triangle_vertices);
+        SeaDrawing{vbo}
     }
 }

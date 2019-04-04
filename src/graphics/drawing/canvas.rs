@@ -1,11 +1,10 @@
 use super::Drawing;
 use super::super::engine::DrawingType;
-use super::super::vertex_objects::{VBO, TexturedVertex};
 use super::super::texture::Texture;
-
+use super::super::vertex_objects::VBO;
 
 pub struct Canvas {
-    vbo: VBO<TexturedVertex>,
+    vbo: VBO,
     texture: Texture,
 }
 
@@ -22,20 +21,18 @@ impl Drawing for Canvas {
         0.0
     }
 
-    fn drawing_type(&self) -> DrawingType {
-        DrawingType::Plain
+    fn drawing_type(&self) -> &DrawingType {
+        self.vbo.drawing_type()
     }
 }
 
 impl Canvas {
     pub fn new(texture: Texture) -> Canvas {
-
-        let mut vbo = VBO::new(gl::TRIANGLES);
+        let mut vbo = VBO::new(DrawingType::Plain);
 
         let x = 344.0;
         let h = 0.025;
         let w = 0.05;
-        //let z = 100.0;
         let vertices = vec![
             x, x, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, -w, -h,
             x, x, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, -w, h,

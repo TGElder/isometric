@@ -2,13 +2,13 @@ use ::coords::*;
 use super::Drawing;
 use super::super::engine::DrawingType;
 use ::color::Color;
-use super::super::vertex_objects::{VBO, ColoredVertex};
+use super::super::vertex_objects::VBO;
 use super::utils::*;
 use ::terrain::Terrain;
 use ::v2;
 
 pub struct SelectedCellDrawing {
-    vbo: VBO<ColoredVertex>,
+    vbo: VBO,
 }
 
 impl Drawing for SelectedCellDrawing {
@@ -19,9 +19,9 @@ impl Drawing for SelectedCellDrawing {
     fn get_z_mod(&self) -> f32 {
         -0.0001
     }
- 
-    fn drawing_type(&self) -> DrawingType {
-        DrawingType::Plain
+
+    fn drawing_type(&self) -> &DrawingType {
+        self.vbo.drawing_type()
     }
 }
 
@@ -49,7 +49,7 @@ impl SelectedCellDrawing {
             vertices.append(&mut get_uniform_colored_vertices_from_triangle(&triangle, &color));
         }
 
-        let mut vbo = VBO::new(gl::TRIANGLES);
+        let mut vbo = VBO::new(DrawingType::Plain);
 
         vbo.load(vertices);
 

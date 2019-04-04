@@ -1,12 +1,12 @@
 use super::Drawing;
 use super::super::engine::DrawingType;
-use super::super::vertex_objects::{VBO, TexturedVertex};
+use super::super::vertex_objects::VBO;
 use ::font::Font;
 use ::{V3};
 use std::sync::Arc;
 
 pub struct Text {
-    vbo: VBO<TexturedVertex>,
+    vbo: VBO,
     font: Arc<Font>,
 }
 
@@ -23,16 +23,15 @@ impl Drawing for Text {
         0.0
     }
 
-    fn drawing_type(&self) -> DrawingType {
-        DrawingType::Text
+    fn drawing_type(&self) -> &DrawingType {
+        self.vbo.drawing_type()
     }
 }
 
 impl Text {
     pub fn new(text: &str, position: V3<f32>, font: Arc<Font>) -> Text {
-        let mut vbo = VBO::new(gl::TRIANGLES);
+        let mut vbo = VBO::new(DrawingType::Text);
 
-    
         let mut vertices = vec![];
 
         let total_width: f32 = text.chars().map(|character| font.get_glyph(character).xadvance as f32).sum();
