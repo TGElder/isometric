@@ -46,12 +46,12 @@ impl Text {
             let h = glyph.height as f32;
              
             vertices.append(&mut vec![
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, bottom_right.y, xo, 0.0,
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, top_left.y, xo, h,
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, top_left.y, xo + w, h,
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, bottom_right.y, xo, 0.0,
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, top_left.y, xo + w, h,
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, bottom_right.y, xo + w, 0.0,
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, bottom_right.y, xo, 0.0, //
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, top_left.y, xo, h, //
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, top_left.y, xo + w, h, //
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, bottom_right.y, xo, 0.0, //
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, top_left.y, xo + w, h, //
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, bottom_right.y, xo + w, 0.0, //
             ]);
             xo += glyph.xadvance as f32;
         }

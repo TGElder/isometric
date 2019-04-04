@@ -74,10 +74,10 @@ impl Transform {
 
     pub fn compute_projection_matrix(&mut self) {
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::from_vec(vec![
-            self.scale.x, 0.0, 0.0, self.translation.x,
-            0.0, self.scale.y, 0.0, self.translation.y,
-            0.0, 0.0, self.scale.z, 0.0,
-            0.0, 0.0, 0.0, 1.0,]
+            self.scale.x, 0.0, 0.0, self.translation.x, //
+            0.0, self.scale.y, 0.0, self.translation.y, //
+            0.0, 0.0, self.scale.z, 0.0, //
+            0.0, 0.0, 0.0, 1.0,] //
         ).transpose();
 
         let isometric_matrix = self.compute_isometric_matrix();
@@ -93,10 +93,11 @@ impl Transform {
         let c = self.rotation.c();
         let s = self.rotation.s();
         na::Matrix4::from_vec(vec![
-            c, -s, 0.0, 0.0,
-            -s / 2.0, -c / 2.0, 1.0, 0.0,
-            0.0, 0.0, -1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,]
+            c, -s, 0.0, 0.0, //
+            -s / 2.0, -c / 2.0, 1.0, 0.0, //
+            0.0, 0.0, -1.0, 0.0, //
+            0.0, 0.0, 0.0, 1.0, //
+            ]
         ).transpose()
     }
 

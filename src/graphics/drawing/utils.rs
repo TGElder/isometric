@@ -84,9 +84,9 @@ impl SquareColoring for AngleSquareColoring {
 
 pub fn get_uniform_colored_vertices_from_triangle(points: &[na::Vector3<f32>; 3], color: &Color) -> Vec<f32> {
     vec![
-        points[0].x, points[0].y, points[0].z, color.r, color.g, color.b,
-        points[1].x, points[1].y, points[1].z, color.r, color.g, color.b,
-        points[2].x, points[2].y, points[2].z, color.r, color.g, color.b,
+        points[0].x, points[0].y, points[0].z, color.r, color.g, color.b, //
+        points[1].x, points[1].y, points[1].z, color.r, color.g, color.b, //
+        points[2].x, points[2].y, points[2].z, color.r, color.g, color.b, //
     ]
 }
 
@@ -94,20 +94,20 @@ pub fn get_colored_vertices_from_triangle(points: &[na::Vector3<f32>; 3], colori
     let colors = coloring.get_colors(&points);
 
     vec![
-        points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b,
-        points[1].x, points[1].y, points[1].z, colors[1].r, colors[1].g, colors[1].b,
-        points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b,
+        points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b, //
+        points[1].x, points[1].y, points[1].z, colors[1].r, colors[1].g, colors[1].b, //
+        points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b, //
     ]
 }
 
 pub fn get_uniform_colored_vertices_from_square(points: &[na::Vector3<f32>; 4], color: &Color) -> Vec<f32> {
     vec![
-        points[0].x, points[0].y, points[0].z, color.r, color.g, color.b,
-        points[3].x, points[3].y, points[3].z, color.r, color.g, color.b,
-        points[2].x, points[2].y, points[2].z, color.r, color.g, color.b,
-        points[0].x, points[0].y, points[0].z, color.r, color.g, color.b,
-        points[2].x, points[2].y, points[2].z, color.r, color.g, color.b,
-        points[1].x, points[1].y, points[1].z, color.r, color.g, color.b,
+        points[0].x, points[0].y, points[0].z, color.r, color.g, color.b, //
+        points[3].x, points[3].y, points[3].z, color.r, color.g, color.b, //
+        points[2].x, points[2].y, points[2].z, color.r, color.g, color.b, //
+        points[0].x, points[0].y, points[0].z, color.r, color.g, color.b, //
+        points[2].x, points[2].y, points[2].z, color.r, color.g, color.b, //
+        points[1].x, points[1].y, points[1].z, color.r, color.g, color.b, //
     ]
 }
 
@@ -115,11 +115,11 @@ pub fn get_colored_vertices_from_square(points: &[na::Vector3<f32>; 4], coloring
     let colors = coloring.get_colors(&points);
 
     vec![
-        points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b,
-        points[3].x, points[3].y, points[3].z, colors[3].r, colors[3].g, colors[3].b,
-        points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b,
-        points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b,
-        points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b,
-        points[1].x, points[1].y, points[1].z, colors[1].r, colors[1].g, colors[1].b,
+        points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b, //
+        points[3].x, points[3].y, points[3].z, colors[3].r, colors[3].g, colors[3].b, //
+        points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b, //
+        points[0].x, points[0].y, points[0].z, colors[0].r, colors[0].g, colors[0].b, //
+        points[2].x, points[2].y, points[2].z, colors[2].r, colors[2].g, colors[2].b, //
+        points[1].x, points[1].y, points[1].z, colors[1].r, colors[1].g, colors[1].b, //
     ]
 }

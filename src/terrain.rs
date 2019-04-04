@@ -212,9 +212,9 @@ mod tests {
 
     fn terrain() -> Terrain {
         let elevations = M::from_row_slice(3, 3, &[
-            0.0, 0.0, 0.0,
-            0.0, 4.0, 3.0,
-            0.0, 2.0, 1.0,
+            0.0, 0.0, 0.0, //
+            0.0, 4.0, 3.0, //
+            0.0, 2.0, 1.0, //
         ]).transpose();
 
         let nodes = vec![
@@ -267,13 +267,13 @@ mod tests {
         ];
 
         let widths = M::from_row_slice(2, 2, &[
-            0.5, 0.0,
-            0.0, 0.1,
+            0.5, 0.0, //
+            0.0, 0.1, //
         ]).transpose();
 
         let heights = M::from_row_slice(2, 2, &[
-            0.4, 0.0,
-            0.0, 0.1,
+            0.4, 0.0, //
+            0.0, 0.1, //
         ]).transpose();
 
         let actual = Terrain::get_width_height_matrices(2, 2, &nodes);
@@ -289,12 +289,12 @@ mod tests {
             Edge::new(v2(1, 1), v2(1, 2)),
         ];
         let expected = M::from_row_slice(6, 6, &[
-            false, false, false, false, false, false,
-            false, false, false, false, false, false,
-            false, true , false, true , false, false,
-            false, false, true , false, false, false,
-            false, false, false, false, false, false,
-            false, false, false, false, false, false,
+            false, false, false, false, false, false, //
+            false, false, false, false, false, false, //
+            false, true , false, true , false, false, //
+            false, false, true , false, false, false, //
+            false, false, false, false, false, false, //
+            false, false, false, false, false, false, //
         ]).transpose();
 
         let actual = Terrain::get_edge_matrix(3, 3, &edges);
