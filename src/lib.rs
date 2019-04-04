@@ -18,7 +18,6 @@ pub use font::*;
 pub extern crate nalgebra as na;
 pub extern crate glutin;
 pub extern crate image;
-pub extern crate itertools;
 
 use std::fmt::Debug;
 

@@ -7,22 +7,14 @@ use ::transform::IsometricRotation;
 use ::coords::*;
 use super::drawing::Drawing;
 
-use ::itertools::Itertools;
-
 #[derive(PartialEq)]
 pub enum DrawingType {
     Plain,
     Text
 }
 
-pub struct ProgramConfiguration {
-    program: Program,
-    before_all: Box<Fn(&GraphicsEngine, &Program) -> ()>,
-    before_drawing: Box<Fn(&Box<Drawing>, &Program) -> ()>,
-}
-
 pub struct GraphicsEngine {
-    programs: [ProgramConfiguration; 2],
+    programs: [Program; 2],
     viewport_size: glutin::dpi::PhysicalSize,
     transform: Transform,
     drawings: HashMap<String, Box<Drawing>>,
@@ -30,35 +22,11 @@ pub struct GraphicsEngine {
 
 impl GraphicsEngine {
 
-    fn get_index(drawing_type: &DrawingType) -> usize {
-        match drawing_type {
-            DrawingType::Plain => 0,
-            DrawingType::Text => 1,
-        }
-    }
-
     pub fn new(z_scale: f32, viewport_size: glutin::dpi::PhysicalSize) -> GraphicsEngine {
 
         let programs = [
-            ProgramConfiguration{
-                program: Program::from_shaders(include_str!("shaders/triangle.vert"), include_str!("shaders/triangle.frag")),
-                before_all: Box::new(|graphics: &GraphicsEngine, program: &Program| {
-                    program.load_matrix4("projection", graphics.transform.get_projection_matrix());
-                }),
-                before_drawing: Box::new(|drawing: &Box<Drawing>, program: &Program| {
-                    program.load_float("z_mod", drawing.get_z_mod());
-                })
-            },
-            ProgramConfiguration{
-                program: Program::from_shaders(include_str!("shaders/text.vert"), include_str!("shaders/text.frag")),
-                before_all: Box::new(|graphics: &GraphicsEngine, program: &Program| {
-                    program.load_matrix4("projection", graphics.transform.get_projection_matrix());
-                    program.load_matrix2("pixel_to_screen", graphics.get_pixel_to_screen());
-                }),
-                before_drawing: Box::new(|drawing: &Box<Drawing>, program: & Program| {
-                    program.load_float("z_mod", drawing.get_z_mod());
-                }),
-            }
+            Program::from_shaders(DrawingType::Plain, include_str!("shaders/triangle.vert"), include_str!("shaders/triangle.frag")),
+            Program::from_shaders(DrawingType::Text, include_str!("shaders/text.vert"), include_str!("shaders/text.frag")),
         ];
 
         let mut out = GraphicsEngine {
@@ -102,19 +70,34 @@ impl GraphicsEngine {
         )
     }
 
+    pub fn prepare_program(&self, program: &Program) {
+        match program.drawing_type {
+            DrawingType::Plain => program.load_matrix4("projection", self.transform.get_projection_matrix()),
+            DrawingType::Text => {
+                program.load_matrix4("projection", self.transform.get_projection_matrix());
+                program.load_matrix2("pixel_to_screen", self.get_pixel_to_screen());
+            },
+        }
+    }
+
+    pub fn prepare_program_for_drawing(&self, program: &Program, drawing: &Box<Drawing>) {
+        match program.drawing_type {
+            _ => program.load_float("z_mod", drawing.get_z_mod()),
+        }
+    }
+
     pub fn draw(&mut self) {
 
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             self.transform.compute_projection_matrix();
-            for i in 0..2 {
-                let program = &self.programs[i];
-                program.program.set_used();
-                (program.before_all)(self, &program.program);
+            for program in self.programs.iter() {
+                program.set_used();
+                self.prepare_program(program);
                 for drawing in self.drawings.values() {
-                    if GraphicsEngine::get_index(drawing.drawing_type()) == i {
-                        (program.before_drawing)(&drawing, &program.program);
+                    if *drawing.drawing_type() == program.drawing_type {
+                        self.prepare_program_for_drawing(program, drawing);
                         drawing.draw();
                     }
                 }

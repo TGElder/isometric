@@ -4,19 +4,20 @@ use utils::create_whitespace_cstring_with_len;
 use super::engine::DrawingType;
 
 pub struct Program {
+    pub drawing_type: DrawingType,
     id: gl::types::GLuint,
 }
 
 impl Program {
 
-    pub fn from_shaders(vertex_shader: &'static str, fragment_shader: &'static str) -> Program {
+    pub fn from_shaders(drawing_type: DrawingType, vertex_shader: &'static str, fragment_shader: &'static str) -> Program {
         let vertex_shader = Shader::from_source(vertex_shader, gl::VERTEX_SHADER).unwrap();
         let fragment_shader = Shader::from_source(fragment_shader,gl::FRAGMENT_SHADER).unwrap();
 
-        return Program::from_shader_list(&[vertex_shader, fragment_shader]).unwrap();
+        return Program::from_shader_list(drawing_type, &[vertex_shader, fragment_shader]).unwrap();
     }
 
-    fn from_shader_list(shaders: &[Shader]) -> Result<Program, String> {
+    fn from_shader_list(drawing_type: DrawingType, shaders: &[Shader]) -> Result<Program, String> {
         let id = unsafe { gl::CreateProgram() };
 
         for shader in shaders {
@@ -29,7 +30,7 @@ impl Program {
             gl::LinkProgram(id);
         }
 
-        let out = Program { id };
+        let out = Program{drawing_type, id};
 
         if !out.linked_succesfully() {
             Err(out.get_message())
