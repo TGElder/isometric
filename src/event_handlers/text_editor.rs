@@ -103,10 +103,10 @@ impl EventHandler for TextEditor {
                             glutin::KeyboardInput {
                                 virtual_keycode: Some(key),
                                 state: glutin::ElementState::Pressed,
-                                modifiers: glutin::ModifiersState {
-                                    shift: shift_state,
-                                    ..
-                                },
+                                modifiers:
+                                    glutin::ModifiersState {
+                                        shift: shift_state, ..
+                                    },
                                 ..
                             },
                         ..
@@ -188,4 +188,3 @@ mod test {
     }
 
 }
-
