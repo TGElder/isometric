@@ -1,7 +1,7 @@
+use super::engine::DrawingType;
 use super::shader::Shader;
 use std::ffi::CString;
 use utils::create_whitespace_cstring_with_len;
-use super::engine::DrawingType;
 
 pub struct Program {
     pub drawing_type: DrawingType,
@@ -9,10 +9,13 @@ pub struct Program {
 }
 
 impl Program {
-
-    pub fn from_shaders(drawing_type: DrawingType, vertex_shader: &'static str, fragment_shader: &'static str) -> Program {
+    pub fn from_shaders(
+        drawing_type: DrawingType,
+        vertex_shader: &'static str,
+        fragment_shader: &'static str,
+    ) -> Program {
         let vertex_shader = Shader::from_source(vertex_shader, gl::VERTEX_SHADER).unwrap();
-        let fragment_shader = Shader::from_source(fragment_shader,gl::FRAGMENT_SHADER).unwrap();
+        let fragment_shader = Shader::from_source(fragment_shader, gl::FRAGMENT_SHADER).unwrap();
 
         return Program::from_shader_list(drawing_type, &[vertex_shader, fragment_shader]).unwrap();
     }
@@ -30,7 +33,7 @@ impl Program {
             gl::LinkProgram(id);
         }
 
-        let out = Program{drawing_type, id};
+        let out = Program { drawing_type, id };
 
         if !out.linked_succesfully() {
             Err(out.get_message())
@@ -95,7 +98,7 @@ impl Program {
         }
     }
 
-     pub fn load_matrix2(&self, variable: &str, matrix: na::Matrix2<f32>) {
+    pub fn load_matrix2(&self, variable: &str, matrix: na::Matrix2<f32>) {
         unsafe {
             let matrix_location = gl::GetUniformLocation(
                 self.id(),

@@ -1,6 +1,6 @@
+use engine::{Command, Event};
+use events::EventHandler;
 use std::sync::Arc;
-use ::engine::{Event, Command};
-use ::events::EventHandler;
 
 pub struct TextEditor {
     caret_position: usize,
@@ -8,9 +8,11 @@ pub struct TextEditor {
 }
 
 impl TextEditor {
-
     pub fn new() -> TextEditor {
-        TextEditor{caret_position: 0, text: String::new()}
+        TextEditor {
+            caret_position: 0,
+            text: String::new(),
+        }
     }
 
     pub fn text(&self) -> &str {
@@ -96,7 +98,7 @@ impl TextEditor {
             glutin::VirtualKeyCode::Right => self.advance_caret(),
             glutin::VirtualKeyCode::Left => self.retreat_caret(),
             glutin::VirtualKeyCode::Back => self.backspace(),
-            _ => {},
+            _ => {}
         }
     }
 }
@@ -104,20 +106,23 @@ impl TextEditor {
 impl EventHandler for TextEditor {
     fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
         match *event {
-            Event::GlutinEvent(
-                glutin::Event::WindowEvent{
-                    event: glutin::WindowEvent::KeyboardInput{
-                        input: glutin::KeyboardInput{
-                            virtual_keycode: Some(key), 
-                            state: glutin::ElementState::Pressed,
-                            modifiers,
-                            ..
-                        },
-                    ..
+            Event::GlutinEvent(glutin::Event::WindowEvent {
+                event:
+                    glutin::WindowEvent::KeyboardInput {
+                        input:
+                            glutin::KeyboardInput {
+                                virtual_keycode: Some(key),
+                                state: glutin::ElementState::Pressed,
+                                modifiers,
+                                ..
+                            },
+                        ..
                     },
                 ..
-                }
-            ) => {self.handle_key(key, modifiers); vec![]},
+            }) => {
+                self.handle_key(key, modifiers);
+                vec![]
+            }
             _ => vec![],
         }
     }

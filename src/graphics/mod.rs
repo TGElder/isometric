@@ -1,6 +1,6 @@
-pub mod engine;
 pub mod drawing;
-mod shader;
+pub mod engine;
 mod program;
-mod vertex_objects;
+mod shader;
 pub mod texture;
+mod vertex_objects;

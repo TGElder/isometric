@@ -1,7 +1,7 @@
+use coords::GLCoord4D;
+use engine::{Command, Event};
+use events::EventHandler;
 use std::sync::Arc;
-use ::engine::{Event, Command};
-use ::events::EventHandler;
-use ::coords::GLCoord4D;
 
 pub struct DragHandler {
     dragging: bool,
@@ -48,18 +48,17 @@ impl DragHandler {
 impl EventHandler for DragHandler {
     fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
         match *event {
-            Event::GlutinEvent(
-                glutin::Event::WindowEvent{
-                    event: glutin::WindowEvent::MouseInput{
-                            state,
-                            button: glutin::MouseButton::Left,
-                            ..
-                        },
-                    ..
-                },
-            ) => self.handle_mouse_state(state),
+            Event::GlutinEvent(glutin::Event::WindowEvent {
+                event:
+                    glutin::WindowEvent::MouseInput {
+                        state,
+                        button: glutin::MouseButton::Left,
+                        ..
+                    },
+                ..
+            }) => self.handle_mouse_state(state),
             Event::CursorMoved(gl_position) => self.handle_cursor_moved(gl_position),
-            _ => vec![]
+            _ => vec![],
         }
     }
 }

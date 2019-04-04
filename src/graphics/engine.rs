@@ -1,16 +1,16 @@
 use super::program::Program;
-use std::ffi::c_void;
 use std::collections::HashMap;
+use std::ffi::c_void;
 
-use ::transform::Transform;
-use ::transform::IsometricRotation;
-use ::coords::*;
 use super::drawing::Drawing;
+use coords::*;
+use transform::IsometricRotation;
+use transform::Transform;
 
 #[derive(PartialEq)]
 pub enum DrawingType {
     Plain,
-    Text
+    Text,
 }
 
 pub struct GraphicsEngine {
@@ -21,20 +21,31 @@ pub struct GraphicsEngine {
 }
 
 impl GraphicsEngine {
-
     pub fn new(z_scale: f32, viewport_size: glutin::dpi::PhysicalSize) -> GraphicsEngine {
-
         let programs = [
-            Program::from_shaders(DrawingType::Plain, include_str!("shaders/triangle.vert"), include_str!("shaders/triangle.frag")),
-            Program::from_shaders(DrawingType::Text, include_str!("shaders/text.vert"), include_str!("shaders/text.frag")),
+            Program::from_shaders(
+                DrawingType::Plain,
+                include_str!("shaders/triangle.vert"),
+                include_str!("shaders/triangle.frag"),
+            ),
+            Program::from_shaders(
+                DrawingType::Text,
+                include_str!("shaders/text.vert"),
+                include_str!("shaders/text.frag"),
+            ),
         ];
 
         let mut out = GraphicsEngine {
             programs,
             transform: Transform::new(
-                GLCoord3D::new(1.0, viewport_size.width as f32 / viewport_size.height as f32, z_scale),
+                GLCoord3D::new(
+                    1.0,
+                    viewport_size.width as f32 / viewport_size.height as f32,
+                    z_scale,
+                ),
                 GLCoord2D::new(0.0, 0.0),
-                IsometricRotation::TopLeftAtTop),
+                IsometricRotation::TopLeftAtTop,
+            ),
             viewport_size,
             drawings: HashMap::new(),
         };
@@ -65,18 +76,22 @@ impl GraphicsEngine {
 
     fn get_pixel_to_screen(&self) -> na::Matrix2<f32> {
         na::Matrix2::new(
-            2.0 / self.viewport_size.width as f32, 0.0,
-            0.0, 2.0 / self.viewport_size.height as f32,
+            2.0 / self.viewport_size.width as f32,
+            0.0,
+            0.0,
+            2.0 / self.viewport_size.height as f32,
         )
     }
 
     pub fn prepare_program(&self, program: &Program) {
         match program.drawing_type {
-            DrawingType::Plain => program.load_matrix4("projection", self.transform.get_projection_matrix()),
+            DrawingType::Plain => {
+                program.load_matrix4("projection", self.transform.get_projection_matrix())
+            }
             DrawingType::Text => {
                 program.load_matrix4("projection", self.transform.get_projection_matrix());
                 program.load_matrix2("pixel_to_screen", self.get_pixel_to_screen());
-            },
+            }
         }
     }
 
@@ -87,7 +102,6 @@ impl GraphicsEngine {
     }
 
     pub fn draw(&mut self) {
-
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
@@ -106,25 +120,29 @@ impl GraphicsEngine {
     }
 
     pub fn set_viewport_size(&mut self, viewport_size: glutin::dpi::PhysicalSize) {
-        self.transform.scale(GLCoord4D::new(0.0, 0.0, 0.0, 1.0),
+        self.transform.scale(
+            GLCoord4D::new(0.0, 0.0, 0.0, 1.0),
             GLCoord2D::new(
                 (self.viewport_size.width as f32) / (viewport_size.width as f32),
-                (self.viewport_size.height as f32) / (viewport_size.height as f32)
-            )
+                (self.viewport_size.height as f32) / (viewport_size.height as f32),
+            ),
         );
         self.viewport_size = viewport_size;
         unsafe {
-            gl::Viewport(0, 0, viewport_size.width as i32, viewport_size.height as i32);
+            gl::Viewport(
+                0,
+                0,
+                viewport_size.width as i32,
+                viewport_size.height as i32,
+            );
             gl::ClearColor(0.0, 0.0, 1.0, 1.0);
         }
     }
-
 }
 
 pub struct GLZFinder {}
 
 impl ZFinder for GLZFinder {
-
     fn get_z_at(&self, buffer_coordinate: BufferCoordinate) -> f32 {
         let mut buffer: Vec<f32> = vec![0.0];
         unsafe {
@@ -135,7 +153,7 @@ impl ZFinder for GLZFinder {
                 1,
                 gl::DEPTH_COMPONENT,
                 gl::FLOAT,
-                buffer.as_mut_ptr() as *mut c_void
+                buffer.as_mut_ptr() as *mut c_void,
             );
         }
         2.0 * buffer[0] - 1.0

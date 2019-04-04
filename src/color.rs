@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Color{
+pub struct Color {
     pub r: f32,
     pub g: f32,
     pub b: f32,
@@ -8,7 +8,7 @@ pub struct Color{
 
 impl Color {
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
-        Color{r, g, b, a}
+        Color { r, g, b, a }
     }
 
     pub fn mul(&self, other: &Color) -> Color {

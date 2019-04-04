@@ -4,33 +4,41 @@ use super::transform::Transform;
 pub trait PhysicalPositionExt {
     fn to_gl_coord_2d(self, physical_size: glutin::dpi::PhysicalSize) -> GLCoord2D;
     fn to_buffer_coord(self, physical_size: glutin::dpi::PhysicalSize) -> BufferCoordinate;
-    fn to_gl_coord_4d <T: ZFinder> (self, physical_size: glutin::dpi::PhysicalSize, z_finder: &T) -> GLCoord4D;
+    fn to_gl_coord_4d<T: ZFinder>(
+        self,
+        physical_size: glutin::dpi::PhysicalSize,
+        z_finder: &T,
+    ) -> GLCoord4D;
 }
 
 impl PhysicalPositionExt for glutin::dpi::PhysicalPosition {
     fn to_gl_coord_2d(self, physical_size: glutin::dpi::PhysicalSize) -> GLCoord2D {
-        GLCoord2D{
-            x: ( ( ( self.x / physical_size.width ) * 2.0 ) - 1.0 ) as f32,
-            y: ( 1.0 - ( ( self.y / physical_size.height ) * 2.0 ) ) as f32,
+        GLCoord2D {
+            x: (((self.x / physical_size.width) * 2.0) - 1.0) as f32,
+            y: (1.0 - ((self.y / physical_size.height) * 2.0)) as f32,
         }
     }
 
     fn to_buffer_coord(self, physical_size: glutin::dpi::PhysicalSize) -> BufferCoordinate {
         let physical_position: (i32, i32) = self.into();
-        BufferCoordinate{
+        BufferCoordinate {
             x: physical_position.0,
             y: (physical_size.height as i32) - physical_position.1,
         }
     }
 
-    fn to_gl_coord_4d <T: ZFinder> (self, physical_size: glutin::dpi::PhysicalSize, z_finder: &T) -> GLCoord4D {
+    fn to_gl_coord_4d<T: ZFinder>(
+        self,
+        physical_size: glutin::dpi::PhysicalSize,
+        z_finder: &T,
+    ) -> GLCoord4D {
         let buffer_coord = self.to_buffer_coord(physical_size);
         let gl_coord_2d = self.to_gl_coord_2d(physical_size);
-        GLCoord4D{
+        GLCoord4D {
             x: gl_coord_2d.x,
             y: gl_coord_2d.y,
             z: z_finder.get_z_at(buffer_coord),
-            w: 1.0
+            w: 1.0,
         }
     }
 }
@@ -43,29 +51,28 @@ pub struct BufferCoordinate {
 
 impl BufferCoordinate {
     pub fn new(x: i32, y: i32) -> BufferCoordinate {
-        BufferCoordinate{x, y}
+        BufferCoordinate { x, y }
     }
 }
-
 
 pub trait ZFinder {
     fn get_z_at(&self, buffer_coordinate: BufferCoordinate) -> f32;
 }
 
 #[derive(PartialEq, Debug)]
-pub struct GLCoord2D{
+pub struct GLCoord2D {
     pub x: f32,
     pub y: f32,
 }
 
 impl GLCoord2D {
     pub fn new(x: f32, y: f32) -> GLCoord2D {
-        GLCoord2D{x, y}
+        GLCoord2D { x, y }
     }
 }
 
 #[derive(PartialEq, Debug)]
-pub struct GLCoord3D{
+pub struct GLCoord3D {
     pub x: f32,
     pub y: f32,
     pub z: f32,
@@ -73,22 +80,21 @@ pub struct GLCoord3D{
 
 impl GLCoord3D {
     pub fn new(x: f32, y: f32, z: f32) -> GLCoord3D {
-        GLCoord3D{x, y, z}
+        GLCoord3D { x, y, z }
     }
-    
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub struct GLCoord4D{
+pub struct GLCoord4D {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-    pub w: f32
+    pub w: f32,
 }
 
 impl GLCoord4D {
     pub fn new(x: f32, y: f32, z: f32, w: f32) -> GLCoord4D {
-        GLCoord4D{x, y, z, w}
+        GLCoord4D { x, y, z, w }
     }
 
     pub fn to_world_coord(self, transformer: &Transform) -> WorldCoord {
@@ -98,28 +104,23 @@ impl GLCoord4D {
 
 impl Into<GLCoord4D> for na::Point4<f32> {
     fn into(self) -> GLCoord4D {
-        GLCoord4D{
+        GLCoord4D {
             x: self.x,
             y: self.y,
             z: self.z,
-            w: self.w
+            w: self.w,
         }
     }
 }
 
 impl Into<na::Point4<f32>> for GLCoord4D {
     fn into(self) -> na::Point4<f32> {
-        na::Point4::new(
-            self.x,
-            self.y,
-            self.z,
-            self.w
-        )
+        na::Point4::new(self.x, self.y, self.z, self.w)
     }
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub struct WorldCoord{
+pub struct WorldCoord {
     pub x: f32,
     pub y: f32,
     pub z: f32,
@@ -127,7 +128,7 @@ pub struct WorldCoord{
 
 impl WorldCoord {
     pub fn new(x: f32, y: f32, z: f32) -> WorldCoord {
-        WorldCoord{x, y, z}
+        WorldCoord { x, y, z }
     }
 
     pub fn to_gl_coord_4d(self, transformer: &Transform) -> GLCoord4D {
@@ -137,7 +138,7 @@ impl WorldCoord {
 
 impl Into<WorldCoord> for na::Point4<f32> {
     fn into(self) -> WorldCoord {
-        WorldCoord{
+        WorldCoord {
             x: self.x,
             y: self.y,
             z: self.z,
@@ -147,64 +148,73 @@ impl Into<WorldCoord> for na::Point4<f32> {
 
 impl Into<na::Point4<f32>> for WorldCoord {
     fn into(self) -> na::Point4<f32> {
-        na::Point4::new(
-            self.x,
-            self.y,
-            self.z,
-            1.0
-        )
+        na::Point4::new(self.x, self.y, self.z, 1.0)
     }
 }
 
 #[cfg(test)]
 mod tests {
 
-    use super::*;
     use super::super::transform::IsometricRotation;
+    use super::*;
 
-    #[test]   
+    #[test]
     fn physical_position_to_gl_2d_left_top() {
         let physical_size = glutin::dpi::PhysicalSize::new(100.0, 50.0);
         let physical_position = glutin::dpi::PhysicalPosition::new(0.0, 0.0);
-       
-        assert_eq!(physical_position.to_gl_coord_2d(physical_size), GLCoord2D::new(-1.0, 1.0));
+
+        assert_eq!(
+            physical_position.to_gl_coord_2d(physical_size),
+            GLCoord2D::new(-1.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn physical_position_to_gl_2d_right_top() {
         let physical_size = glutin::dpi::PhysicalSize::new(100.0, 50.0);
         let physical_position = glutin::dpi::PhysicalPosition::new(100.0, 0.0);
-       
-        assert_eq!(physical_position.to_gl_coord_2d(physical_size), GLCoord2D::new(1.0, 1.0));
+
+        assert_eq!(
+            physical_position.to_gl_coord_2d(physical_size),
+            GLCoord2D::new(1.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn physical_position_to_gl_2d_left_bottom() {
         let physical_size = glutin::dpi::PhysicalSize::new(100.0, 50.0);
         let physical_position = glutin::dpi::PhysicalPosition::new(0.0, 50.0);
-       
-        assert_eq!(physical_position.to_gl_coord_2d(physical_size), GLCoord2D::new(-1.0, -1.0));
+
+        assert_eq!(
+            physical_position.to_gl_coord_2d(physical_size),
+            GLCoord2D::new(-1.0, -1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn physical_position_to_gl_2d_right_bottom() {
         let physical_size = glutin::dpi::PhysicalSize::new(100.0, 50.0);
         let physical_position = glutin::dpi::PhysicalPosition::new(100.0, 50.0);
-       
-        assert_eq!(physical_position.to_gl_coord_2d(physical_size), GLCoord2D::new(1.0, -1.0));
+
+        assert_eq!(
+            physical_position.to_gl_coord_2d(physical_size),
+            GLCoord2D::new(1.0, -1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn physical_position_to_gl_2d_center() {
         let physical_size = glutin::dpi::PhysicalSize::new(100.0, 50.0);
         let physical_position = glutin::dpi::PhysicalPosition::new(50.0, 25.0);
-       
-        assert_eq!(physical_position.to_gl_coord_2d(physical_size), GLCoord2D::new(0.0, 0.0));
+
+        assert_eq!(
+            physical_position.to_gl_coord_2d(physical_size),
+            GLCoord2D::new(0.0, 0.0)
+        );
     }
 
     #[test]
     fn test_physical_position_to_gl_4d() {
-
         let physical_size = glutin::dpi::PhysicalSize::new(100.0, 50.0);
         let physical_position = glutin::dpi::PhysicalPosition::new(80.0, 10.0);
 
@@ -217,25 +227,24 @@ mod tests {
         }
 
         assert_eq!(
-            physical_position.to_gl_coord_4d(physical_size, &MockZFinder{}),
+            physical_position.to_gl_coord_4d(physical_size, &MockZFinder {}),
             GLCoord4D::new(0.6, 0.6, 2.22, 1.0)
         );
     }
-
 
     #[test]
     fn test_gl_4d_to_world() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
-            IsometricRotation::TopLeftAtTop
+            IsometricRotation::TopLeftAtTop,
         );
 
         transform.compute_projection_matrix();
 
         let gl_coord_4 = GLCoord4D::new(5.0, 6.0, 7.0, 8.0);
         let expected = transform.unproject(gl_coord_4);
-       
+
         assert_eq!(gl_coord_4.to_world_coord(&transform), expected);
     }
 
@@ -258,14 +267,14 @@ mod tests {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
-            IsometricRotation::TopLeftAtTop
+            IsometricRotation::TopLeftAtTop,
         );
 
         transform.compute_projection_matrix();
 
         let world_coord = WorldCoord::new(5.0, 6.0, 7.0);
         let expected = transform.project(world_coord);
-       
+
         assert_eq!(world_coord.to_gl_coord_4d(&transform), expected);
     }
 

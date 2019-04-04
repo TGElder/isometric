@@ -1,7 +1,7 @@
+use graphics::texture::Texture;
 use std::fs::File;
 use std::io::Read;
-use ::graphics::texture::Texture;
-use ::{v2, V2};
+use {v2, V2};
 
 #[derive(Clone, Copy)]
 pub struct Glyph {
@@ -34,14 +34,15 @@ impl Glyph {
     pub fn from_csv(file_name: &str) -> [Option<Glyph>; 256] {
         let mut file = File::open(file_name).expect(&format!("Font file {} not found", file_name));
         let mut contents = String::new();
-        file.read_to_string(&mut contents).expect(&format!("Failed to read font file {}", file_name));
+        file.read_to_string(&mut contents)
+            .expect(&format!("Failed to read font file {}", file_name));
 
         let mut glyphs = [None; 256];
 
         for line in contents.split("\n") {
             let glyph = Glyph::from_line(line);
             glyphs[glyph.character as usize] = Some(glyph);
-        };
+        }
 
         glyphs
     }
@@ -53,11 +54,10 @@ pub struct Font {
 }
 
 impl Font {
-
     pub fn from_csv_and_texture(csv_file_name: &str, texture: Texture) -> Font {
         Font {
             glyphs: Glyph::from_csv(csv_file_name),
-            texture
+            texture,
         }
     }
 
@@ -69,14 +69,15 @@ impl Font {
         self.glyphs[character as usize].expect("Unrecognised character") //TODO better error msg, also copying?
     }
 
-    pub fn get_texture_coords(&self, character: char) -> (V2<f32>, V2<f32>)  
-    {
+    pub fn get_texture_coords(&self, character: char) -> (V2<f32>, V2<f32>) {
         let glyph = self.get_glyph(character);
         (
-            self.texture.get_texture_coords(v2(glyph.x + glyph.xoffset, glyph.y + glyph.yoffset)),
-            self.texture.get_texture_coords(v2(glyph.x + glyph.xoffset + glyph.width, glyph.y + glyph.yoffset + glyph.height)),
+            self.texture
+                .get_texture_coords(v2(glyph.x + glyph.xoffset, glyph.y + glyph.yoffset)),
+            self.texture.get_texture_coords(v2(
+                glyph.x + glyph.xoffset + glyph.width,
+                glyph.y + glyph.yoffset + glyph.height,
+            )),
         )
-
     }
-    
 }

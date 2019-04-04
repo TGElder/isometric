@@ -1,6 +1,6 @@
-use ::image::{DynamicImage, GenericImageView};
+use image::{DynamicImage, GenericImageView};
 use std::ffi::c_void;
-use ::{v2, V2};
+use {v2, V2};
 
 pub struct Texture {
     id: gl::types::GLuint,
@@ -13,7 +13,7 @@ impl Texture {
         let mut id: gl::types::GLuint = 0;
         unsafe {
             gl::GenTextures(1, &mut id);
-            let mut out = Texture{
+            let mut out = Texture {
                 id,
                 width: 0,
                 height: 0,
@@ -23,7 +23,7 @@ impl Texture {
         }
     }
 
-    pub unsafe fn bind(&self) {  
+    pub unsafe fn bind(&self) {
         gl::BindTexture(gl::TEXTURE_2D, self.id);
     }
 
@@ -37,7 +37,7 @@ impl Texture {
         self.height = dimensions.1;
         let image = image.to_rgba().into_raw();
         let image_ptr: *const c_void = image.as_ptr() as *const c_void;
-        
+
         unsafe {
             self.bind();
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
@@ -51,7 +51,7 @@ impl Texture {
                 0,
                 gl::RGBA,
                 gl::UNSIGNED_BYTE,
-                image_ptr
+                image_ptr,
             );
             self.unbind();
         }
@@ -60,7 +60,10 @@ impl Texture {
     pub fn get_texture_coords(&self, pixel_position: V2<i32>) -> V2<f32> {
         let width = self.width as f32;
         let height = self.height as f32;
-        v2(pixel_position.x as f32 / width, pixel_position.y as f32 / height)
+        v2(
+            pixel_position.x as f32 / width,
+            pixel_position.y as f32 / height,
+        )
     }
 }
 

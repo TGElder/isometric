@@ -1,4 +1,4 @@
-use ::{v2, v3, M, V2, V3};
+use {v2, v3, M, V2, V3};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Node {
@@ -9,11 +9,19 @@ pub struct Node {
 
 impl Node {
     pub fn point(position: V2<usize>) -> Node {
-        Node{position, width: 0.0, height: 0.0}
+        Node {
+            position,
+            width: 0.0,
+            height: 0.0,
+        }
     }
 
     pub fn new(position: V2<usize>, width: f32, height: f32) -> Node {
-        Node{position, width, height}
+        Node {
+            position,
+            width,
+            height,
+        }
     }
 }
 
@@ -29,9 +37,9 @@ impl Edge {
             panic!("Diagonal edge {:?} from {:?}", from, to);
         }
         if to.x > from.x || to.y > from.y {
-            Edge{from, to}
+            Edge { from, to }
         } else {
-            Edge{from: to, to: from}
+            Edge { from: to, to: from }
         }
     }
 
@@ -54,9 +62,8 @@ pub struct Terrain {
 }
 
 impl Terrain {
-
     pub fn new(elevations: &M<f32>, nodes: &Vec<Node>, edges: &Vec<Edge>) -> Terrain {
-        Terrain{
+        Terrain {
             grid: Terrain::create_grid(elevations, nodes),
             edge: Terrain::get_edge_matrix(elevations.shape().0, elevations.shape().1, edges),
         }
@@ -70,7 +77,11 @@ impl Terrain {
         self.grid.shape().1
     }
 
-    fn get_width_height_matrices(width: usize, height: usize, nodes: &Vec<Node>) -> (M<f32>, M<f32>) {
+    fn get_width_height_matrices(
+        width: usize,
+        height: usize,
+        nodes: &Vec<Node>,
+    ) -> (M<f32>, M<f32>) {
         let mut widths: M<f32> = M::zeros(width, height);
         let mut heights: M<f32> = M::zeros(width, height);
         for node in nodes {
@@ -120,7 +131,7 @@ impl Terrain {
 
     pub fn get_border(&self, grid_index: V2<usize>) -> Vec<V3<f32>> {
         let offsets: [V2<usize>; 4] = [v2(0, 0), v2(1, 0), v2(1, 1), v2(0, 1)];
-        
+
         let mut out = vec![];
 
         for o in 0..4 {
@@ -142,7 +153,10 @@ impl Terrain {
         let border = self.get_border(grid_index);
 
         if border.len() == 4 {
-            vec![[border[0], border[3], border[2]], [border[0], border[2], border[1]]]
+            vec![
+                [border[0], border[3], border[2]],
+                [border[0], border[2], border[1]],
+            ]
         } else if border.len() == 3 {
             vec![[border[0], border[2], border[1]]]
         } else {
@@ -165,7 +179,6 @@ impl Terrain {
     pub fn get_index_for_tile(tile_coordinate: &V2<usize>) -> V2<usize> {
         V2::new((tile_coordinate.x * 2) + 1, (tile_coordinate.y * 2) + 1)
     }
-
 
     fn clip_to_tile(mut point: V3<f32>, tile_coordinate: &V2<usize>) -> V3<f32> {
         let x = tile_coordinate.x as f32;
@@ -210,11 +223,12 @@ mod tests {
 
     use super::*;
 
+    #[rustfmt::skip]
     fn terrain() -> Terrain {
         let elevations = M::from_row_slice(3, 3, &[
-            0.0, 0.0, 0.0, //
-            0.0, 4.0, 3.0, //
-            0.0, 2.0, 1.0, //
+            0.0, 0.0, 0.0,
+            0.0, 4.0, 3.0,
+            0.0, 2.0, 1.0,
         ]).transpose();
 
         let nodes = vec![
@@ -236,16 +250,40 @@ mod tests {
     #[test]
     fn edges_should_be_canonical() {
         let edge = Edge::new(v2(1, 10), v2(10, 10));
-        assert_eq!(edge, Edge{from: v2(1, 10), to: v2(10, 10)});
+        assert_eq!(
+            edge,
+            Edge {
+                from: v2(1, 10),
+                to: v2(10, 10)
+            }
+        );
 
         let edge = Edge::new(v2(10, 10), v2(1, 10));
-        assert_eq!(edge, Edge{from: v2(1, 10), to: v2(10, 10)});
+        assert_eq!(
+            edge,
+            Edge {
+                from: v2(1, 10),
+                to: v2(10, 10)
+            }
+        );
 
         let edge = Edge::new(v2(10, 1), v2(10, 10));
-        assert_eq!(edge, Edge{from: v2(10, 1), to: v2(10, 10)});
+        assert_eq!(
+            edge,
+            Edge {
+                from: v2(10, 1),
+                to: v2(10, 10)
+            }
+        );
 
         let edge = Edge::new(v2(10, 10), v2(10, 1));
-        assert_eq!(edge, Edge{from: v2(10, 1), to: v2(10, 10)});
+        assert_eq!(
+            edge,
+            Edge {
+                from: v2(10, 1),
+                to: v2(10, 10)
+            }
+        );
     }
 
     #[test]
@@ -257,6 +295,7 @@ mod tests {
         assert!(!edge.horizontal());
     }
 
+    #[rustfmt::skip]
     #[test]
     fn test_get_width_height_matrices() {
         let nodes = vec![
@@ -267,13 +306,13 @@ mod tests {
         ];
 
         let widths = M::from_row_slice(2, 2, &[
-            0.5, 0.0, //
-            0.0, 0.1, //
+            0.5, 0.0,
+            0.0, 0.1,
         ]).transpose();
 
         let heights = M::from_row_slice(2, 2, &[
-            0.4, 0.0, //
-            0.0, 0.1, //
+            0.4, 0.0,
+            0.0, 0.1,
         ]).transpose();
 
         let actual = Terrain::get_width_height_matrices(2, 2, &nodes);
@@ -281,6 +320,7 @@ mod tests {
         assert_eq!(actual, (widths, heights));
     }
 
+    #[rustfmt::skip]
     #[test]
     fn test_get_edge_matrix() {
         let edges = vec![
@@ -289,12 +329,12 @@ mod tests {
             Edge::new(v2(1, 1), v2(1, 2)),
         ];
         let expected = M::from_row_slice(6, 6, &[
-            false, false, false, false, false, false, //
-            false, false, false, false, false, false, //
-            false, true , false, true , false, false, //
-            false, false, true , false, false, false, //
-            false, false, false, false, false, false, //
-            false, false, false, false, false, false, //
+            false, false, false, false, false, false,
+            false, false, false, false, false, false,
+            false, true , false, true , false, false,
+            false, false, true , false, false, false,
+            false, false, false, false, false, false,
+            false, false, false, false, false, false,
         ]).transpose();
 
         let actual = Terrain::get_edge_matrix(3, 3, &edges);
@@ -345,33 +385,32 @@ mod tests {
     fn test_get_border_square() {
         let actual = terrain().get_border(v2(2, 2));
 
-        assert_eq!(actual, vec![
-            v3(0.5, 0.5, 4.0),
-            v3(1.5, 0.5, 4.0),
-            v3(1.5, 1.5, 4.0),
-            v3(0.5, 1.5, 4.0),
-        ]);
+        assert_eq!(
+            actual,
+            vec![
+                v3(0.5, 0.5, 4.0),
+                v3(1.5, 0.5, 4.0),
+                v3(1.5, 1.5, 4.0),
+                v3(0.5, 1.5, 4.0),
+            ]
+        );
     }
 
     #[test]
     fn test_get_border_triangle() {
         let actual = terrain().get_border(v2(2, 1));
 
-        assert_eq!(actual, vec![
-            v3(1.0, 0.0, 0.0),
-            v3(1.5, 0.5, 4.0),
-            v3(0.5, 0.5, 4.0),
-        ]);
+        assert_eq!(
+            actual,
+            vec![v3(1.0, 0.0, 0.0), v3(1.5, 0.5, 4.0), v3(0.5, 0.5, 4.0),]
+        );
     }
 
     #[test]
     fn test_get_border_line() {
         let actual = terrain().get_border(v2(1, 0));
 
-        assert_eq!(actual, vec![
-            v3(0.0, 0.0, 0.0),
-            v3(1.0, 0.0, 0.0),
-        ]);
+        assert_eq!(actual, vec![v3(0.0, 0.0, 0.0), v3(1.0, 0.0, 0.0),]);
     }
 
     #[test]
@@ -385,19 +424,23 @@ mod tests {
     fn test_get_triangles_square() {
         let actual = terrain().get_triangles(v2(2, 2));
 
-        assert_eq!(actual, vec![
-            [v3(0.5, 0.5, 4.0), v3(0.5, 1.5, 4.0), v3(1.5, 1.5, 4.0)],
-            [v3(0.5, 0.5, 4.0), v3(1.5, 1.5, 4.0), v3(1.5, 0.5, 4.0)],
-        ]);
+        assert_eq!(
+            actual,
+            vec![
+                [v3(0.5, 0.5, 4.0), v3(0.5, 1.5, 4.0), v3(1.5, 1.5, 4.0)],
+                [v3(0.5, 0.5, 4.0), v3(1.5, 1.5, 4.0), v3(1.5, 0.5, 4.0)],
+            ]
+        );
     }
 
     #[test]
     fn test_get_triangles_triangle() {
         let actual = terrain().get_triangles(v2(2, 1));
 
-        assert_eq!(actual, vec![
-            [v3(1.0, 0.0, 0.0), v3(0.5, 0.5, 4.0), v3(1.5, 0.5, 4.0)],
-        ]);
+        assert_eq!(
+            actual,
+            vec![[v3(1.0, 0.0, 0.0), v3(0.5, 0.5, 4.0), v3(1.5, 0.5, 4.0)],]
+        );
     }
 
     #[test]
@@ -447,12 +490,7 @@ mod tests {
                 actual.push(Terrain::get_index_for_tile(&v2(x, y)));
             }
         }
-        let expected = vec![
-            v2(1, 1),
-            v2(3, 1),
-            v2(1, 3),
-            v2(3, 3),
-        ];
+        let expected = vec![v2(1, 1), v2(3, 1), v2(1, 3), v2(3, 3)];
 
         assert_eq!(actual, expected);
     }

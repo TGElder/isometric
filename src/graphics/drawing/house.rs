@@ -1,9 +1,9 @@
-use ::coords::*;
-use super::Drawing;
 use super::super::engine::DrawingType;
-use ::color::Color;
-use super::utils::*;
 use super::super::vertex_objects::VBO;
+use super::utils::*;
+use super::Drawing;
+use color::Color;
+use coords::*;
 
 pub struct HouseDrawing {
     vbo: VBO,
@@ -31,10 +31,11 @@ impl HouseDrawing {
         roof_height: f32,
         base_color: Color,
         light_direction: na::Vector3<f32>,
-        ) -> HouseDrawing {
-
-        let triangle_coloring: Box<TriangleColoring> = Box::new(AngleTriangleColoring::new(base_color, light_direction));
-        let square_coloring: Box<SquareColoring> = Box::new(AngleSquareColoring::new(base_color, light_direction));
+    ) -> HouseDrawing {
+        let triangle_coloring: Box<TriangleColoring> =
+            Box::new(AngleTriangleColoring::new(base_color, light_direction));
+        let square_coloring: Box<SquareColoring> =
+            Box::new(AngleSquareColoring::new(base_color, light_direction));
 
         let x = world_coordinate.x as f32;
         let y = world_coordinate.y as f32;
@@ -54,17 +55,41 @@ impl HouseDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
-        vertices.append(&mut get_colored_vertices_from_square(&[e, h, d, a], &square_coloring));
-        vertices.append(&mut get_colored_vertices_from_square(&[h, g, c, d], &square_coloring));
-        vertices.append(&mut get_colored_vertices_from_square(&[g, f, b, c], &square_coloring));
-        vertices.append(&mut get_colored_vertices_from_square(&[f, e, a, b], &square_coloring));
-        vertices.append(&mut get_colored_vertices_from_triangle(&[h, e, s], &triangle_coloring));
-        vertices.append(&mut get_colored_vertices_from_triangle(&[g, h, s], &triangle_coloring));
-        vertices.append(&mut get_colored_vertices_from_triangle(&[f, g, s], &triangle_coloring));
-        vertices.append(&mut get_colored_vertices_from_triangle(&[e, f, s], &triangle_coloring));
-        
+        vertices.append(&mut get_colored_vertices_from_square(
+            &[e, h, d, a],
+            &square_coloring,
+        ));
+        vertices.append(&mut get_colored_vertices_from_square(
+            &[h, g, c, d],
+            &square_coloring,
+        ));
+        vertices.append(&mut get_colored_vertices_from_square(
+            &[g, f, b, c],
+            &square_coloring,
+        ));
+        vertices.append(&mut get_colored_vertices_from_square(
+            &[f, e, a, b],
+            &square_coloring,
+        ));
+        vertices.append(&mut get_colored_vertices_from_triangle(
+            &[h, e, s],
+            &triangle_coloring,
+        ));
+        vertices.append(&mut get_colored_vertices_from_triangle(
+            &[g, h, s],
+            &triangle_coloring,
+        ));
+        vertices.append(&mut get_colored_vertices_from_triangle(
+            &[f, g, s],
+            &triangle_coloring,
+        ));
+        vertices.append(&mut get_colored_vertices_from_triangle(
+            &[e, f, s],
+            &triangle_coloring,
+        ));
+
         vbo.load(vertices);
 
-        HouseDrawing{vbo}
+        HouseDrawing { vbo }
     }
 }

@@ -1,9 +1,9 @@
-use super::Drawing;
 use super::super::engine::DrawingType;
 use super::super::vertex_objects::VBO;
 use super::utils::*;
-use ::color::Color;
-use ::v3;
+use super::Drawing;
+use color::Color;
+use v3;
 
 pub struct SeaDrawing {
     vbo: VBO,
@@ -29,14 +29,16 @@ impl SeaDrawing {
 
         let color = Color::new(0.0, 0.0, 1.0, 1.0);
 
-        vbo.load(get_uniform_colored_vertices_from_square(&[
+        vbo.load(get_uniform_colored_vertices_from_square(
+            &[
                 v3(0.0, 0.0, level),
                 v3(width, 0.0, level),
                 v3(width, height, level),
                 v3(0.0, height, level),
-            ], &color)
-        );
+            ],
+            &color,
+        ));
 
-        SeaDrawing{vbo}
+        SeaDrawing { vbo }
     }
 }

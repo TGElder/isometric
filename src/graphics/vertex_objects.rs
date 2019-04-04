@@ -12,7 +12,7 @@ impl VBO {
         let vao = VAO::new(drawing_type);
         unsafe {
             gl::GenBuffers(1, &mut id);
-            let out = VBO{
+            let out = VBO {
                 id,
                 vao,
                 vertex_count: 0,
@@ -107,7 +107,6 @@ impl VAO {
     }
 }
 
-
 impl Drop for VAO {
     fn drop(&mut self) {
         unsafe {
@@ -189,7 +188,7 @@ fn setup_vao(drawing_type: &DrawingType) {
 
 fn get_draw_mode(drawing_type: &DrawingType) -> gl::types::GLenum {
     match drawing_type {
-         DrawingType::Plain => gl::TRIANGLES,
-         DrawingType::Text => gl::TRIANGLES,
+        DrawingType::Plain => gl::TRIANGLES,
+        DrawingType::Text => gl::TRIANGLES,
     }
 }

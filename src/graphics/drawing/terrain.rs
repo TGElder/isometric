@@ -1,10 +1,10 @@
-use super::Drawing;
 use super::super::engine::DrawingType;
-use ::color::Color;
 use super::super::vertex_objects::VBO;
 use super::utils::*;
-use ::terrain::{Node, Edge, Terrain};
-use ::{v2, M};
+use super::Drawing;
+use color::Color;
+use terrain::{Edge, Node, Terrain};
+use {v2, M};
 
 pub struct NodeDrawing {
     vbo: VBO,
@@ -27,20 +27,21 @@ impl Drawing for NodeDrawing {
 
 impl NodeDrawing {
     pub fn new(terrain: &Terrain, nodes: &Vec<Node>, color: Color, z_mod: f32) -> NodeDrawing {
-
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
         for node in nodes {
             for triangle in terrain.get_triangles(Terrain::get_index_for_node(&node)) {
-                vertices.append(&mut get_uniform_colored_vertices_from_triangle(&triangle, &color));
+                vertices.append(&mut get_uniform_colored_vertices_from_triangle(
+                    &triangle, &color,
+                ));
             }
         }
 
         vbo.load(vertices);
 
-        NodeDrawing{vbo, z_mod}
+        NodeDrawing { vbo, z_mod }
     }
 }
 
@@ -65,20 +66,21 @@ impl Drawing for EdgeDrawing {
 
 impl EdgeDrawing {
     pub fn new(terrain: &Terrain, nodes: &Vec<Edge>, color: Color, z_mod: f32) -> EdgeDrawing {
-
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
         for node in nodes {
             for triangle in terrain.get_triangles(Terrain::get_index_for_edge(&node)) {
-                vertices.append(&mut get_uniform_colored_vertices_from_triangle(&triangle, &color));
+                vertices.append(&mut get_uniform_colored_vertices_from_triangle(
+                    &triangle, &color,
+                ));
             }
         }
 
         vbo.load(vertices);
 
-        EdgeDrawing{vbo, z_mod}
+        EdgeDrawing { vbo, z_mod }
     }
 }
 
@@ -101,8 +103,11 @@ impl Drawing for TerrainDrawing {
 }
 
 impl TerrainDrawing {
-    pub fn from_matrix(terrain: &Terrain, color_matrix: &M<Color>, shading: &Box<SquareColoring>) -> TerrainDrawing {
-
+    pub fn from_matrix(
+        terrain: &Terrain,
+        color_matrix: &M<Color>,
+        shading: &Box<SquareColoring>,
+    ) -> TerrainDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
@@ -115,18 +120,19 @@ impl TerrainDrawing {
                 let shade = shading.get_colors(&[border[0], border[1], border[2], border[3]])[0];
                 let color = color_matrix[(x, y)].mul(&shade);
                 for triangle in terrain.get_triangles_for_tile(&tile_index) {
-                    vertices.append(&mut get_uniform_colored_vertices_from_triangle(&triangle, &color));
+                    vertices.append(&mut get_uniform_colored_vertices_from_triangle(
+                        &triangle, &color,
+                    ));
                 }
             }
         }
 
         vbo.load(vertices);
 
-        TerrainDrawing{vbo}
+        TerrainDrawing { vbo }
     }
 
     pub fn uniform(terrain: &Terrain, coloring: Box<SquareColoring>) -> TerrainDrawing {
-
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
@@ -138,13 +144,15 @@ impl TerrainDrawing {
                 let border = terrain.get_border(grid_index);
                 let color = coloring.get_colors(&[border[0], border[1], border[2], border[3]])[0];
                 for triangle in terrain.get_triangles_for_tile(&tile_index) {
-                    vertices.append(&mut get_uniform_colored_vertices_from_triangle(&triangle, &color));
+                    vertices.append(&mut get_uniform_colored_vertices_from_triangle(
+                        &triangle, &color,
+                    ));
                 }
             }
         }
 
         vbo.load(vertices);
 
-        TerrainDrawing{vbo}
+        TerrainDrawing { vbo }
     }
 }

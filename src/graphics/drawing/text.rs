@@ -1,9 +1,9 @@
-use super::Drawing;
 use super::super::engine::DrawingType;
 use super::super::vertex_objects::VBO;
-use ::font::Font;
-use ::{V3};
+use super::Drawing;
+use font::Font;
 use std::sync::Arc;
+use V3;
 
 pub struct Text {
     vbo: VBO,
@@ -29,6 +29,7 @@ impl Drawing for Text {
 }
 
 impl Text {
+    #[rustfmt::skip]
     pub fn new(text: &str, position: V3<f32>, font: Arc<Font>) -> Text {
         let mut vbo = VBO::new(DrawingType::Text);
 
@@ -44,14 +45,14 @@ impl Text {
             let glyph = font.get_glyph(character);
             let w = glyph.width as f32;
             let h = glyph.height as f32;
-             
+
             vertices.append(&mut vec![
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, bottom_right.y, xo, 0.0, //
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, top_left.y, xo, h, //
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, top_left.y, xo + w, h, //
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, bottom_right.y, xo, 0.0, //
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, top_left.y, xo + w, h, //
-                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, bottom_right.y, xo + w, 0.0, //
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, bottom_right.y, xo, 0.0,
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, top_left.y, xo, h,
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, top_left.y, xo + w, h,
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, top_left.x, bottom_right.y, xo, 0.0,
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, top_left.y, xo + w, h,
+                p.x, p.y, p.z, 1.0, 1.0, 1.0, bottom_right.x, bottom_right.y, xo + w, 0.0,
             ]);
             xo += glyph.xadvance as f32;
         }
@@ -61,5 +62,3 @@ impl Text {
         Text{vbo, font}
     }
 }
-
- 

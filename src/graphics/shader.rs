@@ -6,9 +6,7 @@ pub struct Shader {
 }
 
 impl Shader {
-
     pub fn from_source(source: &'static str, kind: gl::types::GLenum) -> Result<Shader, String> {
-
         let source = &CString::new(source).unwrap();
 
         let id = unsafe { gl::CreateShader(kind) };

@@ -3,7 +3,7 @@ use super::coords::*;
 #[derive(Debug)]
 pub enum Direction {
     Clockwise,
-    AntiClockwise
+    AntiClockwise,
 }
 
 #[derive(Debug)]
@@ -11,7 +11,7 @@ pub enum IsometricRotation {
     TopLeftAtTop,
     TopRightAtTop,
     BottomLeftAtTop,
-    BottomRightAtTop
+    BottomRightAtTop,
 }
 
 impl IsometricRotation {
@@ -40,19 +40,18 @@ impl IsometricRotation {
                 IsometricRotation::TopRightAtTop => IsometricRotation::TopLeftAtTop,
                 IsometricRotation::BottomLeftAtTop => IsometricRotation::BottomRightAtTop,
                 IsometricRotation::BottomRightAtTop => IsometricRotation::TopRightAtTop,
-            }
+            },
             Direction::AntiClockwise => match *self {
                 IsometricRotation::TopLeftAtTop => IsometricRotation::TopRightAtTop,
                 IsometricRotation::TopRightAtTop => IsometricRotation::BottomRightAtTop,
                 IsometricRotation::BottomLeftAtTop => IsometricRotation::TopLeftAtTop,
                 IsometricRotation::BottomRightAtTop => IsometricRotation::BottomLeftAtTop,
-            }
+            },
         }
     }
-
 }
 
-pub struct Transform{
+pub struct Transform {
     scale: GLCoord3D,
     translation: GLCoord2D,
     rotation: IsometricRotation,
@@ -61,9 +60,8 @@ pub struct Transform{
 }
 
 impl Transform {
-    
     pub fn new(scale: GLCoord3D, translation: GLCoord2D, rotation: IsometricRotation) -> Transform {
-        Transform{
+        Transform {
             scale,
             translation,
             rotation,
@@ -72,12 +70,13 @@ impl Transform {
         }
     }
 
+    #[rustfmt::skip]
     pub fn compute_projection_matrix(&mut self) {
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::from_vec(vec![
-            self.scale.x, 0.0, 0.0, self.translation.x, //
-            0.0, self.scale.y, 0.0, self.translation.y, //
-            0.0, 0.0, self.scale.z, 0.0, //
-            0.0, 0.0, 0.0, 1.0,] //
+            self.scale.x, 0.0, 0.0, self.translation.x,
+            0.0, self.scale.y, 0.0, self.translation.y,
+            0.0, 0.0, self.scale.z, 0.0,
+            0.0, 0.0, 0.0, 1.0,]
         ).transpose();
 
         let isometric_matrix = self.compute_isometric_matrix();
@@ -89,14 +88,15 @@ impl Transform {
         self.projection_matrix
     }
 
+    #[rustfmt::skip]
     fn compute_isometric_matrix(&self) -> na::Matrix4<f32> {
         let c = self.rotation.c();
         let s = self.rotation.s();
         na::Matrix4::from_vec(vec![
-            c, -s, 0.0, 0.0, //
-            -s / 2.0, -c / 2.0, 1.0, 0.0, //
-            0.0, 0.0, -1.0, 0.0, //
-            0.0, 0.0, 0.0, 1.0, //
+            c, -s, 0.0, 0.0,
+            -s / 2.0, -c / 2.0, 1.0, 0.0,
+            0.0, 0.0, -1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
             ]
         ).transpose()
     }
@@ -106,7 +106,11 @@ impl Transform {
         self.translation.y = self.translation.y + delta.y;
     }
 
-    fn transform_maintaining_center(&mut self, center: GLCoord4D, mut transformation: Box<FnMut(&mut Self) -> ()>) {
+    fn transform_maintaining_center(
+        &mut self,
+        center: GLCoord4D,
+        mut transformation: Box<FnMut(&mut Self) -> ()>,
+    ) {
         let old_x = center.x;
         let old_y = center.y;
         let world_point = self.unproject(center);
@@ -123,7 +127,7 @@ impl Transform {
             Box::new(move |transform| {
                 transform.scale.x = transform.scale.x * delta.x;
                 transform.scale.y = transform.scale.y * delta.y;
-            })
+            }),
         );
     }
 
@@ -132,7 +136,7 @@ impl Transform {
             center,
             Box::new(move |transform| {
                 transform.rotation = transform.rotation.rotate(&direction);
-            })
+            }),
         );
     }
 
@@ -145,19 +149,17 @@ impl Transform {
         let projected_point: na::Point4<f32> = projected_coord.into();
         (self.inverse_matrix * projected_point).into()
     }
-
 }
-
 
 #[cfg(test)]
 mod tests {
 
-    use super::IsometricRotation;
-    use super::Direction;
-    use super::Transform;
     use super::super::coords::*;
+    use super::Direction;
+    use super::IsometricRotation;
+    use super::Transform;
 
-    #[test]   
+    #[test]
     fn test_isometric_projection_with_top_left_at_top() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -166,13 +168,25 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(0.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(1.0, -0.5, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(1.0, 1.0, 0.0)), GLCoord4D::new(0.0, -1.0, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(0.0, 1.0, 0.0)), GLCoord4D::new(-1.0, -0.5, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(0.0, 0.0, 0.0)),
+            GLCoord4D::new(0.0, 0.0, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(1.0, -0.5, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 1.0, 0.0)),
+            GLCoord4D::new(0.0, -1.0, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(0.0, 1.0, 0.0)),
+            GLCoord4D::new(-1.0, -0.5, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_isometric_projection_with_top_right_at_top() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -181,13 +195,25 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(0.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(1.0, 0.5, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(1.0, 1.0, 0.0)), GLCoord4D::new(2.0, 0.0, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(0.0, 1.0, 0.0)), GLCoord4D::new(1.0, -0.5, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(0.0, 0.0, 0.0)),
+            GLCoord4D::new(0.0, 0.0, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(1.0, 0.5, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 1.0, 0.0)),
+            GLCoord4D::new(2.0, 0.0, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(0.0, 1.0, 0.0)),
+            GLCoord4D::new(1.0, -0.5, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_isometric_projection_with_bottom_right_at_top() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -196,13 +222,25 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(0.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(-1.0, 0.5, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(1.0, 1.0, 0.0)), GLCoord4D::new(0.0, 1.0, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(0.0, 1.0, 0.0)), GLCoord4D::new(1.0, 0.5, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(0.0, 0.0, 0.0)),
+            GLCoord4D::new(0.0, 0.0, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(-1.0, 0.5, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 1.0, 0.0)),
+            GLCoord4D::new(0.0, 1.0, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(0.0, 1.0, 0.0)),
+            GLCoord4D::new(1.0, 0.5, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_isometric_projection_with_bottom_left_at_top() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -211,13 +249,25 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(0.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(-1.0, -0.5, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(1.0, 1.0, 0.0)), GLCoord4D::new(-2.0, 0.0, 0.0, 1.0));
-        assert_eq!(transform.project(WorldCoord::new(0.0, 1.0, 0.0)), GLCoord4D::new(-1.0, 0.5, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(0.0, 0.0, 0.0)),
+            GLCoord4D::new(0.0, 0.0, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(-1.0, -0.5, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 1.0, 0.0)),
+            GLCoord4D::new(-2.0, 0.0, 0.0, 1.0)
+        );
+        assert_eq!(
+            transform.project(WorldCoord::new(0.0, 1.0, 0.0)),
+            GLCoord4D::new(-1.0, 0.5, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_isometric_projection_with_z() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -226,22 +276,28 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 10.0)), GLCoord4D::new(1.0, 9.5, -10.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 10.0)),
+            GLCoord4D::new(1.0, 9.5, -10.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_x_translate() {
-         let mut transform = Transform::new(
+        let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(-1.0, 0.0),
             IsometricRotation::TopLeftAtTop,
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(0.0, -0.5, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(0.0, -0.5, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_y_translate() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -250,10 +306,13 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(1.0, 0.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(1.0, 0.0, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_both_translate() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -262,10 +321,13 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(0.0, 0.0, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_translate_method() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -275,10 +337,13 @@ mod tests {
         transform.translate(GLCoord2D::new(-1.0, 0.5));
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(0.0, 0.0, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_x_scale() {
         let mut transform = Transform::new(
             GLCoord3D::new(3.0, 1.0, 1.0),
@@ -287,10 +352,13 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(3.0, -0.5, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(3.0, -0.5, 0.0, 1.0)
+        );
     }
 
-     #[test]   
+    #[test]
     fn test_y_scale() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 3.0, 1.0),
@@ -299,10 +367,13 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(1.0, -1.5, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(1.0, -1.5, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_z_scale() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 3.0),
@@ -311,10 +382,13 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 10.0)), GLCoord4D::new(1.0, 9.5, -30.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 10.0)),
+            GLCoord4D::new(1.0, 9.5, -30.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_xy_scale() {
         let mut transform = Transform::new(
             GLCoord3D::new(3.0, 3.0, 1.0),
@@ -323,11 +397,13 @@ mod tests {
         );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(1.0, 0.0, 0.0)), GLCoord4D::new(3.0, -1.5, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(1.0, 0.0, 0.0)),
+            GLCoord4D::new(3.0, -1.5, 0.0, 1.0)
+        );
     }
 
-
-    #[test]   
+    #[test]
     fn test_scale_method() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -335,13 +411,19 @@ mod tests {
             IsometricRotation::TopLeftAtTop,
         );
         transform.compute_projection_matrix();
-        transform.scale(GLCoord4D::new(1.0, -0.5, 0.0, 1.0), GLCoord2D::new(2.0, 3.0));
+        transform.scale(
+            GLCoord4D::new(1.0, -0.5, 0.0, 1.0),
+            GLCoord2D::new(2.0, 3.0),
+        );
         transform.compute_projection_matrix();
 
-        assert_eq!(transform.project(WorldCoord::new(0.0, 1.0, 0.0)), GLCoord4D::new(-3.0, -0.5, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(0.0, 1.0, 0.0)),
+            GLCoord4D::new(-3.0, -0.5, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn world_point_under_center_of_scaling_should_stay_the_same() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -356,7 +438,7 @@ mod tests {
         assert_eq!(transform.project(world_coord_at_center), center_of_scaling);
     }
 
-    #[test]   
+    #[test]
     fn test_rotation_clockwise() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -364,28 +446,43 @@ mod tests {
             IsometricRotation::TopLeftAtTop,
         );
         transform.compute_projection_matrix();
-        assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, -2.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            GLCoord4D::new(0.0, -2.0, 0.0, 1.0)
+        );
 
         let center_of_rotation = GLCoord4D::new(0.0, -1.0, 0.0, 1.0);
 
         transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
-        assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(-2.0, -1.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            GLCoord4D::new(-2.0, -1.0, 0.0, 1.0)
+        );
 
         transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
-        assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            GLCoord4D::new(0.0, 0.0, 0.0, 1.0)
+        );
 
         transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
-        assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(2.0, -1.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            GLCoord4D::new(2.0, -1.0, 0.0, 1.0)
+        );
 
         transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
-        assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, -2.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            GLCoord4D::new(0.0, -2.0, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn test_rotation_anticlockwise() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
@@ -393,28 +490,43 @@ mod tests {
             IsometricRotation::TopLeftAtTop,
         );
         transform.compute_projection_matrix();
-        assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, -2.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            GLCoord4D::new(0.0, -2.0, 0.0, 1.0)
+        );
 
         let center_of_rotation = GLCoord4D::new(0.0, -1.0, 0.0, 1.0);
 
         transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
-        assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(2.0, -1.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            GLCoord4D::new(2.0, -1.0, 0.0, 1.0)
+        );
 
         transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
-        assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, 0.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            GLCoord4D::new(0.0, 0.0, 0.0, 1.0)
+        );
 
         transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
-        assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(-2.0, -1.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            GLCoord4D::new(-2.0, -1.0, 0.0, 1.0)
+        );
 
         transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
-        assert_eq!(transform.project(WorldCoord::new(2.0, 2.0, 0.0)), GLCoord4D::new(0.0, -2.0, 0.0, 1.0));
+        assert_eq!(
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            GLCoord4D::new(0.0, -2.0, 0.0, 1.0)
+        );
     }
 
-    #[test]   
+    #[test]
     fn world_point_under_center_of_rotation_should_stay_the_same() {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
