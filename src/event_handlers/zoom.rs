@@ -14,27 +14,19 @@ impl ZoomHandler {
         }
     }
 
-    fn zoom_in(&self) -> Vec<Command> {
-        if let Some(center) = self.cursor_position {
-            vec![Command::Scale{center, scale: GLCoord2D::new(2.0, 2.0)}]
-        } else {
-            vec![]
-        }
+    fn zoom_in(&self, center: GLCoord4D) -> Vec<Command> {
+        vec![Command::Scale{center, scale: GLCoord2D::new(2.0, 2.0)}]
     }
 
-    fn zoom_out(&self) -> Vec<Command> {
-        if let Some(center) = self.cursor_position {
-            vec![Command::Scale{center, scale: GLCoord2D::new(0.5, 0.5)}]
-        } else {
-            vec![]
-        }
+    fn zoom_out(&self, center: GLCoord4D) -> Vec<Command> {
+        vec![Command::Scale{center, scale: GLCoord2D::new(0.5, 0.5)}]
     }
 
     fn handle_mouse_scroll_delta(&self, delta: glutin::MouseScrollDelta) -> Vec<Command> {
         if let Some(center) = self.cursor_position {
             match delta {
-                glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => self.zoom_in(),
-                glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => self.zoom_out(),
+                glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => self.zoom_in(center),
+                glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => self.zoom_out(center),
                 _ => vec![],
             }
         } else {
@@ -67,11 +59,15 @@ impl EventHandler for ZoomHandler {
                     },
                 ..
                 }
-            ) => match virtual_keycode {
-                Some(glutin::VirtualKeyCode::Add) => self.zoom_in(),
-                Some(glutin::VirtualKeyCode::Subtract) => self.zoom_out(),
-                _ => vec![]
-            }
+            ) => if let Some(center) = self.cursor_position {
+                    match virtual_keycode {
+                        Some(glutin::VirtualKeyCode::Add) => self.zoom_in(center),
+                        Some(glutin::VirtualKeyCode::Subtract) => self.zoom_out(center),
+                        _ => vec![]
+                    }
+                } else {
+                    vec![]
+                },
             Event::CursorMoved(gl_position) => {self.cursor_position = Some(gl_position); vec![]},
             _ => vec![]
         }

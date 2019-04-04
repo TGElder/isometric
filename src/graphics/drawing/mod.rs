@@ -15,7 +15,6 @@ pub use self::canvas::*;
 pub use self::text::*;
 
 use super::engine::DrawingType;
-use super::vertex_objects::VBO;
 
 pub trait Drawing {
     fn draw(&self);

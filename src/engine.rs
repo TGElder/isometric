@@ -5,11 +5,7 @@ use ::graphics::engine::GraphicsEngine;
 use ::event_handlers::*;
 use ::transform::Direction;
 use ::coords::*;
-use ::color::Color;
-
 use ::graphics::drawing::*;
-
-use ::terrain::*;
 
 use glutin::GlContext;
 
