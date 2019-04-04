@@ -25,8 +25,8 @@ impl GraphicsEngine {
         let programs = [
             Program::from_shaders(
                 DrawingType::Plain,
-                include_str!("shaders/triangle.vert"),
-                include_str!("shaders/triangle.frag"),
+                include_str!("shaders/plain.vert"),
+                include_str!("shaders/plain.frag"),
             ),
             Program::from_shaders(
                 DrawingType::Text,
