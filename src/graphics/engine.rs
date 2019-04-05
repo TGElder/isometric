@@ -101,20 +101,26 @@ impl GraphicsEngine {
         }
     }
 
-    pub fn draw(&mut self) {
+    pub fn draw_world(&mut self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
+        self.draw(0);
+    }
 
-            self.transform.compute_projection_matrix();
-            for program in self.programs.iter() {
-                program.set_used();
-                self.prepare_program(program);
-                for drawing in self.drawings.values() {
-                    if *drawing.drawing_type() == program.drawing_type {
-                        self.prepare_program_for_drawing(program, drawing);
-                        drawing.draw();
-                    }
-                }
+    pub fn draw_ui(&mut self) {
+        self.draw(1);
+    }
+
+    fn draw(&mut self, program: usize) {
+        let program = &self.programs[program];
+        self.transform.compute_projection_matrix();
+        program.set_used();
+        self.prepare_program(program);
+        for drawing in self.drawings.values() {
+            if *drawing.drawing_type() == program.drawing_type {
+                self.prepare_program_for_drawing(program, drawing);
+                drawing.draw();
             }
         }
     }

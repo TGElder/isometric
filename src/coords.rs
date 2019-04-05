@@ -69,6 +69,13 @@ impl GLCoord2D {
     pub fn new(x: f32, y: f32) -> GLCoord2D {
         GLCoord2D { x, y }
     }
+
+    pub fn to_buffer_coord(self, physical_size: glutin::dpi::PhysicalSize) -> BufferCoordinate {
+        BufferCoordinate {
+            x: (((self.x + 1.0) / 2.0) * physical_size.width as f32) as i32,
+            y: (((self.y + 1.0) / 2.0) * physical_size.height as f32) as i32,
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -230,6 +237,14 @@ mod tests {
             physical_position.to_gl_coord_4d(physical_size, &MockZFinder {}),
             GLCoord4D::new(0.6, 0.6, 2.22, 1.0)
         );
+    }
+
+    #[test]
+    fn test_gl_2d_to_buffer_coord() {
+        let gl_coord_2 = GLCoord2D::new(0.25, 0.75);
+        let physical_size = glutin::dpi::PhysicalSize::new(256.0, 128.0);
+
+        assert_eq!(gl_coord_2.to_buffer_coord(physical_size), BufferCoordinate::new(64, 96));
     }
 
     #[test]
