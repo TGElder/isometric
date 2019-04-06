@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_gl_2d_to_buffer_coord() {
-        let gl_coord_2 = GLCoord2D::new(0.25, 0.75);
+        let gl_coord_2 = GLCoord2D::new(-0.5, 0.5);
         let physical_size = glutin::dpi::PhysicalSize::new(256.0, 128.0);
 
         assert_eq!(gl_coord_2.to_buffer_coord(physical_size), BufferCoordinate::new(64, 96));
