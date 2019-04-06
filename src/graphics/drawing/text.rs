@@ -3,11 +3,12 @@ use super::super::vertex_objects::VBO;
 use super::Drawing;
 use font::Font;
 use std::sync::Arc;
-use V3;
+use ::coords::WorldCoord;
 
 pub struct Text {
     vbo: VBO,
     font: Arc<Font>,
+    world_coord: WorldCoord,
 }
 
 impl Drawing for Text {
@@ -26,11 +27,16 @@ impl Drawing for Text {
     fn drawing_type(&self) -> &DrawingType {
         self.vbo.drawing_type()
     }
+
+    fn get_visibility_check_coord(&self) -> Option<&WorldCoord> {
+        Some(&self.world_coord)
+    }
+
 }
 
 impl Text {
     #[rustfmt::skip]
-    pub fn new(text: &str, position: V3<f32>, font: Arc<Font>) -> Text {
+    pub fn new(text: &str, world_coord: WorldCoord, font: Arc<Font>) -> Text {
         let mut vbo = VBO::new(DrawingType::Text);
 
         let mut vertices = vec![];
@@ -40,7 +46,7 @@ impl Text {
 
         for character in text.chars() {
             let (top_left, bottom_right) = font.get_texture_coords(character);
-            let p = position;
+            let p = world_coord;
             let (w, h) = font.get_dimensions(character);
             let (w, h) = (w as f32, h as f32);
 
@@ -57,6 +63,6 @@ impl Text {
 
         vbo.load(vertices);
 
-        Text{vbo, font}
+        Text{vbo, font, world_coord}
     }
 }

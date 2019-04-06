@@ -4,6 +4,7 @@ use super::utils::*;
 use super::Drawing;
 use color::Color;
 use v3;
+use ::coords::WorldCoord;
 
 pub struct SeaDrawing {
     vbo: VBO,
@@ -20,6 +21,10 @@ impl Drawing for SeaDrawing {
 
     fn drawing_type(&self) -> &DrawingType {
         self.vbo.drawing_type()
+    }
+
+    fn get_visibility_check_coord(&self) -> Option<&WorldCoord> {
+        None
     }
 }
 

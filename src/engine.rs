@@ -4,7 +4,7 @@ use coords::*;
 use event_handlers::*;
 use events::{AsyncEventHandler, EventHandler};
 use graphics::drawing::*;
-use graphics::engine::{GraphicsEngine, GLZFinder};
+use graphics::engine::GraphicsEngine;
 use transform::Direction;
 
 use glutin::GlContext;
@@ -37,11 +37,6 @@ pub enum Command {
     ComputeWorldPosition(GLCoord4D),
     Draw {
         name: String,
-        drawing: Box<Drawing + Send>,
-    },
-    DrawText {
-        name: String,
-        position: WorldCoord,
         drawing: Box<Drawing + Send>,
     },
     Erase(String),
@@ -173,35 +168,10 @@ impl IsometricEngine {
                 ))
             }
             Command::Draw { name, drawing } => self.graphics.add_drawing(name, drawing),
-            Command::DrawText{ name, position, drawing } => {
-                if self.is_visible(position) {
-                    self.graphics.add_drawing(name, drawing);
-                } else {
-                    self.graphics.remove_drawing(&name);
-                }
-            }
             Command::Erase(name) => self.graphics.remove_drawing(&name),
         }
     }
     
-    fn is_visible(&mut self, world_coord: WorldCoord) -> bool {
-        println!("WorldCoord={:?}", world_coord);
-        let gl_coord_4 = world_coord.to_gl_coord_4d(&self.graphics.get_transform());
-        println!("GLCoord4={:?}", gl_coord_4);
-        let gl_coord_2 = GLCoord2D::new(gl_coord_4.x, gl_coord_4.y);
-        println!("GLCoord2={:?}", gl_coord_2);
-        let dpi_factor = self.window.get_hidpi_factor();
-        let physical_size = self.window.window().get_inner_size().unwrap().to_physical(dpi_factor);
-        println!("PhysicalSize={:?}", physical_size);
-        let buffer_coord = gl_coord_2.to_buffer_coord(physical_size);
-        println!("BufferCoord={:?}", buffer_coord );
-        let z_finder = GLZFinder{};
-        let actual_z = z_finder.get_z_at(buffer_coord);
-        println!("Z={:?}", actual_z);
-
-        gl_coord_4.z - actual_z <= 0.1
-    }
-
     fn shutdown(&mut self) {
         for handler in &mut self.event_handlers {
             handler.handle_event(Arc::new(Event::Shutdown));

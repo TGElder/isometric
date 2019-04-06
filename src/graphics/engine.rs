@@ -117,7 +117,7 @@ impl GraphicsEngine {
         self.transform.compute_projection_matrix();
         program.set_used();
         self.prepare_program(program);
-        for drawing in self.drawings.values() {
+        for drawing in self.drawings.values().filter(|d| self.should_draw(d)) {
             if *drawing.drawing_type() == program.drawing_type {
                 self.prepare_program_for_drawing(program, drawing);
                 drawing.draw();
@@ -143,6 +143,24 @@ impl GraphicsEngine {
             );
             gl::ClearColor(0.0, 0.0, 1.0, 1.0);
         }
+    }
+
+    fn should_draw(&self, drawing: &Box<Drawing>) -> bool {
+        match drawing.get_visibility_check_coord() {
+            Some(world_coord) => self.is_visible(world_coord),
+            None => true,
+        }
+    }
+
+    fn is_visible(&self, world_coord: &WorldCoord) -> bool {
+        let gl_coord_4 = world_coord.to_gl_coord_4d(&self.transform);
+        let gl_coord_2 = GLCoord2D::new(gl_coord_4.x, gl_coord_4.y);
+        let physical_size = self.viewport_size;
+        let buffer_coord = gl_coord_2.to_buffer_coord(physical_size);
+        let z_finder = GLZFinder{};
+        let actual_z = z_finder.get_z_at(buffer_coord);
+
+        gl_coord_4.z - actual_z <= 0.1
     }
 }
 

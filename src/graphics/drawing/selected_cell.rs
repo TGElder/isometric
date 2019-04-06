@@ -23,6 +23,10 @@ impl Drawing for SelectedCellDrawing {
     fn drawing_type(&self) -> &DrawingType {
         self.vbo.drawing_type()
     }
+    
+    fn get_visibility_check_coord(&self) -> Option<&WorldCoord> {
+        None
+    }
 }
 
 impl SelectedCellDrawing {
