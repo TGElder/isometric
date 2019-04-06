@@ -1,7 +1,6 @@
 #version 330 core
 
 in VS_OUTPUT {
-    vec3 Color;
     vec2 TexCoord;
 } IN;
 
