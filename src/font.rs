@@ -87,10 +87,10 @@ impl Font {
         let glyph = self.get_glyph(character);
         (
             self.texture
-                .get_texture_coords(v2(glyph.x + glyph.xoffset, glyph.y + glyph.yoffset)),
+                .get_texture_coords(v2(glyph.x, glyph.y)),
             self.texture.get_texture_coords(v2(
-                glyph.x + glyph.xoffset + glyph.width,
-                glyph.y + glyph.yoffset + glyph.height,
+                glyph.x + glyph.width,
+                glyph.y + glyph.height,
             )),
         )
     }
@@ -101,5 +101,10 @@ impl Font {
 
     pub fn get_width(&self, text: &str) -> i32 {
         text.chars().map(|c| self.get_glyph(c).xadvance).sum()
+    }
+
+    pub fn get_offset(&self, character: char) -> (i32, i32) {
+        let glyph = self.get_glyph(character);
+        (glyph.xoffset, glyph.yoffset)
     }
 }

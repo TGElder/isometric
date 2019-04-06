@@ -14,8 +14,8 @@ pub trait PhysicalPositionExt {
 impl PhysicalPositionExt for glutin::dpi::PhysicalPosition {
     fn to_gl_coord_2d(self, physical_size: glutin::dpi::PhysicalSize) -> GLCoord2D {
         GLCoord2D {
-            x: (((self.x / physical_size.width) * 2.0) - 1.0) as f32,
-            y: (1.0 - ((self.y / physical_size.height) * 2.0)) as f32,
+            x: ((((self.x + 0.5) / physical_size.width) * 2.0) - 1.0) as f32,
+            y: (1.0 - (((self.y + 0.5) / physical_size.height) * 2.0)) as f32,
         }
     }
 
@@ -72,8 +72,8 @@ impl GLCoord2D {
 
     pub fn to_buffer_coord(self, physical_size: glutin::dpi::PhysicalSize) -> BufferCoordinate {
         BufferCoordinate {
-            x: (((self.x + 1.0) / 2.0) * physical_size.width as f32) as i32,
-            y: (((self.y + 1.0) / 2.0) * physical_size.height as f32) as i32,
+            x: ((((self.x + 1.0) / 2.0) * physical_size.width as f32) - 0.5).floor() as i32,
+            y: ((((self.y + 1.0) / 2.0) * physical_size.height as f32) - 0.5).floor() as i32,
         }
     }
 }
@@ -172,7 +172,7 @@ mod tests {
 
         assert_eq!(
             physical_position.to_gl_coord_2d(physical_size),
-            GLCoord2D::new(-1.0, 1.0)
+            GLCoord2D::new(-0.99, 0.98)
         );
     }
 
@@ -183,7 +183,7 @@ mod tests {
 
         assert_eq!(
             physical_position.to_gl_coord_2d(physical_size),
-            GLCoord2D::new(1.0, 1.0)
+            GLCoord2D::new(1.01, 0.98)
         );
     }
 
@@ -194,7 +194,7 @@ mod tests {
 
         assert_eq!(
             physical_position.to_gl_coord_2d(physical_size),
-            GLCoord2D::new(-1.0, -1.0)
+            GLCoord2D::new(-0.99, -1.02)
         );
     }
 
@@ -205,7 +205,7 @@ mod tests {
 
         assert_eq!(
             physical_position.to_gl_coord_2d(physical_size),
-            GLCoord2D::new(1.0, -1.0)
+            GLCoord2D::new(1.01, -1.02)
         );
     }
 
@@ -216,7 +216,7 @@ mod tests {
 
         assert_eq!(
             physical_position.to_gl_coord_2d(physical_size),
-            GLCoord2D::new(0.0, 0.0)
+            GLCoord2D::new(0.01, -0.02)
         );
     }
 
@@ -235,7 +235,7 @@ mod tests {
 
         assert_eq!(
             physical_position.to_gl_coord_4d(physical_size, &MockZFinder {}),
-            GLCoord4D::new(0.6, 0.6, 2.22, 1.0)
+            GLCoord4D::new(0.61, 0.58, 2.22, 1.0)
         );
     }
 
@@ -244,7 +244,7 @@ mod tests {
         let gl_coord_2 = GLCoord2D::new(-0.5, 0.5);
         let physical_size = glutin::dpi::PhysicalSize::new(256.0, 128.0);
 
-        assert_eq!(gl_coord_2.to_buffer_coord(physical_size), BufferCoordinate::new(64, 96));
+        assert_eq!(gl_coord_2.to_buffer_coord(physical_size), BufferCoordinate::new(63, 95));
     }
 
     #[test]
