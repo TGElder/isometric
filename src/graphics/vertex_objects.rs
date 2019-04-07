@@ -138,7 +138,7 @@ fn setup_vao_for_plain_drawing() {
     }
 }
 
-fn setup_vao_for_text_drawing() {
+fn setup_vao_for_sprite_drawing() {
     unsafe {
         gl::EnableVertexAttribArray(0);
         gl::VertexAttribPointer(
@@ -173,13 +173,13 @@ fn setup_vao_for_text_drawing() {
 fn setup_vao(drawing_type: &DrawingType) {
     match drawing_type {
         DrawingType::Plain => setup_vao_for_plain_drawing(),
-        DrawingType::Text => setup_vao_for_text_drawing(),
+        DrawingType::Text => setup_vao_for_sprite_drawing(),
+        DrawingType::Billboard => setup_vao_for_sprite_drawing(),
     }
 }
 
 fn get_draw_mode(drawing_type: &DrawingType) -> gl::types::GLenum {
     match drawing_type {
-        DrawingType::Plain => gl::TRIANGLES,
-        DrawingType::Text => gl::TRIANGLES,
+        _ => gl::TRIANGLES,
     }
 }

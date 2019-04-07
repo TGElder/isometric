@@ -11,10 +11,11 @@ use transform::Transform;
 pub enum DrawingType {
     Plain,
     Text,
+    Billboard,
 }
 
 pub struct GraphicsEngine {
-    programs: [Program; 2],
+    programs: [Program; 3],
     viewport_size: glutin::dpi::PhysicalSize,
     transform: Transform,
     drawings: HashMap<String, Box<Drawing>>,
@@ -32,6 +33,11 @@ impl GraphicsEngine {
                 DrawingType::Text,
                 include_str!("shaders/text.vert"),
                 include_str!("shaders/text.frag"),
+            ),
+            Program::from_shaders(
+                DrawingType::Billboard,
+                include_str!("shaders/billboard.vert"),
+                include_str!("shaders/billboard.frag"),
             ),
         ];
 
@@ -87,17 +93,22 @@ impl GraphicsEngine {
         match program.drawing_type {
             DrawingType::Plain => {
                 program.load_matrix4("projection", self.transform.get_projection_matrix())
-            }
+            },
             DrawingType::Text => {
                 program.load_matrix4("projection", self.transform.get_projection_matrix());
                 program.load_matrix2("pixel_to_screen", self.get_pixel_to_screen());
-            }
+            },
+            DrawingType::Billboard => {
+                program.load_matrix4("projection", self.transform.get_projection_matrix());
+                program.load_matrix2("world_to_screen", self.transform.get_world_to_screen());
+            },
         }
     }
 
     pub fn prepare_program_for_drawing(&self, program: &Program, drawing: &Box<Drawing>) {
         match program.drawing_type {
-            _ => program.load_float("z_mod", drawing.get_z_mod()),
+            DrawingType::Plain => program.load_float("z_mod", drawing.get_z_mod()),
+            _ => (),
         }
     }
 
@@ -110,6 +121,10 @@ impl GraphicsEngine {
 
     pub fn draw_ui(&mut self) {
         self.draw(1);
+    }
+
+    pub fn draw_billboards(&mut self) {
+        self.draw(2);
     }
 
     fn draw(&mut self, program: usize) {

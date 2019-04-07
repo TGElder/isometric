@@ -84,6 +84,17 @@ impl Transform {
         self.inverse_matrix = self.projection_matrix.try_inverse().unwrap();
     }
 
+
+    pub fn get_world_to_screen(&self) -> na::Matrix2<f32> {
+        na::Matrix2::new(
+            self.scale.x,
+            0.0,
+            0.0,
+            self.scale.y,
+        )
+    }
+
+
     pub fn get_projection_matrix(&self) -> na::Matrix4<f32> {
         self.projection_matrix
     }

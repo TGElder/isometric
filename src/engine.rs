@@ -116,6 +116,7 @@ impl IsometricEngine {
             self.graphics.draw_world();
             self.events.push(Event::WorldDrawn);
             self.handle_events();
+            self.graphics.draw_billboards();
             self.graphics.draw_ui();
             self.window.swap_buffers().unwrap();
         }
