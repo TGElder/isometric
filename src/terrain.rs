@@ -58,6 +58,7 @@ impl Edge {
 
 pub struct Terrain {
     pub grid: M<V3<f32>>,
+    pub node: M<bool>,
     pub edge: M<bool>,
 }
 
@@ -66,6 +67,7 @@ impl Terrain {
         Terrain {
             grid: Terrain::create_grid(elevations, nodes),
             edge: Terrain::get_edge_matrix(elevations.shape().0, elevations.shape().1, edges),
+            node: Terrain::get_node_matrix(elevations.shape().0, elevations.shape().1, edges),
         }
     }
 
@@ -118,6 +120,19 @@ impl Terrain {
         grid
     }
 
+    fn get_node_matrix(width: usize, height: usize, edges: &Vec<Edge>) -> M<bool> {
+        let mut out = M::from_element(width * 2, height * 2, false);
+
+        for edge in edges {
+            let from = Terrain::get_index_for_node_position(&edge.from);
+            out[(from.x, from.y)] = true;
+            let to = Terrain::get_index_for_node_position(&edge.to);
+            out[(to.x, to.y)] = true;
+        }
+
+        out
+    }
+
     fn get_edge_matrix(width: usize, height: usize, edges: &Vec<Edge>) -> M<bool> {
         let mut out = M::from_element(width * 2, height * 2, false);
 
@@ -165,7 +180,11 @@ impl Terrain {
     }
 
     pub fn get_index_for_node(node: &Node) -> V2<usize> {
-        V2::new(node.position.x * 2, node.position.y * 2)
+        Terrain::get_index_for_node_position(&node.position)
+    }
+
+    pub fn get_index_for_node_position(node_position: &V2<usize>) -> V2<usize> {
+        V2::new(node_position.x * 2, node_position.y * 2)
     }
 
     pub fn get_index_for_edge(edge: &Edge) -> V2<usize> {
@@ -205,6 +224,26 @@ impl Terrain {
             let triangles = self.get_triangles(adjacent);
             let edge = self.edge[(adjacent.x, adjacent.y)];
             if !edge && (triangles.len() == 1 || triangles.len() == 2) {
+                for mut triangle in triangles {
+                    for p in 0..3 {
+                        triangle[p] = Terrain::clip_to_tile(triangle[p], &tile_coordinate);
+                    }
+                    out.push(triangle);
+                }
+            }
+        }
+
+        let adjacents = vec![
+            v2(grid_index.x - 1, grid_index.y - 1),
+            v2(grid_index.x + 1, grid_index.y - 1),
+            v2(grid_index.x - 1, grid_index.y + 1),
+            v2(grid_index.x + 1, grid_index.y + 1),
+        ];
+
+        for adjacent in adjacents {
+            let triangles = self.get_triangles(adjacent);
+            let node = self.node[(adjacent.x, adjacent.y)];
+            if !node && (triangles.len() == 1 || triangles.len() == 2) {
                 for mut triangle in triangles {
                     for p in 0..3 {
                         triangle[p] = Terrain::clip_to_tile(triangle[p], &tile_coordinate);

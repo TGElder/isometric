@@ -74,13 +74,13 @@ impl Drawing for EdgeDrawing {
 }
 
 impl EdgeDrawing {
-    pub fn new(terrain: &Terrain, nodes: &Vec<Edge>, color: Color, z_mod: f32) -> EdgeDrawing {
+    pub fn new(terrain: &Terrain, edges: &Vec<Edge>, color: Color, z_mod: f32) -> EdgeDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
-        for node in nodes {
-            for triangle in terrain.get_triangles(Terrain::get_index_for_edge(&node)) {
+        for edge in edges {
+            for triangle in terrain.get_triangles(Terrain::get_index_for_edge(&edge)) {
                 vertices.append(&mut get_uniform_colored_vertices_from_triangle(
                     &triangle, &color,
                 ));
