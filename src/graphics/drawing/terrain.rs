@@ -116,49 +116,32 @@ impl Drawing for TerrainDrawing {
 }
 
 impl TerrainDrawing {
-    pub fn from_matrix(
-        terrain: &Terrain,
-        color_matrix: &M<Color>,
-        shading: &Box<SquareColoring>,
-    ) -> TerrainDrawing {
-        let mut vbo = VBO::new(DrawingType::Plain);
-
-        let mut vertices = vec![];
-
-        for x in 0..((terrain.width() - 1) / 2) {
-            for y in 0..((terrain.height() - 1) / 2) {
-                let tile_index = v2(x, y);
-                let grid_index = Terrain::get_index_for_tile(&tile_index);
-                let border = terrain.get_border(grid_index);
-                let shade = shading.get_colors(&[border[0], border[1], border[2], border[3]])[0];
-                let color = color_matrix[(x, y)].mul(&shade);
-                for triangle in terrain.get_triangles_for_tile(&tile_index) {
-                    vertices.append(&mut get_uniform_colored_vertices_from_triangle(
-                        &triangle, &color,
-                    ));
-                }
-            }
-        }
-
-        vbo.load(vertices);
-
-        TerrainDrawing { vbo }
-    }
 
     pub fn uniform(terrain: &Terrain, coloring: Box<SquareColoring>) -> TerrainDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
+        let green = Color::new(0.0, 0.75, 0.0, 1.0);
+        let grey = Color::new(0.5, 0.4, 0.3, 1.0);
+
         let mut vertices = vec![];
 
-        for x in 0..((terrain.width() - 1) / 2) {
-            for y in 0..((terrain.height() - 1) / 2) {
+        for x in 0..terrain.width() - 1 {
+            for y in 0..terrain.height() - 1 {
                 let tile_index = v2(x, y);
-                let grid_index = Terrain::get_index_for_tile(&tile_index);
-                let border = terrain.get_border(grid_index);
-                let color = coloring.get_colors(&[border[0], border[1], border[2], border[3]])[0];
-                for triangle in terrain.get_triangles_for_tile(&tile_index) {
+                let border = terrain.get_border(tile_index);
+                let base = if (border[0].z - border[1].z).abs() > 0.533333333 
+                || (border[1].z - border[2].z).abs() > 0.533333333 
+                || (border[2].z - border[3].z).abs() > 0.533333333 
+                || (border[3].z - border[0].z).abs() > 0.533333333 {
+                    grey
+                } else {
+                    green
+                };
+                let mut shade = coloring.get_colors(&[border[0], border[1], border[2], border[3]])[0];
+                shade = shade.mul(&base);
+                for triangle in terrain.get_triangles(tile_index) {
                     vertices.append(&mut get_uniform_colored_vertices_from_triangle(
-                        &triangle, &color,
+                        &triangle, &shade,
                     ));
                 }
             }
