@@ -100,7 +100,7 @@ impl GraphicsEngine {
             },
             DrawingType::Billboard => {
                 program.load_matrix4("projection", self.transform.get_projection_matrix());
-                program.load_matrix2("world_to_screen", self.transform.get_world_to_screen());
+                program.load_matrix3("world_to_screen", self.transform.get_world_to_screen());
             },
         }
     }

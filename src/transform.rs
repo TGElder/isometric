@@ -84,13 +84,12 @@ impl Transform {
         self.inverse_matrix = self.projection_matrix.try_inverse().unwrap();
     }
 
-
-    pub fn get_world_to_screen(&self) -> na::Matrix2<f32> {
-        na::Matrix2::new(
-            self.scale.x,
-            0.0,
-            0.0,
-            self.scale.y,
+    #[rustfmt::skip]
+    pub fn get_world_to_screen(&self) -> na::Matrix3<f32> {
+        na::Matrix3::new(
+            self.scale.x, 0.0, 0.0,
+            0.0, self.scale.y, 0.0,
+            0.0, 0.0, self.scale.z,
         )
     }
 
