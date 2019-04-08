@@ -14,6 +14,7 @@ pub use engine::*;
 pub use font::*;
 pub use graphics::drawing;
 pub use graphics::texture::*;
+pub use transform::Direction;
 
 pub extern crate glutin;
 pub extern crate image;

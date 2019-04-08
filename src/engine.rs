@@ -40,6 +40,7 @@ pub enum Command {
         drawing: Box<Drawing + Send>,
     },
     Erase(String),
+    LookAt(WorldCoord),
 }
 
 pub struct IsometricEngine {
@@ -161,15 +162,19 @@ impl IsometricEngine {
             Command::Scale { center, scale } => self.graphics.get_transform().scale(center, scale),
             Command::Rotate { center, direction } => {
                 self.graphics.get_transform().rotate(center, direction)
-            }
+            },
             Command::Event(event) => self.events.push(event),
             Command::ComputeWorldPosition(gl_coord) => {
                 self.events.push(Event::WorldPositionChanged(
                     gl_coord.to_world_coord(&self.graphics.get_transform()),
                 ))
-            }
+            },
             Command::Draw { name, drawing } => self.graphics.add_drawing(name, drawing),
             Command::Erase(name) => self.graphics.remove_drawing(&name),
+            Command::LookAt(world_coord) => {
+                let gl_coord = world_coord.to_gl_coord_4d(self.graphics.get_transform());
+                self.graphics.get_transform().translate(GLCoord2D::new(-gl_coord.x, -gl_coord.y));
+            }
         }
     }
     
@@ -179,3 +184,4 @@ impl IsometricEngine {
         }
     }
 }
+
