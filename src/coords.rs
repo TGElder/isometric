@@ -252,7 +252,7 @@ mod tests {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
-            IsometricRotation::TopLeftAtTop,
+            IsometricRotation::TopLeft,
         );
 
         transform.compute_projection_matrix();
@@ -282,7 +282,7 @@ mod tests {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
-            IsometricRotation::TopLeftAtTop,
+            IsometricRotation::TopLeft,
         );
 
         transform.compute_projection_matrix();
