@@ -33,13 +33,17 @@ impl SeaDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let color = Color::new(0.0, 0.0, 1.0, 1.0);
-
+        
+        let left = -0.5 * width;
+        let right = 1.5 * width;
+        let top = -0.5 * width;
+        let bottom = 1.5 * width;
         vbo.load(get_uniform_colored_vertices_from_square(
             &[
-                v3(0.0, 0.0, level),
-                v3(width, 0.0, level),
-                v3(width, height, level),
-                v3(0.0, height, level),
+                v3(left, top, level),
+                v3(right, top, level),
+                v3(right, bottom, level),
+                v3(left, bottom, level),
             ],
             &color,
         ));

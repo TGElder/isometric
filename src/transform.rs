@@ -22,26 +22,26 @@ impl IsometricRotation {
     fn c(&self) -> f32 {
         match *self {
             IsometricRotation::Top => 1.41,
-            IsometricRotation::Left => 0.0,
-            IsometricRotation::Right => 0.0,
-            IsometricRotation::Bottom => -1.41,
             IsometricRotation::TopLeft => 1.0,
-            IsometricRotation::TopRight => 1.0,
+            IsometricRotation::Left => 0.0,
             IsometricRotation::BottomLeft => -1.0,
+            IsometricRotation::Bottom => -1.41,
             IsometricRotation::BottomRight => -1.0,
+            IsometricRotation::Right => 0.0,
+            IsometricRotation::TopRight => 1.0,
         }
     }
 
     fn s(&self) -> f32 {
         match *self {
             IsometricRotation::Top => 0.0,
-            IsometricRotation::Left => 1.41,
-            IsometricRotation::Right => -1.41,
-            IsometricRotation::Bottom => 0.0,
             IsometricRotation::TopLeft => 1.0,
-            IsometricRotation::TopRight => -1.0,
+            IsometricRotation::Left => 1.41,
             IsometricRotation::BottomLeft => 1.0,
+            IsometricRotation::Bottom => 0.0,
             IsometricRotation::BottomRight => -1.0,
+            IsometricRotation::Right => -1.41,
+            IsometricRotation::TopRight => -1.0,
         }
     }
 
