@@ -36,8 +36,8 @@ impl SeaDrawing {
         
         let left = -0.5 * width;
         let right = 1.5 * width;
-        let top = -0.5 * width;
-        let bottom = 1.5 * width;
+        let top = -0.5 * height;
+        let bottom = 1.5 * height;
         vbo.load(get_uniform_colored_vertices_from_square(
             &[
                 v3(left, top, level),

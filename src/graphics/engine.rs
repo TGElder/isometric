@@ -50,7 +50,7 @@ impl GraphicsEngine {
                     z_scale,
                 ),
                 GLCoord2D::new(0.0, 0.0),
-                IsometricRotation::TopLeft,
+                IsometricRotation::Bottom,
             ),
             viewport_size,
             drawings: HashMap::new(),
