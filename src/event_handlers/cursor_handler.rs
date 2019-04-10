@@ -17,7 +17,7 @@ impl CursorHandler {
             z_finder: GLZFinder {},
             dpi_factor,
             physical_window_size: logical_window_size.to_physical(dpi_factor),
-            cursor_position: None
+            cursor_position: None,
         }
     }
 
@@ -55,7 +55,7 @@ impl EventHandler for CursorHandler {
             Event::Resize(physical_size) => {
                 self.physical_window_size = physical_size;
                 vec![]
-            },
+            }
             Event::WorldDrawn => self.handle_draw(),
             _ => vec![],
         }

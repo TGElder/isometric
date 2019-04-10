@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 pub struct KeyRelay {}
 
-impl KeyRelay{
+impl KeyRelay {
     pub fn new() -> KeyRelay {
-        KeyRelay{}
+        KeyRelay {}
     }
 }
 
@@ -26,12 +26,18 @@ impl EventHandler for KeyRelay {
                         ..
                     },
                 ..
-            }) => if let Some(key) = virtual_keycode {
-                vec![Command::Event(Event::Key{key, state, modifiers})]
-            } else {
-                vec![]
-            },
-            _ => vec![]
+            }) => {
+                if let Some(key) = virtual_keycode {
+                    vec![Command::Event(Event::Key {
+                        key,
+                        state,
+                        modifiers,
+                    })]
+                } else {
+                    vec![]
+                }
+            }
+            _ => vec![],
         }
     }
 }

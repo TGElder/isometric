@@ -1,9 +1,9 @@
 use super::super::engine::DrawingType;
+use super::super::texture::Texture;
 use super::super::vertex_objects::VBO;
 use super::Drawing;
-use super::super::texture::Texture;
+use coords::WorldCoord;
 use std::sync::Arc;
-use ::coords::WorldCoord;
 
 pub struct Billboard {
     vbo: VBO,
@@ -30,7 +30,6 @@ impl Drawing for Billboard {
     fn get_visibility_check_coord(&self) -> Option<&WorldCoord> {
         None
     }
-
 }
 
 impl Billboard {

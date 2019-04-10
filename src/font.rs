@@ -86,12 +86,9 @@ impl Font {
     pub fn get_texture_coords(&self, character: char) -> (V2<f32>, V2<f32>) {
         let glyph = self.get_glyph(character);
         (
+            self.texture.get_texture_coords(v2(glyph.x, glyph.y)),
             self.texture
-                .get_texture_coords(v2(glyph.x, glyph.y)),
-            self.texture.get_texture_coords(v2(
-                glyph.x + glyph.width,
-                glyph.y + glyph.height,
-            )),
+                .get_texture_coords(v2(glyph.x + glyph.width, glyph.y + glyph.height)),
         )
     }
 

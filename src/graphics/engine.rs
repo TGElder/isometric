@@ -93,15 +93,15 @@ impl GraphicsEngine {
         match program.drawing_type {
             DrawingType::Plain => {
                 program.load_matrix4("projection", self.transform.get_projection_matrix())
-            },
+            }
             DrawingType::Text => {
                 program.load_matrix4("projection", self.transform.get_projection_matrix());
                 program.load_matrix2("pixel_to_screen", self.get_pixel_to_screen());
-            },
+            }
             DrawingType::Billboard => {
                 program.load_matrix4("projection", self.transform.get_projection_matrix());
                 program.load_matrix3("world_to_screen", self.transform.get_world_to_screen());
-            },
+            }
         }
     }
 
@@ -172,7 +172,7 @@ impl GraphicsEngine {
         let gl_coord_2 = GLCoord2D::new(gl_coord_4.x, gl_coord_4.y);
         let physical_size = self.viewport_size;
         let buffer_coord = gl_coord_2.to_buffer_coord(physical_size);
-        let z_finder = GLZFinder{};
+        let z_finder = GLZFinder {};
         let actual_z = z_finder.get_z_at(buffer_coord);
 
         gl_coord_4.z - actual_z <= 0.01

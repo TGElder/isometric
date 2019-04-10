@@ -3,9 +3,9 @@ use super::super::vertex_objects::VBO;
 use super::utils::*;
 use super::Drawing;
 use color::Color;
+use coords::WorldCoord;
 use terrain::{Edge, Node, Terrain};
 use {v2, M};
-use ::coords::WorldCoord;
 
 pub struct NodeDrawing {
     vbo: VBO,
@@ -24,7 +24,7 @@ impl Drawing for NodeDrawing {
     fn drawing_type(&self) -> &DrawingType {
         self.vbo.drawing_type()
     }
-    
+
     fn get_visibility_check_coord(&self) -> Option<&WorldCoord> {
         None
     }
@@ -109,7 +109,7 @@ impl Drawing for TerrainDrawing {
     fn drawing_type(&self) -> &DrawingType {
         self.vbo.drawing_type()
     }
-    
+
     fn get_visibility_check_coord(&self) -> Option<&WorldCoord> {
         None
     }

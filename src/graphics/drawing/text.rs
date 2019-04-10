@@ -1,9 +1,9 @@
 use super::super::engine::DrawingType;
 use super::super::vertex_objects::VBO;
 use super::Drawing;
+use coords::WorldCoord;
 use font::Font;
 use std::sync::Arc;
-use ::coords::WorldCoord;
 
 pub struct Text {
     vbo: VBO,
@@ -31,7 +31,6 @@ impl Drawing for Text {
     fn get_visibility_check_coord(&self) -> Option<&WorldCoord> {
         Some(&self.world_coord)
     }
-
 }
 
 impl Text {

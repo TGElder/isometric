@@ -3,7 +3,7 @@ use engine::{Command, Event};
 use events::EventHandler;
 use std::sync::Arc;
 use transform::Direction;
-use ::{VirtualKeyCode, ElementState};
+use {ElementState, VirtualKeyCode};
 
 pub struct RotateHandler {
     cursor_position: Option<GLCoord4D>,
@@ -44,7 +44,11 @@ impl RotateHandler {
 impl EventHandler for RotateHandler {
     fn handle_event(&mut self, event: Arc<Event>) -> Vec<Command> {
         match *event {
-            Event::Key{key, state: ElementState::Pressed, ..} => self.handle_key(key),
+            Event::Key {
+                key,
+                state: ElementState::Pressed,
+                ..
+            } => self.handle_key(key),
             Event::CursorMoved(gl_position) => {
                 self.cursor_position = Some(gl_position);
                 vec![]

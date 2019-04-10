@@ -3,8 +3,8 @@ use super::super::vertex_objects::VBO;
 use super::utils::*;
 use super::Drawing;
 use color::Color;
+use coords::WorldCoord;
 use v3;
-use ::coords::WorldCoord;
 
 pub struct SeaDrawing {
     vbo: VBO,
@@ -33,7 +33,7 @@ impl SeaDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let color = Color::new(0.0, 0.0, 1.0, 1.0);
-        
+
         let left = -0.5 * width;
         let right = 1.5 * width;
         let top = -0.5 * height;

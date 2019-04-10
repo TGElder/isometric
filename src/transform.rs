@@ -113,7 +113,6 @@ impl Transform {
         )
     }
 
-
     pub fn get_projection_matrix(&self) -> na::Matrix4<f32> {
         self.projection_matrix
     }
