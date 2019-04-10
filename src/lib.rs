@@ -1,8 +1,8 @@
 mod color;
 pub mod coords;
 mod engine;
+mod events;
 pub mod event_handlers;
-pub mod events;
 mod font;
 mod graphics;
 pub mod terrain;
@@ -15,6 +15,10 @@ pub use font::*;
 pub use graphics::drawing;
 pub use graphics::texture::*;
 pub use transform::Direction;
+pub use events::*;
+
+pub use glutin::VirtualKeyCode;
+pub use glutin::ElementState;
 
 pub extern crate glutin;
 pub extern crate image;

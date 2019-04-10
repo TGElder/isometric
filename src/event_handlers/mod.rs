@@ -1,6 +1,6 @@
 pub mod cursor_handler;
 pub mod drag;
-pub mod house_builder;
+pub mod key;
 pub mod resize;
 pub mod rotate;
 pub mod scroll;
@@ -10,7 +10,7 @@ pub mod zoom;
 
 pub use self::cursor_handler::*;
 pub use self::drag::*;
-pub use self::house_builder::*;
+pub use self::key::*;
 pub use self::resize::*;
 pub use self::rotate::*;
 pub use self::scroll::*;

@@ -18,7 +18,8 @@ pub enum Event {
     WorldPositionChanged(WorldCoord),
     GlutinEvent(glutin::Event),
     Drag(GLCoord4D),
-    WorldDrawn
+    WorldDrawn,
+    Key{key: glutin::VirtualKeyCode, state: glutin::ElementState, modifiers: glutin::ModifiersState},
 }
 
 pub enum Command {
@@ -107,6 +108,7 @@ impl IsometricEngine {
             Box::new(ResizeRelay::new(dpi_factor)),
             Box::new(Scroller::new()),
             Box::new(ZoomHandler::new()),
+            Box::new(KeyRelay::new()),
         ]
     }
 
