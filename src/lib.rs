@@ -19,6 +19,7 @@ pub use transform::Direction;
 
 pub use glutin::ElementState;
 pub use glutin::VirtualKeyCode;
+pub use glutin::MouseButton;
 
 extern crate glutin;
 pub extern crate image;
