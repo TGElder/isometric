@@ -2,7 +2,7 @@ use coords::{GLCoord2D, GLCoord4D};
 use engine::{Command, Event};
 use events::EventHandler;
 use std::sync::Arc;
-use ::{VirtualKeyCode, ElementState};
+use {ElementState, VirtualKeyCode};
 
 pub struct ZoomHandler {
     cursor_position: Option<GLCoord4D>,
@@ -42,9 +42,17 @@ impl EventHandler for ZoomHandler {
                 event: glutin::WindowEvent::MouseWheel { delta, .. },
                 ..
             }) => self.handle_mouse_scroll_delta(delta),
-            
-            Event::Key{key: VirtualKeyCode::Add, state: ElementState::Pressed, ..} => self.zoom(2.0),
-            Event::Key{key: VirtualKeyCode::Subtract, state: ElementState::Pressed, ..} => self.zoom(0.5),
+
+            Event::Key {
+                key: VirtualKeyCode::Add,
+                state: ElementState::Pressed,
+                ..
+            } => self.zoom(2.0),
+            Event::Key {
+                key: VirtualKeyCode::Subtract,
+                state: ElementState::Pressed,
+                ..
+            } => self.zoom(0.5),
             Event::CursorMoved(gl_position) => {
                 self.cursor_position = Some(gl_position);
                 vec![]

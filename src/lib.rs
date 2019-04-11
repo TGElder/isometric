@@ -18,8 +18,8 @@ pub use graphics::texture::*;
 pub use transform::Direction;
 
 pub use glutin::ElementState;
-pub use glutin::VirtualKeyCode;
 pub use glutin::MouseButton;
+pub use glutin::VirtualKeyCode;
 
 extern crate glutin;
 pub extern crate image;

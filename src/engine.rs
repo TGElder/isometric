@@ -24,10 +24,10 @@ pub enum Event {
         state: glutin::ElementState,
         modifiers: glutin::ModifiersState,
     },
-    Mouse{
+    Mouse {
         button: glutin::MouseButton,
-        state: glutin::ElementState
-    }
+        state: glutin::ElementState,
+    },
 }
 
 pub enum Command {
