@@ -484,29 +484,37 @@ mod tests {
 
         transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
+        transform.rotate(center_of_rotation, Direction::Clockwise);
+        transform.compute_projection_matrix();
         assert_eq!(
-            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)).round(),
             GLCoord4D::new(-2.0, -1.0, 0.0, 1.0)
         );
 
         transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
+        transform.rotate(center_of_rotation, Direction::Clockwise);
+        transform.compute_projection_matrix();
         assert_eq!(
-            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)).round(),
             GLCoord4D::new(0.0, 0.0, 0.0, 1.0)
         );
 
         transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
+        transform.rotate(center_of_rotation, Direction::Clockwise);
+        transform.compute_projection_matrix();
         assert_eq!(
-            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)).round(),
             GLCoord4D::new(2.0, -1.0, 0.0, 1.0)
         );
 
         transform.rotate(center_of_rotation, Direction::Clockwise);
         transform.compute_projection_matrix();
+        transform.rotate(center_of_rotation, Direction::Clockwise);
+        transform.compute_projection_matrix();
         assert_eq!(
-            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)).round(),
             GLCoord4D::new(0.0, -2.0, 0.0, 1.0)
         );
     }
@@ -528,29 +536,37 @@ mod tests {
 
         transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
+        transform.rotate(center_of_rotation, Direction::AntiClockwise);
+        transform.compute_projection_matrix();
         assert_eq!(
-            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)).round(),
             GLCoord4D::new(2.0, -1.0, 0.0, 1.0)
         );
 
         transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
+        transform.rotate(center_of_rotation, Direction::AntiClockwise);
+        transform.compute_projection_matrix();
         assert_eq!(
-            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)).round(),
             GLCoord4D::new(0.0, 0.0, 0.0, 1.0)
         );
 
         transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
+        transform.rotate(center_of_rotation, Direction::AntiClockwise);
+        transform.compute_projection_matrix();
         assert_eq!(
-            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)).round(),
             GLCoord4D::new(-2.0, -1.0, 0.0, 1.0)
         );
 
         transform.rotate(center_of_rotation, Direction::AntiClockwise);
         transform.compute_projection_matrix();
+        transform.rotate(center_of_rotation, Direction::AntiClockwise);
+        transform.compute_projection_matrix();
         assert_eq!(
-            transform.project(WorldCoord::new(2.0, 2.0, 0.0)),
+            transform.project(WorldCoord::new(2.0, 2.0, 0.0)).round(),
             GLCoord4D::new(0.0, -2.0, 0.0, 1.0)
         );
     }

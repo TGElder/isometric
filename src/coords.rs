@@ -107,6 +107,15 @@ impl GLCoord4D {
     pub fn to_world_coord(self, transformer: &Transform) -> WorldCoord {
         transformer.unproject(self)
     }
+
+    pub fn round(&self) -> GLCoord4D {
+        GLCoord4D {
+            x: self.x.round(),
+            y: self.y.round(),
+            z: self.z.round(),
+            w: self.w.round(),
+        }
+    }
 }
 
 impl Into<GLCoord4D> for na::Point4<f32> {
