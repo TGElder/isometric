@@ -20,7 +20,7 @@ pub use transform::Direction;
 pub use glutin::ElementState;
 pub use glutin::VirtualKeyCode;
 
-pub extern crate glutin;
+extern crate glutin;
 pub extern crate image;
 pub extern crate nalgebra as na;
 

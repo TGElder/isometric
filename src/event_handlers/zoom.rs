@@ -2,6 +2,7 @@ use coords::{GLCoord2D, GLCoord4D};
 use engine::{Command, Event};
 use events::EventHandler;
 use std::sync::Arc;
+use ::{VirtualKeyCode, ElementState};
 
 pub struct ZoomHandler {
     cursor_position: Option<GLCoord4D>,
@@ -14,29 +15,22 @@ impl ZoomHandler {
         }
     }
 
-    fn zoom_in(&self, center: GLCoord4D) -> Vec<Command> {
-        vec![Command::Scale {
-            center,
-            scale: GLCoord2D::new(2.0, 2.0),
-        }]
-    }
-
-    fn zoom_out(&self, center: GLCoord4D) -> Vec<Command> {
-        vec![Command::Scale {
-            center,
-            scale: GLCoord2D::new(0.5, 0.5),
-        }]
+    fn zoom(&self, delta: f32) -> Vec<Command> {
+        if let Some(center) = self.cursor_position {
+            vec![Command::Scale {
+                center,
+                scale: GLCoord2D::new(delta, delta),
+            }]
+        } else {
+            vec![]
+        }
     }
 
     fn handle_mouse_scroll_delta(&self, delta: glutin::MouseScrollDelta) -> Vec<Command> {
-        if let Some(center) = self.cursor_position {
-            match delta {
-                glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => self.zoom_in(center),
-                glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => self.zoom_out(center),
-                _ => vec![],
-            }
-        } else {
-            vec![]
+        match delta {
+            glutin::MouseScrollDelta::LineDelta(_, d) if d > 0.0 => self.zoom(2.0),
+            glutin::MouseScrollDelta::LineDelta(_, d) if d < 0.0 => self.zoom(0.5),
+            _ => vec![],
         }
     }
 }
@@ -48,29 +42,9 @@ impl EventHandler for ZoomHandler {
                 event: glutin::WindowEvent::MouseWheel { delta, .. },
                 ..
             }) => self.handle_mouse_scroll_delta(delta),
-            Event::GlutinEvent(glutin::Event::WindowEvent {
-                event:
-                    glutin::WindowEvent::KeyboardInput {
-                        input:
-                            glutin::KeyboardInput {
-                                virtual_keycode,
-                                state: glutin::ElementState::Pressed,
-                                ..
-                            },
-                        ..
-                    },
-                ..
-            }) => {
-                if let Some(center) = self.cursor_position {
-                    match virtual_keycode {
-                        Some(glutin::VirtualKeyCode::Add) => self.zoom_in(center),
-                        Some(glutin::VirtualKeyCode::Subtract) => self.zoom_out(center),
-                        _ => vec![],
-                    }
-                } else {
-                    vec![]
-                }
-            }
+            
+            Event::Key{key: VirtualKeyCode::Add, state: ElementState::Pressed, ..} => self.zoom(2.0),
+            Event::Key{key: VirtualKeyCode::Subtract, state: ElementState::Pressed, ..} => self.zoom(0.5),
             Event::CursorMoved(gl_position) => {
                 self.cursor_position = Some(gl_position);
                 vec![]
