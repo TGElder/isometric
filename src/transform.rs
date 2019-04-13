@@ -1,4 +1,5 @@
 use super::coords::*;
+use std::f32::consts::PI;
 
 #[derive(Debug)]
 pub enum Direction {
@@ -19,30 +20,23 @@ pub enum IsometricRotation {
 }
 
 impl IsometricRotation {
-    fn c(&self) -> f32 {
+    fn yaw(&self) -> f32 {
         match *self {
-            IsometricRotation::Top => 1.41,
-            IsometricRotation::TopLeft => 1.0,
-            IsometricRotation::Left => 0.0,
-            IsometricRotation::BottomLeft => -1.0,
-            IsometricRotation::Bottom => -1.41,
-            IsometricRotation::BottomRight => -1.0,
-            IsometricRotation::Right => 0.0,
-            IsometricRotation::TopRight => 1.0,
+            IsometricRotation::Top => (PI/4.0) * 0.0,
+            IsometricRotation::TopLeft => (PI/4.0) * 1.0,
+            IsometricRotation::Left => (PI/4.0) * 2.0,
+            IsometricRotation::BottomLeft => (PI/4.0) * 3.0,
+            IsometricRotation::Bottom => (PI/4.0) * 4.0,
+            IsometricRotation::BottomRight => (PI/4.0) * 5.0,
+            IsometricRotation::Right => (PI/4.0) * 6.0,
+            IsometricRotation::TopRight => (PI/4.0) * 7.0,
         }
     }
 
-    fn s(&self) -> f32 {
-        match *self {
-            IsometricRotation::Top => 0.0,
-            IsometricRotation::TopLeft => 1.0,
-            IsometricRotation::Left => 1.41,
-            IsometricRotation::BottomLeft => 1.0,
-            IsometricRotation::Bottom => 0.0,
-            IsometricRotation::BottomRight => -1.0,
-            IsometricRotation::Right => -1.41,
-            IsometricRotation::TopRight => -1.0,
-        }
+    fn pitch(&self) -> f32 {
+        // 0.95 True // isometric
+        PI / 3.0 // Game isometric
+        // 0.0 // Top down
     }
 
     fn rotate(&self, direction: &Direction) -> IsometricRotation {
@@ -119,11 +113,13 @@ impl Transform {
 
     #[rustfmt::skip]
     fn compute_isometric_matrix(&self) -> na::Matrix4<f32> {
-        let c = self.rotation.c();
-        let s = self.rotation.s();
+        let yc = self.rotation.yaw().cos();
+        let ys = self.rotation.yaw().sin();
+        let pc = self.rotation.pitch().cos();
+        let ps = self.rotation.pitch().sin();
         na::Matrix4::from_vec(vec![
-            c, -s, 0.0, 0.0,
-            -s / 2.0, -c / 2.0, 1.0, 0.0,
+            yc, -ys, 0.0, 0.0,
+            -ys * pc, -yc * pc, ps, 0.0,
             0.0, 0.0, -1.0, 0.0,
             0.0, 0.0, 0.0, 1.0,
             ]
