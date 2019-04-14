@@ -69,8 +69,6 @@ pub struct Transform {
     scale: GLCoord3D,
     translation: GLCoord2D,
     rotation: IsometricRotation,
-    projection_matrix: na::Matrix4<f32>,
-    inverse_matrix: na::Matrix4<f32>,
 }
 
 impl Transform {
@@ -79,13 +77,11 @@ impl Transform {
             scale,
             translation,
             rotation,
-            projection_matrix: na::Matrix4::identity(),
-            inverse_matrix: na::Matrix4::identity(),
         }
     }
 
     #[rustfmt::skip]
-    pub fn compute_projection_matrix(&mut self) {
+    pub fn compute_projection_matrix(&self) -> na::Matrix4<f32> {
         let scale_matrix: na::Matrix4<f32> = na::Matrix4::from_vec(vec![
             self.scale.x, 0.0, 0.0, self.translation.x,
             0.0, self.scale.y, 0.0, self.translation.y,
@@ -94,8 +90,11 @@ impl Transform {
         ).transpose();
 
         let isometric_matrix = self.compute_isometric_matrix();
-        self.projection_matrix = scale_matrix * isometric_matrix;
-        self.inverse_matrix = self.projection_matrix.try_inverse().unwrap();
+        scale_matrix * isometric_matrix
+    }
+
+    pub fn compute_inverse_matrix(&self) -> na::Matrix4<f32> {
+        self.compute_projection_matrix().try_inverse().unwrap()
     }
 
     #[rustfmt::skip]
@@ -105,10 +104,6 @@ impl Transform {
             0.0, self.scale.y, 0.0,
             0.0, 0.0, self.scale.z,
         )
-    }
-
-    pub fn get_projection_matrix(&self) -> na::Matrix4<f32> {
-        self.projection_matrix
     }
 
     #[rustfmt::skip]
@@ -140,7 +135,6 @@ impl Transform {
         let old_y = center.y;
         let world_point = self.unproject(center);
         transformation(self);
-        self.compute_projection_matrix();
         let center = self.project(world_point);
         self.translation.x += old_x - center.x;
         self.translation.y += old_y - center.y;
@@ -167,12 +161,12 @@ impl Transform {
 
     pub fn project(&self, world_coord: WorldCoord) -> GLCoord4D {
         let point: na::Point4<f32> = world_coord.into();
-        (self.projection_matrix * point).into()
+        (self.compute_projection_matrix() * point).into()
     }
 
     pub fn unproject(&self, projected_coord: GLCoord4D) -> WorldCoord {
         let projected_point: na::Point4<f32> = projected_coord.into();
-        (self.inverse_matrix * projected_point).into()
+        (self.compute_inverse_matrix() * projected_point).into()
     }
 }
 

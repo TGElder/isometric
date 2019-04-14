@@ -92,14 +92,14 @@ impl GraphicsEngine {
     pub fn prepare_program(&self, program: &Program) {
         match program.drawing_type {
             DrawingType::Plain => {
-                program.load_matrix4("projection", self.transform.get_projection_matrix())
+                program.load_matrix4("projection", self.transform.compute_projection_matrix())
             }
             DrawingType::Text => {
-                program.load_matrix4("projection", self.transform.get_projection_matrix());
+                program.load_matrix4("projection", self.transform.compute_projection_matrix());
                 program.load_matrix2("pixel_to_screen", self.get_pixel_to_screen());
             }
             DrawingType::Billboard => {
-                program.load_matrix4("projection", self.transform.get_projection_matrix());
+                program.load_matrix4("projection", self.transform.compute_projection_matrix());
                 program.load_matrix3("world_to_screen", self.transform.get_world_to_screen());
             }
         }
