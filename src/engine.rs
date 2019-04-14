@@ -123,10 +123,12 @@ impl IsometricEngine {
     pub fn run(&mut self) {
         while self.running {
             self.add_glutin_events();
-            self.handle_events();
+            let mut to_process = vec![];
+            to_process.append(&mut self.events);
+            self.handle_events(to_process);
+            self.graphics.update_projection();
             self.graphics.draw_world();
-            self.events.push(Event::WorldDrawn);
-            self.handle_events();
+            self.handle_events(vec![Event::WorldDrawn]);
             self.graphics.draw_billboards();
             self.graphics.draw_ui();
             self.window.swap_buffers().unwrap();
@@ -143,13 +145,10 @@ impl IsometricEngine {
         self.events.append(&mut glutin_events);
     }
 
-    fn handle_events(&mut self) {
-        let mut events: Vec<Event> = vec![];
-        events.append(&mut self.events);
-
+    fn handle_events(&mut self, events: Vec<Event>) {
         let mut commands = vec![];
 
-        events.drain(0..).for_each(|event| {
+        events.into_iter().for_each(|event| {
             let event_arc = Arc::new(event);
             for handler in self.event_handlers.iter_mut() {
                 commands.append(&mut handler.handle_event(event_arc.clone()));

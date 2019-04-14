@@ -19,6 +19,7 @@ pub struct GraphicsEngine {
     viewport_size: glutin::dpi::PhysicalSize,
     transform: Transform,
     drawings: HashMap<String, Box<Drawing>>,
+    projection: na::Matrix4<f32>,
 }
 
 impl GraphicsEngine {
@@ -41,17 +42,20 @@ impl GraphicsEngine {
             ),
         ];
 
+        let transform = Transform::new(
+            GLCoord3D::new(
+                1.0,
+                viewport_size.width as f32 / viewport_size.height as f32,
+                z_scale,
+            ),
+            GLCoord2D::new(0.0, 0.0),
+            IsometricRotation::Bottom,
+        );
+
         let mut out = GraphicsEngine {
             programs,
-            transform: Transform::new(
-                GLCoord3D::new(
-                    1.0,
-                    viewport_size.width as f32 / viewport_size.height as f32,
-                    z_scale,
-                ),
-                GLCoord2D::new(0.0, 0.0),
-                IsometricRotation::Bottom,
-            ),
+            projection: transform.compute_projection_matrix(),
+            transform,
             viewport_size,
             drawings: HashMap::new(),
         };
@@ -92,14 +96,14 @@ impl GraphicsEngine {
     pub fn prepare_program(&self, program: &Program) {
         match program.drawing_type {
             DrawingType::Plain => {
-                program.load_matrix4("projection", self.transform.compute_projection_matrix())
+                program.load_matrix4("projection", self.projection)
             }
             DrawingType::Text => {
-                program.load_matrix4("projection", self.transform.compute_projection_matrix());
+                program.load_matrix4("projection", self.projection);
                 program.load_matrix2("pixel_to_screen", self.get_pixel_to_screen());
             }
             DrawingType::Billboard => {
-                program.load_matrix4("projection", self.transform.compute_projection_matrix());
+                program.load_matrix4("projection", self.projection);
                 program.load_matrix3("world_to_screen", self.transform.get_world_to_screen());
             }
         }
@@ -110,6 +114,10 @@ impl GraphicsEngine {
             DrawingType::Plain => program.load_float("z_mod", drawing.get_z_mod()),
             _ => (),
         }
+    }
+
+    pub fn update_projection(&mut self) {
+        self.projection = self.transform.compute_projection_matrix();
     }
 
     pub fn draw_world(&mut self) {
