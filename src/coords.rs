@@ -261,13 +261,11 @@ mod tests {
 
     #[test]
     fn test_gl_4d_to_world() {
-        let mut transform = Transform::new(
+        let transform = Transform::new(
             GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
             IsometricRotation::TopLeft,
         );
-
-        transform.compute_projection_matrix();
 
         let gl_coord_4 = GLCoord4D::new(5.0, 6.0, 7.0, 8.0);
         let expected = transform.unproject(gl_coord_4);
@@ -291,13 +289,11 @@ mod tests {
 
     #[test]
     fn test_world_to_gl_4d() {
-        let mut transform = Transform::new(
+        let transform = Transform::new(
             GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
             IsometricRotation::TopLeft,
         );
-
-        transform.compute_projection_matrix();
 
         let world_coord = WorldCoord::new(5.0, 6.0, 7.0);
         let expected = transform.project(world_coord);

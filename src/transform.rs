@@ -159,6 +159,11 @@ impl Transform {
         );
     }
 
+    pub fn look_at(&mut self, world_coord: WorldCoord) {
+        let gl_coord = world_coord.to_gl_coord_4d(self);
+        self.translate(GLCoord2D::new(-gl_coord.x, -gl_coord.y));
+    }
+
     pub fn project(&self, world_coord: WorldCoord) -> GLCoord4D {
         let point: na::Point4<f32> = world_coord.into();
         (self.compute_projection_matrix() * point).into()
@@ -574,6 +579,23 @@ mod tests {
         transform.rotate(center_of_scaling, Direction::Clockwise);
         transform.compute_projection_matrix();
         assert_eq!(transform.project(world_coord_at_center), center_of_scaling);
+    }
+
+    #[test]
+    pub fn test_look_at() {
+         let mut transform = Transform::new(
+            GLCoord3D::new(1.0, 1.0, 1.0),
+            GLCoord2D::new(0.0, 0.0),
+            IsometricRotation::TopLeft,
+        );
+        let world_coord = WorldCoord::new(12.0, 34.0, 100.0);
+        let gl_coord_4 = transform.project(world_coord);
+        assert!(gl_coord_4.x != 0.0);
+        assert!(gl_coord_4.y != 0.0);
+        transform.look_at(world_coord);
+        let gl_coord_4 = transform.project(world_coord);
+        assert!(gl_coord_4.x == 0.0);
+        assert!(gl_coord_4.y == 0.0);
     }
 
 }

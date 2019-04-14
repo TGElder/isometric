@@ -180,12 +180,7 @@ impl IsometricEngine {
             }
             Command::Draw { name, drawing } => self.graphics.add_drawing(name, drawing),
             Command::Erase(name) => self.graphics.remove_drawing(&name),
-            Command::LookAt(world_coord) => {
-                let gl_coord = world_coord.to_gl_coord_4d(self.graphics.get_transform());
-                self.graphics
-                    .get_transform()
-                    .translate(GLCoord2D::new(-gl_coord.x, -gl_coord.y));
-            }
+            Command::LookAt(world_coord) => self.graphics.get_transform().look_at(world_coord),
         }
     }
 
