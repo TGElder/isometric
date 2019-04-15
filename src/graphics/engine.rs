@@ -126,7 +126,7 @@ impl GraphicsEngine {
     }
 
     pub fn rotate(&mut self, center: GLCoord4D, yaw: f32) {
-        self.projection.yaw += yaw;
+        self.projection.yaw = (self.projection.yaw + PI * 2.0 + yaw) % (PI * 2.0);
         self.transform.change_projection(center, Arc::new(self.projection))
     }
 
