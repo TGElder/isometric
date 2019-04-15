@@ -2,7 +2,6 @@ use super::program::Program;
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use std::ffi::c_void;
-use std::sync::Arc;
 
 use super::drawing::Drawing;
 use coords::*;
@@ -53,7 +52,7 @@ impl GraphicsEngine {
                 z_scale,
             ),
             GLCoord2D::new(0.0, 0.0),
-            Arc::new(projection),
+            Box::new(projection),
         );
 
         let mut out = GraphicsEngine {
@@ -127,7 +126,14 @@ impl GraphicsEngine {
 
     pub fn rotate(&mut self, center: GLCoord4D, yaw: f32) {
         self.projection.yaw = (self.projection.yaw + PI * 2.0 + yaw) % (PI * 2.0);
-        self.transform.change_projection(center, Arc::new(self.projection))
+        let proj = self.projection.clone();
+
+        self.transform.transform_maintaining_center(
+            center,
+            Box::new(move |transform| {
+                transform.set_projection(Box::new(proj));
+            }),
+        );
     }
 
     pub fn draw_world(&mut self) {

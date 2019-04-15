@@ -1,6 +1,5 @@
 extern crate glutin;
 use super::transform::Transform;
-use std::sync::Arc;
 
 pub trait PhysicalPositionExt {
     fn to_gl_coord_2d(self, physical_size: glutin::dpi::PhysicalSize) -> GLCoord2D;
@@ -265,7 +264,7 @@ mod tests {
         let transform = Transform::new(
             GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
-            Arc::new(Identity{}),
+            Box::new(Identity::new()),
         );
 
         let gl_coord_4 = GLCoord4D::new(5.0, 6.0, 7.0, 8.0);
@@ -293,7 +292,7 @@ mod tests {
         let transform = Transform::new(
             GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
-            Arc::new(Identity{}),
+            Box::new(Identity::new()),
         );
 
         let world_coord = WorldCoord::new(5.0, 6.0, 7.0);

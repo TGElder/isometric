@@ -1,5 +1,4 @@
 use super::coords::*;
-use std::sync::Arc;
 
 pub trait Projection {
     fn compute_projection_matrix(&self) -> na::Matrix4<f32>;
@@ -35,6 +34,12 @@ impl Projection for Isometric {
 
 pub struct Identity {}
 
+impl Identity {
+    pub fn new() -> Identity {
+        Identity{}
+    }
+}
+
 impl Projection for Identity {
     fn compute_projection_matrix(&self) -> na::Matrix4<f32> {
        na::Matrix4::identity()
@@ -44,11 +49,11 @@ impl Projection for Identity {
 pub struct Transform {
     scale: GLCoord3D,
     translation: GLCoord2D,
-    projection: Arc<Projection>,
+    projection: Box<Projection>,
 }
 
 impl Transform {
-    pub fn new(scale: GLCoord3D, translation: GLCoord2D, projection: Arc<Projection>) -> Transform {
+    pub fn new(scale: GLCoord3D, translation: GLCoord2D, projection: Box<Projection>) -> Transform {
         Transform {
             scale,
             translation,
@@ -86,7 +91,7 @@ impl Transform {
         self.translation.y = self.translation.y + delta.y;
     }
 
-    fn transform_maintaining_center(
+    pub fn transform_maintaining_center(
         &mut self,
         center: GLCoord4D,
         mut transformation: Box<FnMut(&mut Self) -> ()>,
@@ -110,13 +115,8 @@ impl Transform {
         );
     }
 
-    pub fn change_projection(&mut self, center: GLCoord4D, projection: Arc<Projection>) {
-        self.transform_maintaining_center(
-            center,
-            Box::new(move |transform| {
-                transform.projection = projection.clone();
-            }),
-        );
+    pub fn set_projection(&mut self, projection: Box<Projection>) {
+        self.projection = projection
     }
 
     pub fn look_at(&mut self, world_coord: WorldCoord) {
