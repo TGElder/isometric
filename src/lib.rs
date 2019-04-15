@@ -15,7 +15,6 @@ pub use events::*;
 pub use font::*;
 pub use graphics::drawing;
 pub use graphics::texture::*;
-pub use transform::Direction;
 
 pub use glutin::ElementState;
 pub use glutin::MouseButton;

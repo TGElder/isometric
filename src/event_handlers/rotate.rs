@@ -2,8 +2,10 @@ use coords::GLCoord4D;
 use engine::{Command, Event};
 use events::EventHandler;
 use std::sync::Arc;
-use transform::Direction;
 use {ElementState, VirtualKeyCode};
+use std::f32::consts::PI;
+
+const DELTA: f32 = PI / 4.0;
 
 pub struct RotateHandler {
     cursor_position: Option<GLCoord4D>,
@@ -25,12 +27,12 @@ impl RotateHandler {
             if key == self.clockwise_key {
                 vec![Command::Rotate {
                     center,
-                    direction: Direction::Clockwise,
+                    yaw: DELTA,
                 }]
             } else if key == self.anticlockwise_key {
                 vec![Command::Rotate {
                     center,
-                    direction: Direction::AntiClockwise,
+                    yaw: -DELTA,
                 }]
             } else {
                 vec![]

@@ -5,7 +5,6 @@ use event_handlers::*;
 use events::{AsyncEventHandler, EventHandler};
 use graphics::drawing::*;
 use graphics::engine::GraphicsEngine;
-use transform::Direction;
 
 use glutin::GlContext;
 
@@ -40,7 +39,7 @@ pub enum Command {
     },
     Rotate {
         center: GLCoord4D,
-        direction: Direction,
+        yaw: f32,
     },
     Event(Event),
     ComputeWorldPosition(GLCoord4D),
@@ -126,7 +125,7 @@ impl IsometricEngine {
             let mut to_process = vec![];
             to_process.append(&mut self.events);
             self.handle_events(to_process);
-            self.graphics.update_projection();
+            self.graphics.update_transform_matrix();
             self.graphics.draw_world();
             self.handle_events(vec![Event::WorldDrawn]);
             self.graphics.draw_billboards();
@@ -169,8 +168,8 @@ impl IsometricEngine {
             }
             Command::Translate(translation) => self.graphics.get_transform().translate(translation),
             Command::Scale { center, scale } => self.graphics.get_transform().scale(center, scale),
-            Command::Rotate { center, direction } => {
-                self.graphics.get_transform().rotate(center, direction)
+            Command::Rotate { center, yaw } => {
+                self.graphics.rotate(center, yaw)
             }
             Command::Event(event) => self.events.push(event),
             Command::ComputeWorldPosition(gl_coord) => {

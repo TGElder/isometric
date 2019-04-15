@@ -1,5 +1,6 @@
 extern crate glutin;
 use super::transform::Transform;
+use std::sync::Arc;
 
 pub trait PhysicalPositionExt {
     fn to_gl_coord_2d(self, physical_size: glutin::dpi::PhysicalSize) -> GLCoord2D;
@@ -171,8 +172,8 @@ impl Into<na::Point4<f32>> for WorldCoord {
 #[cfg(test)]
 mod tests {
 
-    use super::super::transform::IsometricRotation;
     use super::*;
+    use ::transform::Identity;
 
     #[test]
     fn physical_position_to_gl_2d_left_top() {
@@ -264,7 +265,7 @@ mod tests {
         let transform = Transform::new(
             GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
-            IsometricRotation::TopLeft,
+            Arc::new(Identity{}),
         );
 
         let gl_coord_4 = GLCoord4D::new(5.0, 6.0, 7.0, 8.0);
@@ -292,7 +293,7 @@ mod tests {
         let transform = Transform::new(
             GLCoord3D::new(1.0, 2.0, 5.0),
             GLCoord2D::new(3.0, 4.0),
-            IsometricRotation::TopLeft,
+            Arc::new(Identity{}),
         );
 
         let world_coord = WorldCoord::new(5.0, 6.0, 7.0);

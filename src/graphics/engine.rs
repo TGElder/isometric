@@ -1,11 +1,12 @@
 use super::program::Program;
 use std::collections::HashMap;
+use std::f32::consts::PI;
 use std::ffi::c_void;
+use std::sync::Arc;
 
 use super::drawing::Drawing;
 use coords::*;
-use transform::IsometricRotation;
-use transform::Transform;
+use transform::{Transform, Isometric};
 
 #[derive(PartialEq)]
 pub enum DrawingType {
@@ -18,8 +19,9 @@ pub struct GraphicsEngine {
     programs: [Program; 3],
     viewport_size: glutin::dpi::PhysicalSize,
     transform: Transform,
+    transform_matrix: na::Matrix4<f32>,
+    projection: Isometric,
     drawings: HashMap<String, Box<Drawing>>,
-    projection: na::Matrix4<f32>,
 }
 
 impl GraphicsEngine {
@@ -42,6 +44,8 @@ impl GraphicsEngine {
             ),
         ];
 
+        let projection = Isometric::new(PI, PI / 3.0);
+
         let transform = Transform::new(
             GLCoord3D::new(
                 1.0,
@@ -49,14 +53,15 @@ impl GraphicsEngine {
                 z_scale,
             ),
             GLCoord2D::new(0.0, 0.0),
-            IsometricRotation::Bottom,
+            Arc::new(projection),
         );
 
         let mut out = GraphicsEngine {
             programs,
-            projection: transform.compute_projection_matrix(),
-            transform,
             viewport_size,
+            transform_matrix: transform.compute_transformation_matrix(),
+            transform,
+            projection,
             drawings: HashMap::new(),
         };
         out.set_viewport_size(viewport_size);
@@ -96,15 +101,15 @@ impl GraphicsEngine {
     pub fn prepare_program(&self, program: &Program) {
         match program.drawing_type {
             DrawingType::Plain => {
-                program.load_matrix4("projection", self.projection)
+                program.load_matrix4("projection", self.transform_matrix)
             }
             DrawingType::Text => {
-                program.load_matrix4("projection", self.projection);
+                program.load_matrix4("projection", self.transform_matrix);
                 program.load_matrix2("pixel_to_screen", self.get_pixel_to_screen());
             }
             DrawingType::Billboard => {
-                program.load_matrix4("projection", self.projection);
-                program.load_matrix3("world_to_screen", self.transform.get_world_to_screen());
+                program.load_matrix4("projection", self.transform_matrix);
+                program.load_matrix3("world_to_screen", self.transform.get_scale_as_matrix());
             }
         }
     }
@@ -116,8 +121,13 @@ impl GraphicsEngine {
         }
     }
 
-    pub fn update_projection(&mut self) {
-        self.projection = self.transform.compute_projection_matrix();
+    pub fn update_transform_matrix(&mut self) {
+        self.transform_matrix = self.transform.compute_transformation_matrix();
+    }
+
+    pub fn rotate(&mut self, center: GLCoord4D, yaw: f32) {
+        self.projection.yaw += yaw;
+        self.transform.change_projection(center, Arc::new(self.projection))
     }
 
     pub fn draw_world(&mut self) {
@@ -137,7 +147,7 @@ impl GraphicsEngine {
 
     fn draw(&mut self, program: usize) {
         let program = &self.programs[program];
-        self.transform.compute_projection_matrix();
+        self.transform.compute_transformation_matrix();
         program.set_used();
         self.prepare_program(program);
         for drawing in self.drawings.values().filter(|d| self.should_draw(d)) {
