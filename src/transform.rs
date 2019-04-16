@@ -12,7 +12,7 @@ pub struct Isometric {
 
 impl Isometric {
     pub fn new(yaw: f32, pitch: f32) -> Isometric {
-        Isometric{yaw, pitch}
+        Isometric { yaw, pitch }
     }
 }
 
@@ -23,12 +23,24 @@ impl Projection for Isometric {
         let pc = self.pitch.cos();
         let ps = self.pitch.sin();
         na::Matrix4::from_vec(vec![
-            yc, -ys, 0.0, 0.0,
-            -ys * pc, -yc * pc, ps, 0.0,
-            0.0, 0.0, -1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
-            ]
-        ).transpose()
+            yc,
+            -ys,
+            0.0,
+            0.0,
+            -ys * pc,
+            -yc * pc,
+            ps,
+            0.0,
+            0.0,
+            0.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
+        ])
+        .transpose()
     }
 }
 
@@ -38,7 +50,7 @@ pub struct Identity {}
 #[allow(dead_code)]
 impl Identity {
     pub fn new() -> Identity {
-        Identity{}
+        Identity {}
     }
 
     pub fn boxed() -> Box<Identity> {
@@ -48,7 +60,7 @@ impl Identity {
 
 impl Projection for Identity {
     fn compute_projection_matrix(&self) -> na::Matrix4<f32> {
-       na::Matrix4::identity()
+        na::Matrix4::identity()
     }
 }
 
@@ -167,7 +179,7 @@ mod tests {
         let transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(-1.0, 2.0),
-            Identity::boxed()
+            Identity::boxed(),
         );
 
         assert_eq!(
@@ -181,7 +193,7 @@ mod tests {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
-            Identity::boxed()
+            Identity::boxed(),
         );
 
         transform.translate(GLCoord2D::new(-2.0, 1.0));
@@ -192,31 +204,26 @@ mod tests {
         );
     }
 
-     #[test]
+    #[test]
     fn test_get_scale_as_matrix() {
         let transform = Transform::new(
             GLCoord3D::new(2.0, 4.0, 5.0),
             GLCoord2D::new(0.0, 0.0),
-            Identity::boxed()
+            Identity::boxed(),
         );
 
         assert_eq!(
             transform.get_scale_as_matrix(),
-            na::Matrix3::new(
-                2.0, 0.0, 0.0,
-                0.0, 4.0, 0.0,
-                0.0, 0.0, 5.0,
-            )
+            na::Matrix3::new(2.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 5.0,)
         );
     }
-
 
     #[test]
     fn test_scale_in_constructor() {
         let transform = Transform::new(
             GLCoord3D::new(2.0, 4.0, 5.0),
             GLCoord2D::new(0.0, 0.0),
-            Identity::boxed()
+            Identity::boxed(),
         );
 
         assert_eq!(
@@ -230,7 +237,7 @@ mod tests {
         let transform = Transform::new(
             GLCoord3D::new(2.0, 4.0, 5.0),
             GLCoord2D::new(-3.0, 1.0),
-            Identity::boxed()
+            Identity::boxed(),
         );
 
         assert_eq!(
@@ -244,10 +251,13 @@ mod tests {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
-            Identity::boxed()
+            Identity::boxed(),
         );
 
-        transform.scale(GLCoord4D::new(1.0, -1.0, 7.0, 1.0), GLCoord2D::new(3.0, 2.0));
+        transform.scale(
+            GLCoord4D::new(1.0, -1.0, 7.0, 1.0),
+            GLCoord2D::new(3.0, 2.0),
+        );
 
         assert_eq!(
             transform.project(WorldCoord::new(1.0, -1.0, 7.0)),
@@ -260,10 +270,13 @@ mod tests {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
-            Identity::boxed()
+            Identity::boxed(),
         );
 
-        transform.scale(GLCoord4D::new(1.0, -1.0, 7.0, 1.0), GLCoord2D::new(3.0, 2.0));
+        transform.scale(
+            GLCoord4D::new(1.0, -1.0, 7.0, 1.0),
+            GLCoord2D::new(3.0, 2.0),
+        );
 
         assert_eq!(
             transform.project(WorldCoord::new(0.0, 0.0, 7.0)),
@@ -276,14 +289,17 @@ mod tests {
         let mut transform = Transform::new(
             GLCoord3D::new(1.0, 1.0, 1.0),
             GLCoord2D::new(0.0, 0.0),
-            Identity::boxed()
+            Identity::boxed(),
         );
 
-        transform.transform_maintaining_center(GLCoord4D::new(11.0, -17.0, 7.0, 0.0), 
-            Box::new(|transform: &mut Transform| transform.projection = Box::new(Isometric::new(PI / 5.0, PI / 3.0)))
+        transform.transform_maintaining_center(
+            GLCoord4D::new(11.0, -17.0, 7.0, 0.0),
+            Box::new(|transform: &mut Transform| {
+                transform.projection = Box::new(Isometric::new(PI / 5.0, PI / 3.0))
+            }),
         );
 
-        let actual = transform.project(WorldCoord::new(11.0, -17.0, 7.0)); 
+        let actual = transform.project(WorldCoord::new(11.0, -17.0, 7.0));
         // Because World Coord would have mapped to same GLCoord in identity projection
 
         assert_eq!(actual.x, 11.0);
@@ -293,7 +309,7 @@ mod tests {
 
     #[test]
     pub fn test_look_at() {
-         let mut transform = Transform::new(
+        let mut transform = Transform::new(
             GLCoord3D::new(4.0, 1.0, 3.0),
             GLCoord2D::new(7.0, -2.0),
             Box::new(Isometric::new(PI / 5.0, PI / 3.0)),

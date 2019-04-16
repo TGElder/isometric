@@ -172,7 +172,7 @@ impl Into<na::Point4<f32>> for WorldCoord {
 mod tests {
 
     use super::*;
-    use ::transform::Identity;
+    use transform::Identity;
 
     #[test]
     fn physical_position_to_gl_2d_left_top() {

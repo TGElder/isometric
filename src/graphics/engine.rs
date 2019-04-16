@@ -5,7 +5,7 @@ use std::ffi::c_void;
 
 use super::drawing::Drawing;
 use coords::*;
-use transform::{Transform, Isometric};
+use transform::{Isometric, Transform};
 
 #[derive(PartialEq)]
 pub enum DrawingType {
@@ -99,9 +99,7 @@ impl GraphicsEngine {
 
     pub fn prepare_program(&self, program: &Program) {
         match program.drawing_type {
-            DrawingType::Plain => {
-                program.load_matrix4("projection", self.transform_matrix)
-            }
+            DrawingType::Plain => program.load_matrix4("projection", self.transform_matrix),
             DrawingType::Text => {
                 program.load_matrix4("projection", self.transform_matrix);
                 program.load_matrix2("pixel_to_screen", self.get_pixel_to_screen());

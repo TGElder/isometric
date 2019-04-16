@@ -168,9 +168,7 @@ impl IsometricEngine {
             }
             Command::Translate(translation) => self.graphics.get_transform().translate(translation),
             Command::Scale { center, scale } => self.graphics.get_transform().scale(center, scale),
-            Command::Rotate { center, yaw } => {
-                self.graphics.rotate(center, yaw)
-            }
+            Command::Rotate { center, yaw } => self.graphics.rotate(center, yaw),
             Command::Event(event) => self.events.push(event),
             Command::ComputeWorldPosition(gl_coord) => {
                 self.events.push(Event::WorldPositionChanged(
