@@ -4,7 +4,7 @@ use super::utils::*;
 use super::Drawing;
 use color::Color;
 use coords::*;
-use terrain::Terrain;
+use terrain::Slab;
 use v2;
 
 pub struct SelectedCellDrawing {
@@ -31,7 +31,7 @@ impl Drawing for SelectedCellDrawing {
 
 impl SelectedCellDrawing {
     pub fn select_cell(
-        terrain: &Terrain,
+        terrain: &Slab,
         world_coordinate: WorldCoord,
     ) -> Option<SelectedCellDrawing> {
         let color = Color::new(1.0, 0.0, 0.0, 1.0);

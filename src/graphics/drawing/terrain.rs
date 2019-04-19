@@ -4,7 +4,7 @@ use super::utils::*;
 use super::Drawing;
 use color::Color;
 use coords::WorldCoord;
-use terrain::{Edge, Node, Terrain};
+use terrain::{Edge, Node, Slab};
 use {v2, M};
 
 pub struct NodeDrawing {
@@ -31,13 +31,13 @@ impl Drawing for NodeDrawing {
 }
 
 impl NodeDrawing {
-    pub fn new(terrain: &Terrain, nodes: &Vec<Node>, color: Color, z_mod: f32) -> NodeDrawing {
+    pub fn new(terrain: &Slab, nodes: &Vec<Node>, color: Color, z_mod: f32) -> NodeDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
         for node in nodes {
-            for triangle in terrain.get_triangles(Terrain::get_index_for_node(&node)) {
+            for triangle in terrain.get_triangles(Slab::get_index_for_node(&node)) {
                 vertices.append(&mut get_uniform_colored_vertices_from_triangle(
                     &triangle, &color,
                 ));
@@ -74,13 +74,13 @@ impl Drawing for EdgeDrawing {
 }
 
 impl EdgeDrawing {
-    pub fn new(terrain: &Terrain, nodes: &Vec<Edge>, color: Color, z_mod: f32) -> EdgeDrawing {
+    pub fn new(terrain: &Slab, nodes: &Vec<Edge>, color: Color, z_mod: f32) -> EdgeDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
         for node in nodes {
-            for triangle in terrain.get_triangles(Terrain::get_index_for_edge(&node)) {
+            for triangle in terrain.get_triangles(Slab::get_index_for_edge(&node)) {
                 vertices.append(&mut get_uniform_colored_vertices_from_triangle(
                     &triangle, &color,
                 ));
@@ -117,7 +117,7 @@ impl Drawing for TerrainDrawing {
 
 impl TerrainDrawing {
     pub fn from_matrix(
-        terrain: &Terrain,
+        terrain: &Slab,
         color_matrix: &M<Color>,
         shading: &Box<SquareColoring>,
     ) -> TerrainDrawing {
@@ -128,7 +128,7 @@ impl TerrainDrawing {
         for x in 0..((terrain.width() - 1) / 2) {
             for y in 0..((terrain.height() - 1) / 2) {
                 let tile_index = v2(x, y);
-                let grid_index = Terrain::get_index_for_tile(&tile_index);
+                let grid_index = Slab::get_index_for_tile(&tile_index);
                 let border = terrain.get_border(grid_index);
                 let shade = shading.get_colors(&[border[0], border[1], border[2], border[3]])[0];
                 let color = color_matrix[(x, y)].mul(&shade);
@@ -145,7 +145,7 @@ impl TerrainDrawing {
         TerrainDrawing { vbo }
     }
 
-    pub fn uniform(terrain: &Terrain, coloring: Box<SquareColoring>) -> TerrainDrawing {
+    pub fn uniform(terrain: &Slab, coloring: Box<SquareColoring>) -> TerrainDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
@@ -153,7 +153,7 @@ impl TerrainDrawing {
         for x in 0..((terrain.width() - 1) / 2) {
             for y in 0..((terrain.height() - 1) / 2) {
                 let tile_index = v2(x, y);
-                let grid_index = Terrain::get_index_for_tile(&tile_index);
+                let grid_index = Slab::get_index_for_tile(&tile_index);
                 let border = terrain.get_border(grid_index);
                 let color = coloring.get_colors(&[border[0], border[1], border[2], border[3]])[0];
                 for triangle in terrain.get_triangles_for_tile(&tile_index) {
