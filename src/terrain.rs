@@ -57,21 +57,130 @@ impl Edge {
 }
 
 pub struct Terrain {
+    width: usize,
+    height: usize,
+    slab_width: usize,
+    slab_height: usize,
+    slabs: Vec<Vec<Slab>>,
+}
+
+impl Terrain {
+    pub fn new(elevations: M<f32>) -> Terrain {
+        let width = elevations.shape().0;
+        let height = elevations.shape().1;
+        let slab_width = 32;
+        let slab_height = 32;
+        let mut slabs = vec![];
+        for x in 0..width / slab_width {
+            let mut slab_column = vec![];
+            for y in 0..width / slab_height {
+                let this_width = (width - (slab_width * x)).min(slab_width + 1);
+                let this_height = (height - (slab_height * y)).min(slab_height + 1);
+                let slab = Slab::new(elevations.slice((x * slab_width, y * slab_height), (this_width, this_height)).into(), &vec![], &vec![]);
+                slab_column.push(slab);
+            }
+            slabs.push(slab_column);
+        }
+        Terrain{
+            width,
+            height,
+            slab_width,
+            slab_height,
+            slabs
+        }
+
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    pub fn set_node(&mut self, node: &Node) {
+        let position = v2(node.position.x % self.slab_width, node.position.y % self.slab_height);
+        let node = Node::new(position, node.width, node.height);
+        let slab = self.get_mut_slab_for_index(&Terrain::get_index_for_node(&node));
+        slab.set_node(&node);
+    }
+
+    pub fn set_edge(&mut self, edge: &Edge) {
+        let from = v2(edge.from.x % self.slab_width, edge.from.y % self.slab_height);
+        let to = v2(edge.to.x % self.slab_width, edge.to.y % self.slab_height);
+        let edge = Edge::new(from, to);
+        let slab = self.get_mut_slab_for_index(&Terrain::get_index_for_edge(&edge));
+        slab.set_edge(&edge);
+    }
+
+    pub fn clear_edge(&mut self, edge: &Edge) {
+        let from = v2(edge.from.x % self.slab_width, edge.from.y % self.slab_height);
+        let to = v2(edge.to.x % self.slab_width, edge.to.y % self.slab_height);
+        let edge = Edge::new(from, to);
+        let slab = self.get_mut_slab_for_index(&Terrain::get_index_for_edge(&edge));
+        slab.clear_edge(&edge);
+    }
+
+    pub fn get_border(&self, grid_index: V2<usize>) -> Vec<V3<f32>> {
+        let slab = self.get_slab_for_index(&grid_index);
+        slab.get_border(v2(grid_index.x % (self.slab_width * 2), grid_index.y % (self.slab_height * 2)))
+    }
+
+    pub fn get_triangles(&self, grid_index: V2<usize>) -> Vec<[V3<f32>; 3]> {
+        let slab = self.get_slab_for_index(&grid_index);
+        slab.get_triangles(v2(grid_index.x % (self.slab_width * 2), grid_index.y % (self.slab_height * 2)))
+    }
+
+    pub fn get_index_for_node(node: &Node) -> V2<usize> {
+        V2::new(node.position.x * 2, node.position.y * 2)
+    }
+
+    pub fn get_index_for_edge(edge: &Edge) -> V2<usize> {
+        if edge.horizontal() {
+            V2::new(edge.from.x * 2 + 1, edge.from.y * 2)
+        } else {
+            V2::new(edge.from.x * 2, edge.from.y * 2 + 1)
+        }
+    }
+
+    pub fn get_index_for_tile(tile_coordinate: &V2<usize>) -> V2<usize> {
+        V2::new((tile_coordinate.x * 2) + 1, (tile_coordinate.y * 2) + 1)
+    }
+
+    fn get_slab_for_index(&self, index: &V2<usize>) -> &Slab {
+        &self.slabs[index.x / (self.slab_width * 2)][index.y / (self.slab_height * 2)]
+    }
+
+    fn get_mut_slab_for_index(&mut self, index: &V2<usize>) -> &mut Slab {
+        &mut self.slabs[index.x / (self.slab_width * 2)][index.y / (self.slab_height * 2)]
+    }
+
+    pub fn get_triangles_for_tile(&self, tile_coordinate: &V2<usize>) -> Vec<[V3<f32>; 3]> {
+        let tile_coordinate = v2(tile_coordinate.x % self.slab_width, tile_coordinate.y % self.slab_height);
+        let slab = self.get_slab_for_index(&Terrain::get_index_for_tile(&tile_coordinate));
+        slab.get_triangles_for_tile(&tile_coordinate)
+    }
+
+
+}
+
+pub struct Slab {
     //grid: M<V3<f32>>,
     elevations: M<f32>,
     node: M<Node>,
     edge: M<bool>,
 }
 
-impl Terrain {
-    pub fn new(elevations: M<f32>, nodes: &Vec<Node>, edges: &Vec<Edge>) -> Terrain {
+impl Slab {
+    pub fn new(elevations: M<f32>, nodes: &Vec<Node>, edges: &Vec<Edge>) -> Slab {
         let width = elevations.shape().0;
         let height = elevations.shape().1;
-        let mut out = Terrain {
+        let mut out = Slab {
             elevations,
             //grid: Terrain::create_grid(elevations, nodes),
-            node: Terrain::init_node_matrix(width, height),
-            edge: Terrain::init_edge_matrix(width, height),
+            node: Slab::init_node_matrix(width, height),
+            edge: Slab::init_edge_matrix(width, height),
         };
         for node in nodes {
             out.set_node(&node);
@@ -80,14 +189,6 @@ impl Terrain {
             out.set_edge(&edge);
         }
         out
-    }
-
-    pub fn width(&self) -> usize {
-        self.elevations.shape().0 * 2
-    }
-
-    pub fn height(&self) -> usize {
-        self.elevations.shape().1 * 2
     }
 
     fn get_grid(&self, position: V2<usize>) -> V3<f32> {
@@ -177,22 +278,6 @@ impl Terrain {
         }
     }
 
-    pub fn get_index_for_node(node: &Node) -> V2<usize> {
-        V2::new(node.position.x * 2, node.position.y * 2)
-    }
-
-    pub fn get_index_for_edge(edge: &Edge) -> V2<usize> {
-        if edge.horizontal() {
-            V2::new(edge.from.x * 2 + 1, edge.from.y * 2)
-        } else {
-            V2::new(edge.from.x * 2, edge.from.y * 2 + 1)
-        }
-    }
-
-    pub fn get_index_for_tile(tile_coordinate: &V2<usize>) -> V2<usize> {
-        V2::new((tile_coordinate.x * 2) + 1, (tile_coordinate.y * 2) + 1)
-    }
-
     fn clip_to_tile(mut point: V3<f32>, tile_coordinate: &V2<usize>) -> V3<f32> {
         let x = tile_coordinate.x as f32;
         let y = tile_coordinate.y as f32;
@@ -220,7 +305,7 @@ impl Terrain {
             if !edge && (triangles.len() == 1 || triangles.len() == 2) {
                 for mut triangle in triangles {
                     for p in 0..3 {
-                        triangle[p] = Terrain::clip_to_tile(triangle[p], &tile_coordinate);
+                        triangle[p] = Slab::clip_to_tile(triangle[p], &tile_coordinate);
                     }
                     out.push(triangle);
                 }
@@ -237,7 +322,7 @@ mod tests {
     use super::*;
 
     #[rustfmt::skip]
-    fn terrain() -> Terrain {
+    fn terrain() -> Slab {
         let elevations = M::from_row_slice(3, 3, &[
             0.0, 0.0, 0.0,
             0.0, 4.0, 3.0,
@@ -257,7 +342,7 @@ mod tests {
             Edge::new(v2(1, 2), v2(2, 2)),
         ];
 
-        Terrain::new(elevations, &nodes, &edges)
+        Slab::new(elevations, &nodes, &edges)
     }
 
     #[test]
@@ -311,7 +396,7 @@ mod tests {
     #[rustfmt::skip]
     #[test]
     fn test_set_node() {
-        let mut terrain = Terrain::new(M::zeros(2, 2), &vec![], &vec![]);
+        let mut terrain = Slab::new(M::zeros(2, 2), &vec![], &vec![]);
 
         let nodes = vec![
             Node::new(v2(0, 0), 0.4, 0.0),
@@ -332,7 +417,7 @@ mod tests {
 
     #[test]
     fn test_set_edge() {
-        let mut terrain = Terrain::new(M::zeros(2, 2), &vec![], &vec![]);
+        let mut terrain = Slab::new(M::zeros(2, 2), &vec![], &vec![]);
         let edge = &Edge::new(v2(0, 1), v2(1, 1));
         terrain.set_edge(&Edge::new(v2(0, 1), v2(1, 1)));
 
@@ -342,7 +427,7 @@ mod tests {
 
     #[test]
     fn test_clear_edge() {
-        let mut terrain = Terrain::new(M::zeros(2, 2), &vec![], &vec![]);
+        let mut terrain = Slab::new(M::zeros(2, 2), &vec![], &vec![]);
         let edge = &Edge::new(v2(0, 1), v2(1, 1));
         terrain.set_edge(&Edge::new(v2(0, 1), v2(1, 1)));
         terrain.clear_edge(&Edge::new(v2(0, 1), v2(1, 1)));
@@ -506,16 +591,16 @@ mod tests {
 
     #[test]
     fn test_clip_to_tile() {
-        let actual = Terrain::clip_to_tile(v3(9.5, 10.5, 12.0), &v2(10, 10));
+        let actual = Slab::clip_to_tile(v3(9.5, 10.5, 12.0), &v2(10, 10));
         assert_eq!(actual, v3(10.0, 10.5, 12.0));
 
-        let actual = Terrain::clip_to_tile(v3(11.5, 10.5, 12.0), &v2(10, 10));
+        let actual = Slab::clip_to_tile(v3(11.5, 10.5, 12.0), &v2(10, 10));
         assert_eq!(actual, v3(11.0, 10.5, 12.0));
 
-        let actual = Terrain::clip_to_tile(v3(10.5, 9.5, 12.0), &v2(10, 10));
+        let actual = Slab::clip_to_tile(v3(10.5, 9.5, 12.0), &v2(10, 10));
         assert_eq!(actual, v3(10.5, 10.0, 12.0));
 
-        let actual = Terrain::clip_to_tile(v3(10.5, 11.5, 12.0), &v2(10, 10));
+        let actual = Slab::clip_to_tile(v3(10.5, 11.5, 12.0), &v2(10, 10));
         assert_eq!(actual, v3(10.5, 11.0, 12.0));
     }
 
