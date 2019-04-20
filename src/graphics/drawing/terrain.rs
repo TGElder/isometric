@@ -5,7 +5,7 @@ use super::Drawing;
 use color::Color;
 use coords::WorldCoord;
 use terrain::{Edge, Node, Terrain};
-use {v2, M};
+use {v2, V2, M};
 
 pub struct NodeDrawing {
     vbo: VBO,
@@ -115,18 +115,21 @@ impl Drawing for TerrainDrawing {
     }
 }
 
+
 impl TerrainDrawing {
     pub fn from_matrix(
         terrain: &Terrain,
         color_matrix: &M<Color>,
         shading: &Box<SquareColoring>,
+        from: V2<usize>,
+        to: V2<usize>,
     ) -> TerrainDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
-        for x in 0..((terrain.width() - 1) / 2) {
-            for y in 0..((terrain.height() - 1) / 2) {
+        for x in from.x..to.x {
+            for y in from.y..to.y {
                 let tile_index = v2(x, y);
                 let grid_index = Terrain::get_index_for_tile(&tile_index);
                 let border = terrain.get_border(grid_index);
