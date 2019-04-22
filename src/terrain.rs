@@ -23,6 +23,10 @@ impl Node {
             height,
         }
     }
+
+    pub fn position(&self) -> V2<usize> {
+        self.position
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
