@@ -23,12 +23,10 @@ impl VBO {
     }
 
     unsafe fn bind(&self) {
-        println!("Binding {}", self.id);
         gl::BindBuffer(gl::ARRAY_BUFFER, self.id);
     }
 
     unsafe fn unbind(&self) {
-        println!("Unbinding {}", self.id);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
     }
 
@@ -60,18 +58,15 @@ impl VBO {
         }
     }
 
-    pub fn load_at_offset(&self, offset: isize, vertices: Vec<f32>) {
-        if offset < 0 {
-            panic!("Tried to load at negative offset {} - not supported.", offset);
-        }
-        if offset as usize + vertices.len() > self.vertex_count {
+    pub fn load_at_offset(&self, offset: usize, vertices: Vec<f32>) {
+        if offset + vertices.len() > self.vertex_count {
             panic!("Tried to load {} vertices into buffer of size {} starting from offset {}", vertices.len(), self.vertex_count, offset);
         }
         unsafe {
             self.bind();
             gl::BufferSubData(
                 gl::ARRAY_BUFFER,
-                offset,
+                (offset * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
                 (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
                 vertices.as_ptr() as *const gl::types::GLvoid
             );
@@ -86,15 +81,16 @@ impl VBO {
     }
 
     pub fn draw(&self) {
-        unsafe {
-            self.vao.bind();
-            println!("Drawing {} vertices {}/{}", (self.vertex_count / self.vao.stride()) as i32, self.vertex_count, self.vao.stride());
-            gl::DrawArrays(
-                get_draw_mode(&self.drawing_type()),
-                0,
-                (self.vertex_count / self.vao.stride()) as i32,
-            );
-            self.vao.unbind();
+        if self.vertex_count > 0 {
+            unsafe {
+                self.vao.bind();
+                gl::DrawArrays(
+                    get_draw_mode(&self.drawing_type()),
+                    0,
+                    (self.vertex_count / self.vao.stride()) as i32,
+                );     
+                self.vao.unbind();
+            }
         }
     }
 

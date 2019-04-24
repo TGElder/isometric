@@ -125,7 +125,7 @@ impl TerrainDrawing {
 
     pub fn new(width: usize, height: usize, slab_size: usize) -> TerrainDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
-        let stride = std::mem::size_of::<f32>() * 9 * 2 * slab_size * slab_size * 4;
+        let stride = 9 * 2 * slab_size * slab_size * 4;
         println!("Max slab size = {}", stride);
         let capacity = stride * (width / slab_size) * (height / slab_size);
         println!("Estimated capacity = {}", capacity);
@@ -163,11 +163,11 @@ impl TerrainDrawing {
             }
         }
 
-        println!("Slab size = {}", std::mem::size_of::<f32>() * vertices.len());
+        // println!("Slab size = {}", std::mem::size_of::<f32>() * vertices.len());
 
         let index = self.get_index(from);
         let offset = index * self.stride;
-        println!("Loading at offset {}", offset);
-        self.vbo.load_at_offset(offset as isize, vertices);
+        // println!("Loading at offset {}", offset);
+        self.vbo.load_at_offset(offset, vertices);
     }
 }
