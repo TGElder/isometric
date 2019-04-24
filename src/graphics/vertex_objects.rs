@@ -23,11 +23,27 @@ impl VBO {
     }
 
     unsafe fn bind(&self) {
+        println!("Binding {}", self.id);
         gl::BindBuffer(gl::ARRAY_BUFFER, self.id);
     }
 
     unsafe fn unbind(&self) {
+        println!("Unbinding {}", self.id);
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+    }
+
+    pub fn clear(&mut self, vertex_count: usize) {
+        self.vertex_count = vertex_count;
+        unsafe {
+            self.bind();
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (vertex_count * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+                std::ptr::null(),
+                gl::STATIC_DRAW,
+            );
+            self.unbind();
+        }
     }
 
     pub fn load(&mut self, vertices: Vec<f32>) {
@@ -44,6 +60,25 @@ impl VBO {
         }
     }
 
+    pub fn load_at_offset(&self, offset: isize, vertices: Vec<f32>) {
+        if offset < 0 {
+            panic!("Tried to load at negative offset {} - not supported.", offset);
+        }
+        if offset as usize + vertices.len() > self.vertex_count {
+            panic!("Tried to load {} vertices into buffer of size {} starting from offset {}", vertices.len(), self.vertex_count, offset);
+        }
+        unsafe {
+            self.bind();
+            gl::BufferSubData(
+                gl::ARRAY_BUFFER,
+                offset,
+                (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+                vertices.as_ptr() as *const gl::types::GLvoid
+            );
+            self.unbind();
+        }
+    }
+
     pub unsafe fn set_vao(&self) {
         self.bind();
         self.vao.set();
@@ -53,10 +88,11 @@ impl VBO {
     pub fn draw(&self) {
         unsafe {
             self.vao.bind();
+            println!("Drawing {} vertices {}/{}", (self.vertex_count / self.vao.stride()) as i32, self.vertex_count, self.vao.stride());
             gl::DrawArrays(
                 get_draw_mode(&self.drawing_type()),
                 0,
-                self.vertex_count as i32,
+                (self.vertex_count / self.vao.stride()) as i32,
             );
             self.vao.unbind();
         }
@@ -89,6 +125,13 @@ impl VAO {
         VAO {
             id,
             drawing_type: drawing_type,
+        }
+    }
+
+    pub fn stride(&self) -> usize {
+        match self.drawing_type {
+            DrawingType::Plain => 6,
+            _ => 7,
         }
     }
 
