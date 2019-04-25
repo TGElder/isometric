@@ -1,4 +1,5 @@
 use super::engine::DrawingType;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct VBO {
@@ -85,7 +86,7 @@ impl Drop for VBO {
 #[derive(Clone)]
 pub struct MultiVBO {
     id: gl::types::GLuint,
-    vao: VAO,
+    vao: Arc<VAO>,
     indices: usize,
     max_floats_per_index: usize,
     floats_at_index: Vec<usize>,
@@ -101,7 +102,7 @@ impl MultiVBO {
             gl::GenBuffers(1, &mut id);
             let mut out = MultiVBO {
                 id,
-                vao,
+                vao: Arc::new(vao),
                 indices,
                 max_floats_per_index,
                 floats_at_index: vec![0; indices],
@@ -219,13 +220,6 @@ impl MultiVBO {
     }
 }
 
-// impl Drop for MultiVBO {
-//     fn drop(&mut self) {
-//         unsafe {
-//             gl::DeleteBuffers(1, &mut self.id);
-//         }
-//     }
-// }
 
 #[derive(Clone)]
 pub struct VAO {
@@ -267,13 +261,13 @@ impl VAO {
     }
 }
 
-// impl Drop for VAO {
-//     fn drop(&mut self) {
-//         unsafe {
-//             gl::DeleteVertexArrays(1, &mut self.id);
-//         }
-//     }
-// }
+impl Drop for VAO {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteVertexArrays(1, &mut self.id);
+        }
+    }
+}
 
 fn setup_vao_for_plain_drawing() { //TODO why are these not part of VAO?
     unsafe {
