@@ -1,5 +1,5 @@
 use super::super::engine::DrawingType;
-use super::super::vertex_objects::VBO;
+use super::super::vertex_objects::{MultiVBO, VBO};
 use super::utils::*;
 use super::Drawing;
 use color::Color;
@@ -99,8 +99,7 @@ pub struct TerrainDrawing {
     width: usize,
     height: usize,
     slab_size: usize,
-    stride: usize,
-    vbo: Arc<VBO>,
+    vbo: MultiVBO,
 }
 
 impl Drawing for TerrainDrawing {
@@ -124,13 +123,16 @@ impl Drawing for TerrainDrawing {
 impl TerrainDrawing {
 
     pub fn new(width: usize, height: usize, slab_size: usize) -> TerrainDrawing {
-        let mut vbo = VBO::new(DrawingType::Plain);
-        let stride = 9 * 2 * slab_size * slab_size * 4;
-        println!("Max slab size = {}", stride);
-        let capacity = stride * (width / slab_size) * (height / slab_size);
-        println!("Estimated capacity = {}", capacity);
-        vbo.clear(capacity);
-        TerrainDrawing{ width, height, slab_size, stride, vbo: Arc::new(vbo) }
+        
+        let max_floats_per_index = 
+            9 * // 9 floats per triangle
+            2 * // 2 triangles per cell
+            slab_size * slab_size * 4; // cells per slab
+        println!("Max floats per index = {}", max_floats_per_index);
+        let indices = (width * height) / (slab_size * slab_size);
+        println!("Indices {}", indices);
+        let vbo = MultiVBO::new(DrawingType::Plain, indices, max_floats_per_index);
+        TerrainDrawing{ width, height, slab_size, vbo }
     }
 
     pub fn get_index(&self, from: V2<usize>) -> usize {
@@ -138,7 +140,7 @@ impl TerrainDrawing {
     }
 
 
-    pub fn draw_on(
+    pub fn update(
         &mut self,
         terrain: &Terrain,
         color_matrix: &M<Color>,
@@ -163,11 +165,8 @@ impl TerrainDrawing {
             }
         }
 
-        // println!("Slab size = {}", std::mem::size_of::<f32>() * vertices.len());
-
         let index = self.get_index(from);
-        let offset = index * self.stride;
-        // println!("Loading at offset {}", offset);
-        self.vbo.load_at_offset(offset, vertices);
+       
+        self.vbo.load(index, vertices);
     }
 }
