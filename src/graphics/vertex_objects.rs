@@ -1,7 +1,7 @@
 use super::engine::DrawingType;
 use std::sync::Arc;
 
-pub struct VBO {
+pub struct VBO { // TODO need to create SimpleVBO like MultiVBO, remove float_count here
     id: gl::types::GLuint,
     vao: VAO,
     float_count: usize,
