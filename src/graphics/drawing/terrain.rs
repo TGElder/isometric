@@ -1,15 +1,14 @@
 use super::super::engine::DrawingType;
-use super::super::vertex_objects::{MultiVBO, VBO};
+use super::super::vertex_objects::{MultiVBO, SimpleVBO};
 use super::utils::*;
 use super::Drawing;
 use color::Color;
 use coords::WorldCoord;
 use terrain::{Edge, Node, Terrain};
 use {v2, V2, M};
-use std::sync::Arc;
 
 pub struct NodeDrawing {
-    vbo: VBO,
+    vbo: SimpleVBO,
     z_mod: f32,
 }
 
@@ -33,7 +32,7 @@ impl Drawing for NodeDrawing {
 
 impl NodeDrawing {
     pub fn new(terrain: &Terrain, nodes: &Vec<Node>, color: Color, z_mod: f32) -> NodeDrawing {
-        let mut vbo = VBO::new(DrawingType::Plain);
+        let mut vbo = SimpleVBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
@@ -52,7 +51,7 @@ impl NodeDrawing {
 }
 
 pub struct EdgeDrawing {
-    vbo: VBO,
+    vbo: SimpleVBO,
     z_mod: f32,
 }
 
@@ -76,7 +75,7 @@ impl Drawing for EdgeDrawing {
 
 impl EdgeDrawing {
     pub fn new(terrain: &Terrain, nodes: &Vec<Edge>, color: Color, z_mod: f32) -> EdgeDrawing {
-        let mut vbo = VBO::new(DrawingType::Plain);
+        let mut vbo = SimpleVBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 

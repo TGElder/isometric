@@ -1,14 +1,13 @@
 use super::engine::DrawingType;
 use std::sync::Arc;
 
-pub struct VBO { // TODO need to create SimpleVBO like MultiVBO, remove float_count here
-    id: gl::types::GLuint,
-    vao: VAO,
-    float_count: usize,
-}
-
 fn get_bytes<T> (floats: usize) -> usize {
     floats * std::mem::size_of::<T>()
+}
+
+pub struct VBO {
+    id: gl::types::GLuint,
+    vao: VAO,
 }
 
 impl VBO {
@@ -20,7 +19,6 @@ impl VBO {
             let out = VBO {
                 id,
                 vao,
-                float_count: 0,
             };
             out.set_vao();
             out
@@ -35,39 +33,12 @@ impl VBO {
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
     }
 
-    pub fn load(&mut self, vertices: Vec<f32>) {
-        self.float_count = vertices.len();
-        unsafe {
-            self.bind();
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
-                vertices.as_ptr() as *const gl::types::GLvoid,
-                gl::STATIC_DRAW,
-            );
-            self.unbind();
-        }
-    }
-
     pub unsafe fn set_vao(&self) {
         self.bind();
         self.vao.set();
         self.unbind();
     }
 
-    pub fn draw(&self) {
-        if self.float_count > 0 {
-            unsafe {
-                self.vao.bind();
-                gl::DrawArrays(
-                    get_draw_mode(&self.drawing_type()),
-                    0,
-                    (self.float_count / self.vao.stride()) as i32,
-                );     
-                self.vao.unbind();
-            }
-        }
-    }
 
     pub fn drawing_type(&self) -> &DrawingType {
         &self.vao.drawing_type
@@ -80,6 +51,53 @@ impl Drop for VBO {
             gl::DeleteBuffers(1, &mut self.id);
         }
     }
+}
+
+pub struct SimpleVBO {
+    vbo: VBO,
+    floats: usize,
+}
+
+impl SimpleVBO {
+    pub fn new(drawing_type: DrawingType) -> SimpleVBO {
+        SimpleVBO{
+            vbo: VBO::new(drawing_type),
+            floats: 0
+        }
+    }
+
+    pub fn load(&mut self, vertices: Vec<f32>) {
+        self.floats = vertices.len();
+        unsafe {
+            self.vbo.bind();
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+                vertices.as_ptr() as *const gl::types::GLvoid,
+                gl::STATIC_DRAW,
+            );
+            self.vbo.unbind();
+        }
+    }
+
+    pub fn draw(&self) {
+        if self.floats > 0 {
+            unsafe {
+                self.vbo.vao.bind();
+                gl::DrawArrays(
+                    get_draw_mode(&self.vbo.drawing_type()),
+                    0,
+                    (self.floats / self.vbo.vao.stride()) as i32,
+                );     
+                self.vbo.vao.unbind();
+            }
+        }
+    }
+
+    pub fn drawing_type(&self) -> &DrawingType {
+        self.vbo.drawing_type()
+    }
+
 }
 
 #[derive(Clone)]
@@ -95,7 +113,7 @@ impl MultiVBO {
                              
     pub fn new(drawing_type: DrawingType, indices: usize, max_floats_per_index: usize) -> MultiVBO {
         unsafe {
-            let mut out = MultiVBO {
+            let out = MultiVBO {
                 vbo: Arc::new(VBO::new(drawing_type)),
                 indices,
                 max_floats_per_index,

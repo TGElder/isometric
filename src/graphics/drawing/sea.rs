@@ -1,5 +1,5 @@
 use super::super::engine::DrawingType;
-use super::super::vertex_objects::VBO;
+use super::super::vertex_objects::SimpleVBO;
 use super::utils::*;
 use super::Drawing;
 use color::Color;
@@ -7,7 +7,7 @@ use coords::WorldCoord;
 use v3;
 
 pub struct SeaDrawing {
-    vbo: VBO,
+    vbo: SimpleVBO,
 }
 
 impl Drawing for SeaDrawing {
@@ -30,7 +30,7 @@ impl Drawing for SeaDrawing {
 
 impl SeaDrawing {
     pub fn new(width: f32, height: f32, level: f32) -> SeaDrawing {
-        let mut vbo = VBO::new(DrawingType::Plain);
+        let mut vbo = SimpleVBO::new(DrawingType::Plain);
 
         let color = Color::new(0.0, 0.0, 1.0, 1.0);
 

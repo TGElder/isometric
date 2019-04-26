@@ -1,5 +1,5 @@
 use super::super::engine::DrawingType;
-use super::super::vertex_objects::VBO;
+use super::super::vertex_objects::SimpleVBO;
 use super::utils::*;
 use super::Drawing;
 use color::Color;
@@ -8,7 +8,7 @@ use terrain::Terrain;
 use v2;
 
 pub struct SelectedCellDrawing {
-    vbo: VBO,
+    vbo: SimpleVBO,
 }
 
 impl Drawing for SelectedCellDrawing {
@@ -56,7 +56,7 @@ impl SelectedCellDrawing {
             ));
         }
 
-        let mut vbo = VBO::new(DrawingType::Plain);
+        let mut vbo = SimpleVBO::new(DrawingType::Plain);
 
         vbo.load(vertices);
 
