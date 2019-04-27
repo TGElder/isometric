@@ -1,12 +1,12 @@
 use super::super::engine::DrawingType;
 use super::super::texture::Texture;
-use super::super::vertex_objects::SimpleVBO;
+use super::super::vertex_objects::VBO;
 use super::Drawing;
 use coords::WorldCoord;
 use std::sync::Arc;
 
 pub struct Billboard {
-    vbo: SimpleVBO,
+    vbo: VBO,
     texture: Arc<Texture>,
 }
 
@@ -35,7 +35,7 @@ impl Drawing for Billboard {
 impl Billboard {
     #[rustfmt::skip]
     pub fn new(world_coord: WorldCoord, width: f32, height: f32, texture: Arc<Texture>) -> Billboard {
-        let mut vbo = SimpleVBO::new(DrawingType::Billboard);
+        let mut vbo = VBO::new(DrawingType::Billboard);
 
         let p = world_coord;
 

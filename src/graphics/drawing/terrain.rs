@@ -1,5 +1,5 @@
 use super::super::engine::DrawingType;
-use super::super::vertex_objects::{MultiVBO, SimpleVBO};
+use super::super::vertex_objects::{MultiVBO, VBO};
 use super::utils::*;
 use super::Drawing;
 use color::Color;
@@ -8,7 +8,7 @@ use terrain::{Edge, Node, Terrain};
 use {v2, V2, M};
 
 pub struct NodeDrawing {
-    vbo: SimpleVBO,
+    vbo: VBO,
     z_mod: f32,
 }
 
@@ -32,7 +32,7 @@ impl Drawing for NodeDrawing {
 
 impl NodeDrawing {
     pub fn new(terrain: &Terrain, nodes: &Vec<Node>, color: Color, z_mod: f32) -> NodeDrawing {
-        let mut vbo = SimpleVBO::new(DrawingType::Plain);
+        let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
@@ -51,7 +51,7 @@ impl NodeDrawing {
 }
 
 pub struct EdgeDrawing {
-    vbo: SimpleVBO,
+    vbo: VBO,
     z_mod: f32,
 }
 
@@ -75,7 +75,7 @@ impl Drawing for EdgeDrawing {
 
 impl EdgeDrawing {
     pub fn new(terrain: &Terrain, nodes: &Vec<Edge>, color: Color, z_mod: f32) -> EdgeDrawing {
-        let mut vbo = SimpleVBO::new(DrawingType::Plain);
+        let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
 
@@ -127,9 +127,7 @@ impl TerrainDrawing {
             9 * // 9 floats per triangle
             2 * // 2 triangles per cell
             slab_size * slab_size * 4; // cells per slab
-        println!("Max floats per index = {}", max_floats_per_index);
         let indices = (width * height) / (slab_size * slab_size);
-        println!("Indices {}", indices);
         let vbo = MultiVBO::new(DrawingType::Plain, indices, max_floats_per_index);
         TerrainDrawing{ width, height, slab_size, vbo }
     }
@@ -137,7 +135,6 @@ impl TerrainDrawing {
     pub fn get_index(&self, from: V2<usize>) -> usize {
         ((self.width / self.slab_size) * (from.y / self.slab_size)) + (from.x / self.slab_size)
     }
-
 
     pub fn update(
         &mut self,

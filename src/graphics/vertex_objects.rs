@@ -8,10 +8,13 @@ fn get_bytes<T> (floats: usize) -> usize {
 pub struct VBO {
     id: gl::types::GLuint,
     vao: VAO,
+    floats: usize,
 }
 
 impl VBO {
-    fn new(drawing_type: DrawingType) -> VBO {
+    const MAX_BYTES: usize = 2147483648;
+
+    pub fn new(drawing_type: DrawingType) -> VBO {
         let mut id: gl::types::GLuint = 0;
         let vao = VAO::new(drawing_type);
         unsafe {
@@ -19,6 +22,7 @@ impl VBO {
             let out = VBO {
                 id,
                 vao,
+                floats: 0,
             };
             out.set_vao();
             out
@@ -43,7 +47,7 @@ impl VBO {
         self.unbind();
     }
 
-    fn drawing_type(&self) -> &DrawingType {
+    pub fn drawing_type(&self) -> &DrawingType {
         &self.vao.drawing_type
     }
 
@@ -51,54 +55,89 @@ impl VBO {
         floats / self.vao.stride()
     }
 
-    fn alloc(&self, bytes: usize) {
+    fn check_floats_against_max_bytes(floats: usize) {
+        if get_bytes::<f32>(floats) > VBO::MAX_BYTES {
+            panic!("Trying to create a VBO with {} bytes. Max allowed is {}.",
+                get_bytes::<f32>(floats), VBO::MAX_BYTES);
+        }
+    }
+
+    pub fn load(&mut self, floats: Vec<f32>) {
+        VBO::check_floats_against_max_bytes(floats.len());
+        self.floats = floats.len();
         self.bind();
         unsafe {
             gl::BufferData(
                 gl::ARRAY_BUFFER,
-                bytes as gl::types::GLsizeiptr,
-                std::ptr::null(),
+                get_bytes::<f32>(self.floats) as gl::types::GLsizeiptr,
+                floats.as_ptr() as *const gl::types::GLvoid,
                 gl::STATIC_DRAW,
             );
         }
         self.unbind();
     }
 
-    fn clear_index(&self, offset_bytes: usize, clear_bytes: usize) {
+    fn alloc(&mut self, floats: usize) {
+        VBO::check_floats_against_max_bytes(floats);
+        self.floats = floats;
+        self.bind();
+        unsafe {
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                get_bytes::<f32>(self.floats) as gl::types::GLsizeiptr,
+                std::ptr::null(),
+                gl::STATIC_DRAW,
+            );
+        }
+        self.unbind();
+    }
+    
+    fn load_part(&self, float_offset: usize, floats: Vec<f32>) {
+        if float_offset + floats.len() > self.floats {
+            panic!("Trying to load {} floats at {} in buffer with only {} floats",
+                floats.len(), float_offset, self.floats);
+        }
+        self.bind();
         unsafe {
             gl::BufferSubData(
                 gl::ARRAY_BUFFER,
-                offset_bytes as gl::types::GLsizeiptr,
-                clear_bytes as gl::types::GLsizeiptr,
-                std::ptr::null(),
+                get_bytes::<f32>(float_offset) as gl::types::GLsizeiptr,
+                get_bytes::<f32>(floats.len()) as gl::types::GLsizeiptr,
+                floats.as_ptr() as *const gl::types::GLvoid
             );
         }
+        self.unbind();
     }
 
-    fn draw(&self, float_offset: usize, floats: usize) {
-        if floats > 0 {
+    pub fn draw(&self) {
+        if self.floats > 0 {
             self.vao.bind();
             unsafe {
                 gl::DrawArrays(
-                    get_draw_mode(&self.drawing_type()),
-                    self.count_verticies(float_offset) as i32,
-                    self.count_verticies(floats) as i32,
+                    self.vao.get_draw_mode(),
+                    0,
+                    self.floats as i32,
                 );     
             }
             self.vao.unbind();
         }
     }
 
-    fn draw_many(&self, float_offset_increment: usize, floats_vec: &Vec<usize>) {
+    fn draw_parts(&self, float_offset_increment: usize, floats_vec: &Vec<usize>) {
         self.vao.bind();
         let mut float_offset = 0;
         for floats in floats_vec {
-            if *floats > 0 {
+            let floats = *floats;
+            if floats > 0 {
+                if float_offset + floats > self.floats {
+                    panic!("Trying to draw {} floats starting at {} from a buffer with only {} floats",
+                    floats, float_offset, self.floats);
+                }
                 unsafe {
                     gl::DrawArrays(
-                        get_draw_mode(&self.drawing_type()),
+                        self.vao.get_draw_mode(),
                         self.count_verticies(float_offset) as i32,
-                        self.count_verticies(*floats) as i32,
+                        self.count_verticies(floats) as i32,
                     );
                 }
             }
@@ -116,43 +155,6 @@ impl Drop for VBO {
     }
 }
 
-pub struct SimpleVBO {
-    vbo: VBO,
-    floats: usize,
-}
-
-impl SimpleVBO {
-    pub fn new(drawing_type: DrawingType) -> SimpleVBO {
-        SimpleVBO{
-            vbo: VBO::new(drawing_type),
-            floats: 0
-        }
-    }
-
-    pub fn load(&mut self, vertices: Vec<f32>) {
-        self.floats = vertices.len();
-        unsafe {
-            self.vbo.bind();
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
-                vertices.as_ptr() as *const gl::types::GLvoid,
-                gl::STATIC_DRAW,
-            );
-            self.vbo.unbind();
-        }
-    }
-
-    pub fn draw(&self) {
-        self.vbo.draw(0, self.floats);
-    }
-
-    pub fn drawing_type(&self) -> &DrawingType {
-        self.vbo.drawing_type()
-    }
-
-}
-
 #[derive(Clone)]
 pub struct MultiVBO {
     vbo: Arc<VBO>,
@@ -162,75 +164,29 @@ pub struct MultiVBO {
 }
 
 impl MultiVBO {
-    const MAX_BYTES: usize = 2147483648;
                              
     pub fn new(drawing_type: DrawingType, indices: usize, max_floats_per_index: usize) -> MultiVBO {
-        let out = MultiVBO {
-            vbo: Arc::new(VBO::new(drawing_type)),
+        let mut vbo = VBO::new(drawing_type);
+        vbo.alloc(indices * max_floats_per_index);
+        MultiVBO {
+            vbo: Arc::new(vbo),
             indices,
             max_floats_per_index,
             floats_at_index: vec![0; indices],
-        };
-        if out.total_bytes() > MultiVBO::MAX_BYTES {
-            panic!("A buffer with {} indices with {} floats each would be {}. Maximum allowed is 2147483648.", indices, max_floats_per_index, MultiVBO::MAX_BYTES)
         }
-        out.vbo.set_vao();
-        out.vbo.alloc(out.total_bytes());
-        out
-        
     }
 
-    fn total_bytes(&self) -> usize {
-        self.indices * self.index_bytes()
-    }
-
-    fn index_bytes(&self) -> usize {
-        get_bytes::<f32>(self.max_floats_per_index)
-    }
-
-    fn offset_bytes(&self, index: usize) -> usize { // TODO test this stuff
-        if index >= self.indices {
-            panic!("Trying to get offset of index {} of MultiVBO with {} indices", index, self.indices);
-        }
-        index * self.index_bytes()
-    }
-
-    fn offset_floats(&self, index: usize) -> usize {
-        if index >= self.indices {
-            panic!("Trying to get offset of index {} of MultiVBO with {} indices", index, self.indices);
-        }
-        index * self.max_floats_per_index
-    }
-
-
-    
     pub fn load(&mut self, index: usize, floats: Vec<f32>) {
-        if index >= self.indices {
-            panic!("Tried to load to index {} of MultiVBO with {} indices");
-        }
-        if floats.len() > self.max_floats_per_index {
-            panic!("Tried to load {} floats into index of MultiVBO where max floats per index is {}", floats.len(), self.max_floats_per_index);
-        }
-        unsafe {
-            self.vbo.bind();
-            self.vbo.clear_index(self.offset_bytes(index), self.index_bytes());
-            gl::BufferSubData(
-                gl::ARRAY_BUFFER,
-                self.offset_bytes(index) as gl::types::GLsizeiptr,
-                get_bytes::<f32>(floats.len()) as gl::types::GLsizeiptr,
-                floats.as_ptr() as *const gl::types::GLvoid
-            );
-            self.vbo.unbind();
-        }
         self.floats_at_index[index] = floats.len();
+        self.vbo.load_part(index * self.max_floats_per_index, floats);
     }
 
     pub fn draw(&self) {
-        self.vbo.draw_many(self.max_floats_per_index, &self.floats_at_index);
+        self.vbo.draw_parts(self.max_floats_per_index, &self.floats_at_index);
     }
 
     pub fn drawing_type(&self) -> &DrawingType {
-        &self.vbo.vao.drawing_type
+        &self.vbo.drawing_type()
     }
 }
 
@@ -251,12 +207,29 @@ impl VAO {
         }
     }
 
+    fn set(&self) {
+        self.bind();
+        match self.drawing_type {
+            DrawingType::Plain => setup_vao_for_plain_drawing(),
+            DrawingType::Text => setup_vao_for_sprite_drawing(),
+            DrawingType::Billboard => setup_vao_for_sprite_drawing(),
+        }
+        self.unbind();
+    }
+
+    fn get_draw_mode(&self) -> gl::types::GLenum {
+        match self.drawing_type {
+            _ => gl::TRIANGLES,
+        }
+    }
+
     pub fn stride(&self) -> usize {
         match self.drawing_type {
             DrawingType::Plain => 6,
             _ => 7,
         }
     }
+    
 
     pub fn bind(&self) {
         unsafe {
@@ -270,11 +243,6 @@ impl VAO {
         }
     }
 
-    pub fn set(&self) {
-        self.bind();
-        setup_vao(&self.drawing_type);
-        self.unbind();
-    }
 }
 
 impl Drop for VAO {
@@ -337,19 +305,5 @@ fn setup_vao_for_sprite_drawing() {
             (7 * std::mem::size_of::<f32>()) as gl::types::GLint,
             (5 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
         );
-    }
-}
-
-fn setup_vao(drawing_type: &DrawingType) {
-    match drawing_type {
-        DrawingType::Plain => setup_vao_for_plain_drawing(),
-        DrawingType::Text => setup_vao_for_sprite_drawing(),
-        DrawingType::Billboard => setup_vao_for_sprite_drawing(),
-    }
-}
-
-fn get_draw_mode(drawing_type: &DrawingType) -> gl::types::GLenum {
-    match drawing_type {
-        _ => gl::TRIANGLES,
     }
 }

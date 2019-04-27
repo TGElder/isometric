@@ -1,12 +1,12 @@
 use super::super::engine::DrawingType;
-use super::super::vertex_objects::SimpleVBO;
+use super::super::vertex_objects::VBO;
 use super::Drawing;
 use coords::WorldCoord;
 use font::Font;
 use std::sync::Arc;
 
 pub struct Text {
-    vbo: SimpleVBO,
+    vbo: VBO,
     font: Arc<Font>,
     world_coord: WorldCoord,
 }
@@ -36,7 +36,7 @@ impl Drawing for Text {
 impl Text {
     #[rustfmt::skip]
     pub fn new(text: &str, world_coord: WorldCoord, font: Arc<Font>) -> Text {
-        let mut vbo = SimpleVBO::new(DrawingType::Text);
+        let mut vbo = VBO::new(DrawingType::Text);
 
         let mut vertices = vec![];
 

@@ -1,12 +1,12 @@
 use super::super::engine::DrawingType;
-use super::super::vertex_objects::SimpleVBO;
+use super::super::vertex_objects::VBO;
 use super::utils::*;
 use super::Drawing;
 use color::Color;
 use coords::*;
 
 pub struct HouseDrawing {
-    vbo: SimpleVBO,
+    vbo: VBO,
 }
 
 impl Drawing for HouseDrawing {
@@ -56,7 +56,7 @@ impl HouseDrawing {
 
         let s = na::Vector3::new(x, y, z + height + roof_height);
 
-        let mut vbo = SimpleVBO::new(DrawingType::Plain);
+        let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
         vertices.append(&mut get_colored_vertices_from_square(
