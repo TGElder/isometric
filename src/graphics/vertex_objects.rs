@@ -1,7 +1,7 @@
 use super::engine::DrawingType;
 use std::sync::Arc;
 
-fn get_bytes<T> (floats: usize) -> usize {
+fn get_bytes<T>(floats: usize) -> usize {
     floats * std::mem::size_of::<T>()
 }
 
@@ -19,11 +19,7 @@ impl VBO {
         let vao = VAO::new(drawing_type);
         unsafe {
             gl::GenBuffers(1, &mut id);
-            let out = VBO {
-                id,
-                vao,
-                floats: 0,
-            };
+            let out = VBO { id, vao, floats: 0 };
             out.set_vao();
             out
         }
@@ -57,8 +53,11 @@ impl VBO {
 
     fn check_floats_against_max_bytes(floats: usize) {
         if get_bytes::<f32>(floats) > VBO::MAX_BYTES {
-            panic!("Trying to create a VBO with {} bytes. Max allowed is {}.",
-                get_bytes::<f32>(floats), VBO::MAX_BYTES);
+            panic!(
+                "Trying to create a VBO with {} bytes. Max allowed is {}.",
+                get_bytes::<f32>(floats),
+                VBO::MAX_BYTES
+            );
         }
     }
 
@@ -91,11 +90,15 @@ impl VBO {
         }
         self.unbind();
     }
-    
+
     fn load_part(&self, float_offset: usize, floats: Vec<f32>) {
         if float_offset + floats.len() > self.floats {
-            panic!("Trying to load {} floats at {} in buffer with only {} floats",
-                floats.len(), float_offset, self.floats);
+            panic!(
+                "Trying to load {} floats at {} in buffer with only {} floats",
+                floats.len(),
+                float_offset,
+                self.floats
+            );
         }
         self.bind();
         unsafe {
@@ -103,7 +106,7 @@ impl VBO {
                 gl::ARRAY_BUFFER,
                 get_bytes::<f32>(float_offset) as gl::types::GLsizeiptr,
                 get_bytes::<f32>(floats.len()) as gl::types::GLsizeiptr,
-                floats.as_ptr() as *const gl::types::GLvoid
+                floats.as_ptr() as *const gl::types::GLvoid,
             );
         }
         self.unbind();
@@ -113,11 +116,7 @@ impl VBO {
         if self.floats > 0 {
             self.vao.bind();
             unsafe {
-                gl::DrawArrays(
-                    self.vao.get_draw_mode(),
-                    0,
-                    self.floats as i32,
-                );     
+                gl::DrawArrays(self.vao.get_draw_mode(), 0, self.floats as i32);
             }
             self.vao.unbind();
         }
@@ -130,8 +129,10 @@ impl VBO {
             let floats = *floats;
             if floats > 0 {
                 if float_offset + floats > self.floats {
-                    panic!("Trying to draw {} floats starting at {} from a buffer with only {} floats",
-                    floats, float_offset, self.floats);
+                    panic!(
+                        "Trying to draw {} floats starting at {} from a buffer with only {} floats",
+                        floats, float_offset, self.floats
+                    );
                 }
                 unsafe {
                     gl::DrawArrays(
@@ -164,7 +165,6 @@ pub struct MultiVBO {
 }
 
 impl MultiVBO {
-                             
     pub fn new(drawing_type: DrawingType, indices: usize, max_floats_per_index: usize) -> MultiVBO {
         let mut vbo = VBO::new(drawing_type);
         vbo.alloc(indices * max_floats_per_index);
@@ -178,11 +178,13 @@ impl MultiVBO {
 
     pub fn load(&mut self, index: usize, floats: Vec<f32>) {
         self.floats_at_index[index] = floats.len();
-        self.vbo.load_part(index * self.max_floats_per_index, floats);
+        self.vbo
+            .load_part(index * self.max_floats_per_index, floats);
     }
 
     pub fn draw(&self) {
-        self.vbo.draw_parts(self.max_floats_per_index, &self.floats_at_index);
+        self.vbo
+            .draw_parts(self.max_floats_per_index, &self.floats_at_index);
     }
 
     pub fn drawing_type(&self) -> &DrawingType {
@@ -229,7 +231,6 @@ impl VAO {
             _ => 7,
         }
     }
-    
 
     pub fn bind(&self) {
         unsafe {
@@ -242,7 +243,6 @@ impl VAO {
             gl::BindVertexArray(0);
         }
     }
-
 }
 
 impl Drop for VAO {
@@ -253,7 +253,8 @@ impl Drop for VAO {
     }
 }
 
-fn setup_vao_for_plain_drawing() { //TODO why are these not part of VAO?
+fn setup_vao_for_plain_drawing() {
+    //TODO why are these not part of VAO?
     unsafe {
         gl::EnableVertexAttribArray(0);
         gl::VertexAttribPointer(

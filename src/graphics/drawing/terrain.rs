@@ -5,7 +5,7 @@ use super::Drawing;
 use color::Color;
 use coords::WorldCoord;
 use terrain::{Edge, Node, Terrain};
-use {v2, V2, M};
+use {v2, M, V2};
 
 pub struct NodeDrawing {
     vbo: VBO,
@@ -120,16 +120,18 @@ impl Drawing for TerrainDrawing {
 }
 
 impl TerrainDrawing {
-
     pub fn new(width: usize, height: usize, slab_size: usize) -> TerrainDrawing {
-        
-        let max_floats_per_index = 
-            9 * // 9 floats per triangle
+        let max_floats_per_index = 9 * // 9 floats per triangle
             2 * // 2 triangles per cell
             slab_size * slab_size * 4; // cells per slab
         let indices = (width * height) / (slab_size * slab_size);
         let vbo = MultiVBO::new(DrawingType::Plain, indices, max_floats_per_index);
-        TerrainDrawing{ width, height, slab_size, vbo }
+        TerrainDrawing {
+            width,
+            height,
+            slab_size,
+            vbo,
+        }
     }
 
     pub fn get_index(&self, from: V2<usize>) -> usize {
@@ -162,7 +164,7 @@ impl TerrainDrawing {
         }
 
         let index = self.get_index(from);
-       
+
         self.vbo.load(index, vertices);
     }
 }
