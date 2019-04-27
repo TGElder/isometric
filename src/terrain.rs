@@ -23,6 +23,18 @@ impl Node {
             height,
         }
     }
+
+    pub fn width(&self) -> f32 {
+        self.width
+    }
+
+    pub fn height(&self) -> f32 {
+        self.height
+    }
+
+    pub fn position(&self) -> V2<usize> {
+        self.position
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -57,76 +69,82 @@ impl Edge {
 }
 
 pub struct Terrain {
-    pub grid: M<V3<f32>>,
-    pub edge: M<bool>,
+    elevations: M<f32>,
+    node: M<Node>,
+    edge: M<bool>,
 }
 
 impl Terrain {
-    pub fn new(elevations: &M<f32>, nodes: &Vec<Node>, edges: &Vec<Edge>) -> Terrain {
-        Terrain {
-            grid: Terrain::create_grid(elevations, nodes),
-            edge: Terrain::get_edge_matrix(elevations.shape().0, elevations.shape().1, edges),
-        }
+    pub fn new(elevations: M<f32>, nodes: &Vec<Node>, edges: &Vec<Edge>) -> Terrain {
+        let (width, height) = elevations.shape();
+        let mut out = Terrain {
+            elevations,
+            node: Terrain::init_node_matrix(width, height),
+            edge: Terrain::init_edge_matrix(width, height),
+        };
+        out.set_nodes(nodes);
+        out.set_edges(edges);
+        out
     }
 
     pub fn width(&self) -> usize {
-        self.grid.shape().0
+        self.elevations.shape().0 * 2
     }
 
     pub fn height(&self) -> usize {
-        self.grid.shape().1
+        self.elevations.shape().1 * 2
     }
 
-    fn get_width_height_matrices(
-        width: usize,
-        height: usize,
-        nodes: &Vec<Node>,
-    ) -> (M<f32>, M<f32>) {
-        let mut widths: M<f32> = M::zeros(width, height);
-        let mut heights: M<f32> = M::zeros(width, height);
-        for node in nodes {
-            let index = (node.position.x, node.position.y);
-            widths[index] = widths[index].max(node.width);
-            heights[index] = heights[index].max(node.height);
+    fn get_vertex(&self, position: V2<usize>) -> V3<f32> {
+        let x = position.x / 2;
+        let y = position.y / 2;
+        let node = self.node[(x, y)];
+        let w = node.width;
+        let h = node.height;
+        let xf = x as f32;
+        let yf = y as f32;
+        let z = self.elevations[(x, y)];
+        match (position.x % 2, position.y % 2) {
+            (0, 0) => v3(xf - w, yf - h, z),
+            (1, 0) => v3(xf + w, yf - h, z),
+            (0, 1) => v3(xf - w, yf + h, z),
+            (1, 1) => v3(xf + w, yf + h, z),
+            (_, _) => panic!("Not expected to happen - {} % 2 or {} % 2 is not in range 0..1"),
         }
-
-        (widths, heights)
     }
 
-    fn create_grid(elevations: &M<f32>, nodes: &Vec<Node>) -> M<V3<f32>> {
-        let width = elevations.shape().0;
-        let height = elevations.shape().0;
-        let (widths, heights) = Terrain::get_width_height_matrices(width, height, nodes);
-        let mut grid = M::from_element(width * 2, height * 2, v3(0.0, 0.0, 0.0));
+    fn init_node_matrix(width: usize, height: usize) -> M<Node> {
+        M::from_fn(width, height, |x, y| Node::point(v2(x, y)))
+    }
 
-        for x in 0..width {
-            for y in 0..height {
-                let w = widths[(x, y)];
-                let h = heights[(x, y)];
-                let xf = x as f32;
-                let yf = y as f32;
-                let x2 = x * 2;
-                let y2 = y * 2;
-                let z = elevations[(x, y)];
-                grid[(x2, y2)] = v3(xf - w, yf - h, z);
-                grid[(x2 + 1, y2)] = v3(xf + w, yf - h, z);
-                grid[(x2, y2 + 1)] = v3(xf - w, yf + h, z);
-                grid[(x2 + 1, y2 + 1)] = v3(xf + w, yf + h, z);
-            }
+    pub fn set_node(&mut self, node: Node) {
+        self.node[(node.position.x, node.position.y)] = node;
+    }
+
+    pub fn set_nodes(&mut self, nodes: &Vec<Node>) {
+        for node in nodes.iter() {
+            self.set_node(*node);
         }
-
-        grid
     }
 
-    fn get_edge_matrix(width: usize, height: usize, edges: &Vec<Edge>) -> M<bool> {
-        let mut out = M::from_element(width * 2, height * 2, false);
+    fn init_edge_matrix(width: usize, height: usize) -> M<bool> {
+        M::from_element(width * 2, height * 2, false)
+    }
 
+    pub fn set_edge(&mut self, edge: &Edge) {
+        let position = Terrain::get_index_for_edge(&edge);
+        self.edge[(position.x, position.y)] = true;
+    }
+
+    pub fn set_edges(&mut self, edges: &Vec<Edge>) {
         for edge in edges {
-            let position = Terrain::get_index_for_edge(&edge);
-            out[(position.x, position.y)] = true;
+            self.set_edge(&edge);
         }
+    }
 
-        out
+    pub fn clear_edge(&mut self, edge: &Edge) {
+        let position = Terrain::get_index_for_edge(&edge);
+        self.edge[(position.x, position.y)] = false;
     }
 
     pub fn get_border(&self, grid_index: V2<usize>) -> Vec<V3<f32>> {
@@ -138,8 +156,8 @@ impl Terrain {
             let focus_index = grid_index + offsets[o];
             let next_index = grid_index + offsets[(o + 1) % 4];
 
-            let focus_position = self.grid[(focus_index.x, focus_index.y)];
-            let next_position = self.grid[(next_index.x, next_index.y)];
+            let focus_position = self.get_vertex(v2(focus_index.x, focus_index.y));
+            let next_position = self.get_vertex(v2(next_index.x, next_index.y));
 
             if focus_position != next_position {
                 out.push(focus_position);
@@ -244,7 +262,7 @@ mod tests {
             Edge::new(v2(1, 2), v2(2, 2)),
         ];
 
-        Terrain::new(&elevations, &nodes, &edges)
+        Terrain::new(elevations, &nodes, &edges)
     }
 
     #[test]
@@ -297,55 +315,37 @@ mod tests {
 
     #[rustfmt::skip]
     #[test]
-    fn test_get_width_height_matrices() {
-        let nodes = vec![
-            Node::new(v2(0, 0), 0.4, 0.0),
-            Node::new(v2(0, 0), 0.0, 0.1),
-            Node::new(v2(0, 0), 0.5, 0.4),
-            Node::new(v2(1, 1), 0.1, 0.1),
-        ];
+    fn test_set_node() {
+        let mut terrain = Terrain::new(M::zeros(2, 2), &vec![], &vec![]);
 
-        let widths = M::from_row_slice(2, 2, &[
-            0.5, 0.0,
-            0.0, 0.1,
-        ]).transpose();
+        terrain.set_node(Node::new(v2(1, 0), 0.4, 3.2));
 
-        let heights = M::from_row_slice(2, 2, &[
-            0.4, 0.0,
-            0.0, 0.1,
-        ]).transpose();
-
-        let actual = Terrain::get_width_height_matrices(2, 2, &nodes);
-
-        assert_eq!(actual, (widths, heights));
-    }
-
-    #[rustfmt::skip]
-    #[test]
-    fn test_get_edge_matrix() {
-        let edges = vec![
-            Edge::new(v2(0, 1), v2(1, 1)),
-            Edge::new(v2(1, 1), v2(2, 1)),
-            Edge::new(v2(1, 1), v2(1, 2)),
-        ];
-        let expected = M::from_row_slice(6, 6, &[
-            false, false, false, false, false, false,
-            false, false, false, false, false, false,
-            false, true , false, true , false, false,
-            false, false, true , false, false, false,
-            false, false, false, false, false, false,
-            false, false, false, false, false, false,
-        ]).transpose();
-
-        let actual = Terrain::get_edge_matrix(3, 3, &edges);
-
-        assert_eq!(actual, expected);
+        assert_eq!(terrain.node[(1, 0)], Node::new(v2(1, 0), 0.4, 3.2));
     }
 
     #[test]
-    fn test_create_grid() {
-        let actual = terrain().grid;
+    fn test_set_edge() {
+        let mut terrain = Terrain::new(M::zeros(2, 2), &vec![], &vec![]);
+        let edge = &Edge::new(v2(0, 1), v2(1, 1));
+        terrain.set_edge(&Edge::new(v2(0, 1), v2(1, 1)));
 
+        let index = Terrain::get_index_for_edge(&edge);
+        assert_eq!(terrain.edge[(index.x, index.y)], true);
+    }
+
+    #[test]
+    fn test_clear_edge() {
+        let mut terrain = Terrain::new(M::zeros(2, 2), &vec![], &vec![]);
+        let edge = &Edge::new(v2(0, 1), v2(1, 1));
+        terrain.set_edge(&Edge::new(v2(0, 1), v2(1, 1)));
+        terrain.clear_edge(&Edge::new(v2(0, 1), v2(1, 1)));
+
+        let index = Terrain::get_index_for_edge(&edge);
+        assert_eq!(terrain.edge[(index.x, index.y)], false);
+    }
+
+    #[test]
+    fn test_get_grid() {
         let mut expected = M::from_element(6, 6, v3(0.0, 0.0, 0.0));
 
         for x in 0..5 {
@@ -374,9 +374,11 @@ mod tests {
         expected[(4, 5)] = v3(2.0, 2.0, 1.0);
         expected[(5, 5)] = v3(2.0, 2.0, 1.0);
 
+        let terrain = terrain();
+
         for x in 0..5 {
             for y in 0..5 {
-                assert_eq!(actual[(x, y)], expected[(x, y)]);
+                assert_eq!(terrain.get_vertex(v2(x, y)), expected[(x, y)]);
             }
         }
     }
