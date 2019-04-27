@@ -17,28 +17,17 @@ impl Isometric {
 }
 
 impl Projection for Isometric {
+    #[rustfmt::skip]
     fn compute_projection_matrix(&self) -> na::Matrix4<f32> {
         let yc = self.yaw.cos();
         let ys = self.yaw.sin();
         let pc = self.pitch.cos();
         let ps = self.pitch.sin();
         na::Matrix4::from_vec(vec![
-            yc,
-            -ys,
-            0.0,
-            0.0,
-            -ys * pc,
-            -yc * pc,
-            ps,
-            0.0,
-            0.0,
-            0.0,
-            -1.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            1.0,
+            yc, -ys, 0.0, 0.0,
+            -ys * pc, -yc * pc, ps, 0.0,
+            0.0, 0.0, -1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
         ])
         .transpose()
     }
