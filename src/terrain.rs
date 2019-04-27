@@ -24,6 +24,14 @@ impl Node {
         }
     }
 
+    pub fn width(&self) -> f32 {
+        self.width
+    }
+
+    pub fn height(&self) -> f32 {
+        self.height
+    }
+
     pub fn position(&self) -> V2<usize> {
         self.position
     }
@@ -74,12 +82,8 @@ impl Terrain {
             node: Terrain::init_node_matrix(width, height),
             edge: Terrain::init_edge_matrix(width, height),
         };
-        for node in nodes {
-            out.set_node(&node);
-        }
-        for edge in edges {
-            out.set_edge(&edge);
-        }
+        out.set_nodes(nodes);
+        out.set_edges(edges);
         out
     }
 
@@ -113,12 +117,14 @@ impl Terrain {
         M::from_fn(width, height, |x, y| Node::point(v2(x, y)))
     }
 
-    pub fn set_node(&mut self, node: &Node) {
-        let position = (node.position.x, node.position.y);
-        let current_node = self.node[position];
-        let new_width = current_node.width.max(node.width);
-        let new_height = current_node.height.max(node.height);
-        self.node[position] = Node::new(node.position, new_width, new_height);
+    pub fn set_node(&mut self, node: Node) {
+        self.node[(node.position.x, node.position.y)] = node;
+    }
+
+    pub fn set_nodes(&mut self, nodes: &Vec<Node>) {
+        for node in nodes.iter() {
+            self.set_node(*node);
+        }
     }
 
     fn init_edge_matrix(width: usize, height: usize) -> M<bool> {
@@ -128,6 +134,12 @@ impl Terrain {
     pub fn set_edge(&mut self, edge: &Edge) {
         let position = Terrain::get_index_for_edge(&edge);
         self.edge[(position.x, position.y)] = true;
+    }
+
+    pub fn set_edges(&mut self, edges: &Vec<Edge>) {
+        for edge in edges {
+            self.set_edge(&edge);
+        }
     }
 
     pub fn clear_edge(&mut self, edge: &Edge) {
@@ -306,21 +318,9 @@ mod tests {
     fn test_set_node() {
         let mut terrain = Terrain::new(M::zeros(2, 2), &vec![], &vec![]);
 
-        let nodes = vec![
-            Node::new(v2(0, 0), 0.4, 0.0),
-            Node::new(v2(0, 0), 0.0, 0.1),
-            Node::new(v2(0, 0), 0.5, 0.4),
-            Node::new(v2(1, 1), 0.1, 0.1),
-        ];
+        terrain.set_node(Node::new(v2(1, 0), 0.4, 3.2));
 
-        for node in nodes {
-            terrain.set_node(&node);
-        }
-
-        assert_eq!(terrain.node[(0, 0)], Node::new(v2(0, 0), 0.5, 0.4));
-        assert_eq!(terrain.node[(0, 1)], Node::new(v2(0, 1), 0.0, 0.0));
-        assert_eq!(terrain.node[(1, 0)], Node::new(v2(1, 0), 0.0, 0.0));
-        assert_eq!(terrain.node[(1, 1)], Node::new(v2(1, 1), 0.1, 0.1));
+        assert_eq!(terrain.node[(1, 0)], Node::new(v2(1, 0), 0.4, 3.2));
     }
 
     #[test]
