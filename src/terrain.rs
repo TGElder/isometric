@@ -61,7 +61,6 @@ impl Edge {
 }
 
 pub struct Terrain {
-    //grid: M<V3<f32>>,
     elevations: M<f32>,
     node: M<Node>,
     edge: M<bool>,
@@ -69,11 +68,9 @@ pub struct Terrain {
 
 impl Terrain {
     pub fn new(elevations: M<f32>, nodes: &Vec<Node>, edges: &Vec<Edge>) -> Terrain {
-        let width = elevations.shape().0;
-        let height = elevations.shape().1;
+        let (width, height) = elevations.shape();
         let mut out = Terrain {
             elevations,
-            //grid: Terrain::create_grid(elevations, nodes),
             node: Terrain::init_node_matrix(width, height),
             edge: Terrain::init_edge_matrix(width, height),
         };
@@ -94,7 +91,7 @@ impl Terrain {
         self.elevations.shape().1 * 2
     }
 
-    fn get_grid(&self, position: V2<usize>) -> V3<f32> {
+    fn get_vertex(&self, position: V2<usize>) -> V3<f32> {
         let x = position.x / 2;
         let y = position.y / 2;
         let node = self.node[(x, y)];
@@ -113,15 +110,7 @@ impl Terrain {
     }
 
     fn init_node_matrix(width: usize, height: usize) -> M<Node> {
-        let mut out = M::from_element(width, height, Node::point(v2(0, 0)));
-
-        for x in 0..width {
-            for y in 0..height {
-                out[(x, y)].position = v2(x, y);
-            }
-        }
-
-        out
+        M::from_fn(width, height, |x, y| Node::point(v2(x, y)))
     }
 
     pub fn set_node(&mut self, node: &Node) {
@@ -155,8 +144,8 @@ impl Terrain {
             let focus_index = grid_index + offsets[o];
             let next_index = grid_index + offsets[(o + 1) % 4];
 
-            let focus_position = self.get_grid(v2(focus_index.x, focus_index.y));
-            let next_position = self.get_grid(v2(next_index.x, next_index.y));
+            let focus_position = self.get_vertex(v2(focus_index.x, focus_index.y));
+            let next_position = self.get_vertex(v2(next_index.x, next_index.y));
 
             if focus_position != next_position {
                 out.push(focus_position);
@@ -389,7 +378,7 @@ mod tests {
 
         for x in 0..5 {
             for y in 0..5 {
-                assert_eq!(terrain.get_grid(v2(x, y)), expected[(x, y)]);
+                assert_eq!(terrain.get_vertex(v2(x, y)), expected[(x, y)]);
             }
         }
     }
