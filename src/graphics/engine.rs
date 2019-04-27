@@ -7,7 +7,7 @@ use super::drawing::Drawing;
 use coords::*;
 use transform::{Isometric, Transform};
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq)]
 pub enum DrawingType {
     Plain,
     Text,

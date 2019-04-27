@@ -5,6 +5,7 @@ use super::Drawing;
 use color::Color;
 use coords::WorldCoord;
 use terrain::{Edge, Node, Terrain};
+use utils::Index2D;
 use {v2, M, V2};
 
 pub struct NodeDrawing {
@@ -93,12 +94,43 @@ impl EdgeDrawing {
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+struct TerrainIndex {
+    slab_size: usize,
+    index: Index2D,
+}
+
+#[derive(Debug, PartialEq)]
+struct TerrainIndexOutOfBounds {
+    slab: V2<usize>,
+    index: TerrainIndex,
+}
+
+impl TerrainIndex {
+    pub fn new(width: usize, height: usize, slab_size: usize) -> TerrainIndex {
+        TerrainIndex {
+            slab_size,
+            index: Index2D::new(width / slab_size, height / slab_size),
+        }
+    }
+
+    pub fn get(&self, slab: V2<usize>) -> Result<usize, TerrainIndexOutOfBounds> {
+        let position = slab / self.slab_size;
+        match self.index.get(position) {
+            Err(_) => Err(TerrainIndexOutOfBounds { slab, index: *self }),
+            Ok(index) => Ok(index),
+        }
+    }
+
+    pub fn indices(&self) -> usize {
+        self.index.indices()
+    }
+}
+
 #[derive(Clone)]
 pub struct TerrainDrawing {
-    width: usize,
-    height: usize,
-    slab_size: usize,
     vbo: MultiVBO,
+    index: TerrainIndex,
 }
 
 impl Drawing for TerrainDrawing {
@@ -124,18 +156,9 @@ impl TerrainDrawing {
         let max_floats_per_index = 9 * // 9 floats per triangle
             2 * // 2 triangles per cell
             slab_size * slab_size * 4; // cells per slab
-        let indices = (width * height) / (slab_size * slab_size);
-        let vbo = MultiVBO::new(DrawingType::Plain, indices, max_floats_per_index);
-        TerrainDrawing {
-            width,
-            height,
-            slab_size,
-            vbo,
-        }
-    }
-
-    pub fn get_index(&self, from: V2<usize>) -> usize {
-        ((self.width / self.slab_size) * (from.y / self.slab_size)) + (from.x / self.slab_size)
+        let index = TerrainIndex::new(width, height, slab_size);
+        let vbo = MultiVBO::new(DrawingType::Plain, index.indices(), max_floats_per_index);
+        TerrainDrawing { vbo, index }
     }
 
     pub fn update(
@@ -163,8 +186,57 @@ impl TerrainDrawing {
             }
         }
 
-        let index = self.get_index(from);
-
+        let index = self.index.get(from).unwrap();
         self.vbo.load(index, vertices);
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_terrain_index_indices() {
+        let index = TerrainIndex::new(128, 64, 32);
+        assert_eq!(index.indices(), 8);
+    }
+
+    #[test]
+    fn test_terrain_index_get_index() {
+        let index = TerrainIndex::new(128, 64, 32);
+        assert_eq!(index.get(v2(0, 0)).unwrap(), 0);
+        assert_eq!(index.get(v2(32, 0)).unwrap(), 1);
+        assert_eq!(index.get(v2(64, 0)).unwrap(), 2);
+        assert_eq!(index.get(v2(96, 0)).unwrap(), 3);
+        assert_eq!(index.get(v2(0, 32)).unwrap(), 4);
+        assert_eq!(index.get(v2(32, 32)).unwrap(), 5);
+        assert_eq!(index.get(v2(64, 32)).unwrap(), 6);
+        assert_eq!(index.get(v2(96, 32)).unwrap(), 7);
+    }
+
+    #[test]
+    fn test_terrain_index_x_out_of_bounds() {
+        let index = TerrainIndex::new(128, 64, 32);
+        assert_eq!(
+            index.get(v2(128, 0)),
+            Err(TerrainIndexOutOfBounds {
+                slab: v2(128, 0),
+                index,
+            })
+        );
+    }
+
+    #[test]
+    fn test_terrain_index_y_out_of_bounds() {
+        let index = TerrainIndex::new(128, 64, 32);
+        assert_eq!(
+            index.get(v2(0, 64)),
+            Err(TerrainIndexOutOfBounds {
+                slab: v2(0, 64),
+                index,
+            })
+        );
+    }
+
 }

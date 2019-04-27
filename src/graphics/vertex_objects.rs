@@ -48,7 +48,7 @@ impl VBO {
     }
 
     fn count_verticies(&self, floats: usize) -> usize {
-        floats / self.vao.stride()
+        floats / self.vao.floats_per_vertex()
     }
 
     fn check_floats_against_max_bytes(floats: usize) {
@@ -225,7 +225,7 @@ impl VAO {
         }
     }
 
-    pub fn stride(&self) -> usize {
+    pub fn floats_per_vertex(&self) -> usize {
         match self.drawing_type {
             DrawingType::Plain => 6,
             _ => 7,
