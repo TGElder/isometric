@@ -95,6 +95,10 @@ impl Terrain {
         self.elevations.shape().1 * 2
     }
 
+    pub fn elevations(&self) -> &M<f32> {
+        &self.elevations
+    }
+
     fn get_vertex(&self, position: V2<usize>) -> V3<f32> {
         let x = position.x / 2;
         let y = position.y / 2;

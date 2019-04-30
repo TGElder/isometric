@@ -70,7 +70,8 @@ impl IsometricEngine {
             .with_dimensions(glutin::dpi::LogicalSize::new(width as f64, height as f64));
         let context = glutin::ContextBuilder::new()
             .with_gl(IsometricEngine::GL_VERSION)
-            .with_vsync(true);
+            .with_vsync(true)
+            .with_multisampling(4);
         let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
 
         unsafe {
