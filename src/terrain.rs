@@ -70,8 +70,8 @@ impl Edge {
 
 pub struct Terrain {
     elevations: M<f32>,
-    node: M<Node>,
-    edge: M<bool>,
+    nodes: M<Node>,
+    edges: M<bool>,
 }
 
 impl Terrain {
@@ -79,8 +79,8 @@ impl Terrain {
         let (width, height) = elevations.shape();
         let mut out = Terrain {
             elevations,
-            node: Terrain::init_node_matrix(width, height),
-            edge: Terrain::init_edge_matrix(width, height),
+            nodes: Terrain::init_node_matrix(width, height),
+            edges: Terrain::init_edge_matrix(width, height),
         };
         out.set_nodes(nodes);
         out.set_edges(edges);
@@ -99,10 +99,19 @@ impl Terrain {
         &self.elevations
     }
 
+    pub fn get_node(&self, position: V2<usize>) -> &Node {
+        &self.nodes[(position.x, position.y)]
+    }
+
+    pub fn is_edge(&self, edge: &Edge) -> bool {
+        let index = Terrain::get_index_for_edge(edge);
+        self.edges[(index.x, index.y)]
+    }
+
     fn get_vertex(&self, position: V2<usize>) -> V3<f32> {
         let x = position.x / 2;
         let y = position.y / 2;
-        let node = self.node[(x, y)];
+        let node = self.nodes[(x, y)];
         let w = node.width;
         let h = node.height;
         let xf = x as f32;
@@ -122,7 +131,7 @@ impl Terrain {
     }
 
     pub fn set_node(&mut self, node: Node) {
-        self.node[(node.position.x, node.position.y)] = node;
+        self.nodes[(node.position.x, node.position.y)] = node;
     }
 
     pub fn set_nodes(&mut self, nodes: &Vec<Node>) {
@@ -137,7 +146,7 @@ impl Terrain {
 
     pub fn set_edge(&mut self, edge: &Edge) {
         let position = Terrain::get_index_for_edge(&edge);
-        self.edge[(position.x, position.y)] = true;
+        self.edges[(position.x, position.y)] = true;
     }
 
     pub fn set_edges(&mut self, edges: &Vec<Edge>) {
@@ -148,7 +157,7 @@ impl Terrain {
 
     pub fn clear_edge(&mut self, edge: &Edge) {
         let position = Terrain::get_index_for_edge(&edge);
-        self.edge[(position.x, position.y)] = false;
+        self.edges[(position.x, position.y)] = false;
     }
 
     pub fn get_border(&self, grid_index: V2<usize>) -> Vec<V3<f32>> {
@@ -225,7 +234,7 @@ impl Terrain {
 
         for adjacent in adjacents {
             let triangles = self.get_triangles(adjacent);
-            let edge = self.edge[(adjacent.x, adjacent.y)];
+            let edge = self.edges[(adjacent.x, adjacent.y)];
             if !edge && (triangles.len() == 1 || triangles.len() == 2) {
                 for mut triangle in triangles {
                     for p in 0..3 {
@@ -316,15 +325,13 @@ mod tests {
         let edge = Edge::new(v2(10, 1), v2(10, 10));
         assert!(!edge.horizontal());
     }
-
-    #[rustfmt::skip]
     #[test]
     fn test_set_node() {
         let mut terrain = Terrain::new(M::zeros(2, 2), &vec![], &vec![]);
 
         terrain.set_node(Node::new(v2(1, 0), 0.4, 3.2));
 
-        assert_eq!(terrain.node[(1, 0)], Node::new(v2(1, 0), 0.4, 3.2));
+        assert_eq!(terrain.get_node(v2(1, 0)), &Node::new(v2(1, 0), 0.4, 3.2));
     }
 
     #[test]
@@ -333,8 +340,7 @@ mod tests {
         let edge = &Edge::new(v2(0, 1), v2(1, 1));
         terrain.set_edge(&Edge::new(v2(0, 1), v2(1, 1)));
 
-        let index = Terrain::get_index_for_edge(&edge);
-        assert_eq!(terrain.edge[(index.x, index.y)], true);
+        assert_eq!(terrain.is_edge(&edge), true);
     }
 
     #[test]
@@ -344,8 +350,7 @@ mod tests {
         terrain.set_edge(&Edge::new(v2(0, 1), v2(1, 1)));
         terrain.clear_edge(&Edge::new(v2(0, 1), v2(1, 1)));
 
-        let index = Terrain::get_index_for_edge(&edge);
-        assert_eq!(terrain.edge[(index.x, index.y)], false);
+        assert_eq!(terrain.is_edge(&edge), false);
     }
 
     #[test]
