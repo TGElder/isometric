@@ -32,7 +32,7 @@ impl Drawing for NodeDrawing {
 }
 
 impl NodeDrawing {
-    pub fn new(terrain: &Terrain, nodes: &Vec<Node>, color: Color, z_mod: f32) -> NodeDrawing {
+    pub fn new(terrain: &Terrain, nodes: &Vec<Node>, color: &Color, z_mod: f32) -> NodeDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
@@ -40,7 +40,7 @@ impl NodeDrawing {
         for node in nodes {
             for triangle in terrain.get_triangles(Terrain::get_index_for_node(&node)) {
                 vertices.append(&mut get_uniform_colored_vertices_from_triangle(
-                    &triangle, &color,
+                    &triangle, color,
                 ));
             }
         }
@@ -75,7 +75,7 @@ impl Drawing for EdgeDrawing {
 }
 
 impl EdgeDrawing {
-    pub fn new(terrain: &Terrain, nodes: &Vec<Edge>, color: Color, z_mod: f32) -> EdgeDrawing {
+    pub fn new(terrain: &Terrain, nodes: &Vec<Edge>, color: &Color, z_mod: f32) -> EdgeDrawing {
         let mut vbo = VBO::new(DrawingType::Plain);
 
         let mut vertices = vec![];
@@ -83,7 +83,7 @@ impl EdgeDrawing {
         for node in nodes {
             for triangle in terrain.get_triangles(Terrain::get_index_for_edge(&node)) {
                 vertices.append(&mut get_uniform_colored_vertices_from_triangle(
-                    &triangle, &color,
+                    &triangle, color,
                 ));
             }
         }
