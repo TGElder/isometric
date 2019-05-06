@@ -23,6 +23,14 @@ impl Texture {
         }
     }
 
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
     pub unsafe fn bind(&self) {
         gl::BindTexture(gl::TEXTURE_2D, self.id);
     }
